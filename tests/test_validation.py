@@ -1,0 +1,114 @@
+from typing import Any, Optional
+
+import pytest
+from pydantic import BaseModel
+from pydantic.dataclasses import dataclass
+from quart import Quart, websocket
+
+from quart_schema import QuartSchema, SchemaValidationError, validate_request, validate_response
+
+
+@dataclass
+class DCDetails:
+    name: str
+    age: Optional[int] = None
+
+
+@dataclass
+class DCItem:
+    count: int
+    details: DCDetails
+
+
+class Details(BaseModel):
+    name: str
+    age: Optional[int]
+
+
+class Item(BaseModel):
+    count: int
+    details: Details
+
+
+VALID_DICT = {"count": 2, "details": {"name": "bob"}}
+INVALID_DICT = {"count": 2, "name": "bob"}
+VALID = Item(count=2, details=Details(name="bob"))
+INVALID = Details(name="bob")
+VALID_DC = DCItem(count=2, details=DCDetails(name="bob"))
+INVALID_DC = DCDetails(name="bob")
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("path", ["/", "/dc"])
+@pytest.mark.parametrize(
+    "json, status",
+    [
+        (VALID_DICT, 200),
+        (INVALID_DICT, 400),
+    ],
+)
+async def test_request_validation(path: str, json: dict, status: int) -> None:
+    app = Quart(__name__)
+    QuartSchema(app)
+
+    @app.route("/", methods=["POST"])
+    @validate_request(Item)
+    async def item(data: Item) -> str:
+        return ""
+
+    @app.route("/dc", methods=["POST"])
+    @validate_request(DCItem)  # type: ignore
+    async def dcitem(data: DCItem) -> str:
+        return ""
+
+    test_client = app.test_client()
+    response = await test_client.post(path, json=json)
+    assert response.status_code == status
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "model, return_value, status",
+    [
+        (Item, VALID_DICT, 200),
+        (Item, INVALID_DICT, 500),
+        (Item, VALID, 200),
+        (Item, INVALID, 500),
+        (DCItem, VALID_DICT, 200),
+        (DCItem, INVALID_DICT, 500),
+        (DCItem, VALID_DC, 200),
+        (DCItem, INVALID_DC, 500),
+    ],
+)
+async def test_response_validation(model: Any, return_value: Any, status: int) -> None:
+    app = Quart(__name__)
+    QuartSchema(app)
+
+    @app.route("/")
+    @validate_response(model)
+    async def item() -> Any:
+        return return_value
+
+    test_client = app.test_client()
+    response = await test_client.get("/")
+    assert response.status_code == status
+
+
+@pytest.mark.asyncio
+async def test_websocket_validation() -> None:
+    app = Quart(__name__)
+    QuartSchema(app)
+
+    @app.websocket("/ws")
+    async def ws() -> None:
+        await websocket.receive_as(Item)
+        with pytest.raises(SchemaValidationError):
+            await websocket.receive_as(Item)
+        await websocket.send_as(VALID_DICT, Item)
+        with pytest.raises(SchemaValidationError):
+            await websocket.send_as(VALID_DICT, Details)
+
+    test_client = app.test_client()
+    async with test_client.websocket("/ws") as test_websocket:
+        await test_websocket.send_json(VALID_DICT)
+        await test_websocket.send_json(INVALID_DICT)

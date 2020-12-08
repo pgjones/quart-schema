@@ -1,0 +1,15 @@
+*~
+venv/
+__pycache__/
+Quart_Auth.egg-info/
+.cache/
+.tox/
+TODO
+.mypy_cache/
+.hypothesis/
+docs/_build/
+docs/reference/source/
+.coverage
+.pytest_cache/
+dist/
+poetry.lock
