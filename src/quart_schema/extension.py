@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from dataclasses import asdict, is_dataclass
 from types import new_class
 from typing import Any, cast, Dict, Optional, overload, Type, Union
@@ -16,6 +17,8 @@ from .validation import (
     QUART_SCHEMA_REQUEST_ATTRIBUTE,
     QUART_SCHEMA_RESPONSE_ATTRIBUTE,
 )
+
+PATH_RE = re.compile("<(?:[^:]*:)?([^>]+)>")
 
 DOCS_TEMPLATE = """
 <head>
@@ -121,14 +124,14 @@ class QuartSchema:
         paths: Dict[str, dict] = {}
         for rule in self.app.url_map.iter_rules():
             func = self.app.view_functions[rule.endpoint]
-            path = {
+            path_object = {
                 "description": func.__doc__,
                 "parameters": [],
                 "responses": {},
             }
             response_schemas = getattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, {})
             for status_code, schema in response_schemas.items():
-                path["responses"][status_code] = {  # type: ignore
+                path_object["responses"][status_code] = {  # type: ignore
                     "content": {
                         "application/json": {
                             "schema": schema,
@@ -137,7 +140,7 @@ class QuartSchema:
                 }
             request_schema = getattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, None)
             if request_schema is not None:
-                path["requestBody"] = {
+                path_object["requestBody"] = {
                     "content": {
                         "application/json": {
                             "schema": request_schema,
@@ -147,7 +150,7 @@ class QuartSchema:
             querystring_schema = getattr(func, QUART_SCHEMA_QUERYSTRING_ATTRIBUTE, None)
             if querystring_schema is not None:
                 for name, type_ in querystring_schema["properties"].items():
-                    path["parameters"].append(  # type: ignore
+                    path_object["parameters"].append(  # type: ignore
                         {
                             "name": name,
                             "in": "query",
@@ -155,11 +158,21 @@ class QuartSchema:
                         }
                     )
 
-            paths[rule.rule] = {}
+            for name, converter in rule._converters.items():
+                path_object["parameters"].append(  # type: ignore
+                    {
+                        "name": name,
+                        "in": "path",
+                    }
+                )
+
+            path = re.sub(PATH_RE, r"{\1}", rule.rule)
+            paths.setdefault(path, {})
+
             for method in rule.methods:
                 if method == "HEAD" or (method == "OPTIONS" and rule.provide_automatic_options):
                     continue
-                paths[rule.rule][method.lower()] = path
+                paths[path][method.lower()] = path_object
 
         return {
             "openapi": "3.0.3",
