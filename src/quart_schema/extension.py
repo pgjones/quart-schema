@@ -11,7 +11,11 @@ from quart.json import JSONEncoder as QuartJSONEncoder
 from quart.wrappers import Websocket
 
 from .typing import BM, DC, WebsocketProtocol
-from .validation import QUART_SCHEMA_REQUEST_ATTRIBUTE, QUART_SCHEMA_RESPONSE_ATTRIBUTE
+from .validation import (
+    QUART_SCHEMA_QUERYSTRING_ATTRIBUTE,
+    QUART_SCHEMA_REQUEST_ATTRIBUTE,
+    QUART_SCHEMA_RESPONSE_ATTRIBUTE,
+)
 
 DOCS_TEMPLATE = """
 <head>
@@ -119,6 +123,7 @@ class QuartSchema:
             func = self.app.view_functions[rule.endpoint]
             path = {
                 "description": func.__doc__,
+                "parameters": [],
                 "responses": {},
             }
             response_schemas = getattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, {})
@@ -139,6 +144,17 @@ class QuartSchema:
                         },
                     },
                 }
+            querystring_schema = getattr(func, QUART_SCHEMA_QUERYSTRING_ATTRIBUTE, None)
+            if querystring_schema is not None:
+                for name, type_ in querystring_schema["properties"].items():
+                    path["parameters"].append(  # type: ignore
+                        {
+                            "name": name,
+                            "in": "query",
+                            "schema": type_,
+                        }
+                    )
+
             paths[rule.rule] = {}
             for method in rule.methods:
                 if method == "HEAD" or (method == "OPTIONS" and rule.provide_automatic_options):

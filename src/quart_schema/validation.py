@@ -13,6 +13,7 @@ from .typing import BM, Dataclass, DC
 
 QUART_SCHEMA_REQUEST_ATTRIBUTE = "_quart_schema_request_schema"
 QUART_SCHEMA_RESPONSE_ATTRIBUTE = "_quart_schema_response_schemas"
+QUART_SCHEMA_QUERYSTRING_ATTRIBUTE = "_quart_schema_querystring_schema"
 
 
 class SchemaInvalidError(Exception):
@@ -25,6 +26,29 @@ class ResponseSchemaValidationError(Exception):
 
 class RequestSchemaValidationError(BadRequest):
     pass
+
+
+def validate_querystring(model_class: Union[Type[BaseModel], Type[Dataclass]]) -> Callable:
+    schema = getattr(model_class, "__pydantic_model__", model_class).schema()
+    if len(schema.get("required", [])) != 0:
+        raise SchemaInvalidError("Fields must be optional")
+
+    def decorator(func: Callable) -> Callable:
+        setattr(func, QUART_SCHEMA_QUERYSTRING_ATTRIBUTE, schema)
+
+        @wraps(func)
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+            try:
+                model = model_class(**request.args)
+            except (TypeError, ValidationError):
+                raise RequestSchemaValidationError()
+            else:
+                return await func(*args, query_args=model, **kwargs)
+            return await func(*args, **kwargs)
+
+        return wrapper
+
+    return decorator
 
 
 def validate_request(model_class: Union[Type[BaseModel], Type[Dataclass], None]) -> Callable:

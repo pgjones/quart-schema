@@ -5,7 +5,13 @@ from pydantic import BaseModel
 from pydantic.dataclasses import dataclass
 from quart import Quart, websocket
 
-from quart_schema import QuartSchema, SchemaValidationError, validate_request, validate_response
+from quart_schema import (
+    QuartSchema,
+    SchemaValidationError,
+    validate_querystring,
+    validate_request,
+    validate_response,
+)
 
 
 @dataclass
@@ -18,6 +24,12 @@ class DCDetails:
 class DCItem:
     count: int
     details: DCDetails
+
+
+@dataclass
+class QueryItem:
+    count_le: Optional[int] = None
+    count_gt: Optional[int] = None
 
 
 class Details(BaseModel):
@@ -112,3 +124,28 @@ async def test_websocket_validation() -> None:
     async with test_client.websocket("/ws") as test_websocket:
         await test_websocket.send_json(VALID_DICT)
         await test_websocket.send_json(INVALID_DICT)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "path, status",
+    [
+        ("/", 200),
+        ("/?count_le=2", 200),
+        ("/?count_le=2&count_gt=0", 200),
+        ("/?count_le=a", 400),
+        ("/?count=a", 400),
+    ],
+)
+async def test_querystring_validation(path: str, status: int) -> None:
+    app = Quart(__name__)
+    QuartSchema(app)
+
+    @app.route("/")
+    @validate_querystring(QueryItem)  # type: ignore
+    async def query_item(query_args: QueryItem) -> str:
+        return ""
+
+    test_client = app.test_client()
+    response = await test_client.get(path)
+    assert response.status_code == status

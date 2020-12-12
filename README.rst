@@ -10,9 +10,11 @@ writing RESTful APIs.
 Quickstart
 ----------
 
-To add validation to an existing Quart route simply decorate it with
-``validate_request`` and ``validate_response``, with the relevant
-(Pydantic) dataclass objects,
+Quart-Schema can validate an existing Quart route by decorating it
+with ``validate_querystring``, ``validate_request``, or
+``validate_response``. It can also validate the JSON data sent and
+received over websockets using the ``send_as`` and ``receive_as``
+methods,
 
 .. code-block:: python
 
@@ -38,36 +40,16 @@ To add validation to an existing Quart route simply decorate it with
         ... # Do something with data, e.g. save to the DB
         return data, 201
 
-The documentation UI will be served by default at ``/docs`` from the
-openapi definition at ``/openapi.json``.
-
-Quart-Schema also allows validation of JSON data sent and received
-over websockets, although at present there is no standard to document
-this,
-
-.. code-block:: python
-
-    from datetime import datetime
-    from typing import Optional
-
-    from pydantic.dataclasses import dataclass
-    from quart import Quart
-    from quart_schema import QuartSchema, websocket
-
-    app = Quart(__name__)
-    QuartSchema(app)
-
-    @dataclass
-    class Todo:
-        task: str
-        due: Optional[datetime]
-
     @app.websocket("/ws")
     async def create_todo() -> None:
         while True:
             data = await websocket.receive_as(Todo)
             ... # Do something with data, e.g. save to the DB
             await websocket.send_as(data, Todo)
+
+The documentation UI will be served by default at ``/docs`` from the
+openapi definition at ``/openapi.json``. Note that there is currently
+no documentation standard for WebSockets.
 
 Contributing
 ------------
