@@ -168,6 +168,18 @@ class QuartSchema:
         self.title = self.app.name if self.title is None else self.title
         app.websocket_class = new_class("Websocket", (Websocket, WebsocketMixin))  # type: ignore
         app.json_encoder = JSONEncoder
+        app.config.setdefault(
+            "QUART_SCHEMA_SWAGGER_JS_URL",
+            "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.37.2/swagger-ui-bundle.js",
+        )
+        app.config.setdefault(
+            "QUART_SCHEMA_SWAGGER_CSS_URL",
+            "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.37.2/swagger-ui.min.css",
+        )
+        app.config.setdefault(
+            "QUART_SCHEMA_REDOC_JS_URL",
+            "https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js",
+        )
         if self.openapi_path is not None:
             self.app.add_url_rule(self.openapi_path, "openapi", self.openapi)
             if self.redoc_ui_path is not None:
@@ -260,8 +272,8 @@ class QuartSchema:
             SWAGGER_TEMPLATE,
             title=self.title,
             openapi_path=self.openapi_path,
-            swagger_js_url="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.37.2/swagger-ui-bundle.js",  # noqa: E501
-            swagger_css_url="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.37.2/swagger-ui.min.css",  # noqa: E501
+            swagger_js_url=self.app.config["QUART_SCHEMA_SWAGGER_JS_URL"],
+            swagger_css_url=self.app.config["QUART_SCHEMA_SWAGGER_CSS_URL"],
         )
 
     async def redoc_ui(self) -> str:
@@ -269,7 +281,7 @@ class QuartSchema:
             REDOC_TEMPLATE,
             title=self.title,
             openapi_path=self.openapi_path,
-            redoc_js_url="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js",
+            redoc_js_url=self.app.config["QUART_SCHEMA_REDOC_JS_URL"],
         )
 
 
