@@ -124,12 +124,17 @@ class QuartSchema:
         paths: Dict[str, dict] = {}
         for rule in self.app.url_map.iter_rules():
             func = self.app.view_functions[rule.endpoint]
-            path_object = {
+            response_schemas = getattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, {})
+            request_schema = getattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, None)
+            querystring_schema = getattr(func, QUART_SCHEMA_QUERYSTRING_ATTRIBUTE, None)
+            if response_schemas == {} and request_schema is None and querystring_schema is None:
+                continue
+
+            path_object = {  # type: ignore
                 "description": func.__doc__,
                 "parameters": [],
                 "responses": {},
             }
-            response_schemas = getattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, {})
             for status_code, schema in response_schemas.items():
                 path_object["responses"][status_code] = {  # type: ignore
                     "content": {
@@ -138,7 +143,7 @@ class QuartSchema:
                         },
                     },
                 }
-            request_schema = getattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, None)
+
             if request_schema is not None:
                 path_object["requestBody"] = {
                     "content": {
@@ -147,7 +152,7 @@ class QuartSchema:
                         },
                     },
                 }
-            querystring_schema = getattr(func, QUART_SCHEMA_QUERYSTRING_ATTRIBUTE, None)
+
             if querystring_schema is not None:
                 for name, type_ in querystring_schema["properties"].items():
                     path_object["parameters"].append(  # type: ignore
