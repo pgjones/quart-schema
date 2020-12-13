@@ -41,7 +41,7 @@ methods,
         return data, 201
 
     @app.websocket("/ws")
-    async def create_todo() -> None:
+    async def ws() -> None:
         while True:
             data = await websocket.receive_as(Todo)
             ... # Do something with data, e.g. save to the DB

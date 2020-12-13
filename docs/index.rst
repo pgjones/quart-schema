@@ -9,7 +9,7 @@ Quart-Schema is a `Quart <https://gitlab.com/pgjones/quart>`_
 extension that provides schema validation and auto-generated API
 documentation. Using Quart-Schema you can,
 
- * validate request JSON,
+ * validate request body and querystring data,
  * validate response JSON,
  * validate WebSocket JSON messages,
  * generate OpenAPI documentation from the validation,
