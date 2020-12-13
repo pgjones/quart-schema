@@ -2,18 +2,22 @@ from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
 from functools import wraps
-from typing import Any, Callable, cast, Type, Union
+from typing import Any, Callable, cast, Type, TYPE_CHECKING, Union
 
 from pydantic import BaseModel, ValidationError
+from pydantic.schema import model_schema
 from quart import request
 from quart.exceptions import BadRequest
 from werkzeug.datastructures import Headers
 
-from .typing import BM, Dataclass, DC
+if TYPE_CHECKING:
+    from pydantic.dataclasses import Dataclass
+
 
 QUART_SCHEMA_REQUEST_ATTRIBUTE = "_quart_schema_request_schema"
 QUART_SCHEMA_RESPONSE_ATTRIBUTE = "_quart_schema_response_schemas"
 QUART_SCHEMA_QUERYSTRING_ATTRIBUTE = "_quart_schema_querystring_schema"
+REF_PREFIX = "#/components/schemas/"
 
 
 class SchemaInvalidError(Exception):
@@ -29,7 +33,8 @@ class RequestSchemaValidationError(BadRequest):
 
 
 def validate_querystring(model_class: Union[Type[BaseModel], Type[Dataclass]]) -> Callable:
-    schema = getattr(model_class, "__pydantic_model__", model_class).schema()
+    schema = model_schema(model_class, ref_prefix=REF_PREFIX)
+
     if len(schema.get("required", [])) != 0:
         raise SchemaInvalidError("Fields must be optional")
 
@@ -52,7 +57,7 @@ def validate_querystring(model_class: Union[Type[BaseModel], Type[Dataclass]]) -
 
 
 def validate_request(model_class: Union[Type[BaseModel], Type[Dataclass], None]) -> Callable:
-    schema = getattr(model_class, "__pydantic_model__", model_class).schema()
+    schema = model_schema(model_class, ref_prefix=REF_PREFIX)
 
     def decorator(func: Callable) -> Callable:
         setattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, schema)
@@ -72,8 +77,10 @@ def validate_request(model_class: Union[Type[BaseModel], Type[Dataclass], None])
     return decorator
 
 
-def validate_response(model_class: Union[Type[BM], Type[DC]], status_code: int = 200) -> Callable:
-    schema = getattr(model_class, "__pydantic_model__", model_class).schema()
+def validate_response(
+    model_class: Union[Type[BaseModel], Type[Dataclass]], status_code: int = 200
+) -> Callable:
+    schema = model_schema(model_class, ref_prefix=REF_PREFIX)
 
     def decorator(func: Callable) -> Callable:
         schemas = getattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, {})
@@ -110,7 +117,7 @@ def validate_response(model_class: Union[Type[BM], Type[DC]], status_code: int =
                 if is_dataclass(model_value):
                     return asdict(model_value), status_or_headers, headers
                 else:
-                    model_value = cast(BM, model_value)
+                    model_value = cast(BaseModel, model_value)
                     return model_value.dict(), status_or_headers, headers
             else:
                 return result

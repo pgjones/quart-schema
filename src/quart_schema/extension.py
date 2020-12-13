@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import asdict, is_dataclass
 from types import new_class
-from typing import Any, cast, Dict, Optional, overload, Type, Union
+from typing import Any, cast, Dict, Optional, overload, Tuple, Type, Union
 
 from pydantic import ValidationError
 from pydantic.json import pydantic_encoder
@@ -122,6 +122,7 @@ class QuartSchema:
 
     async def openapi(self) -> dict:
         paths: Dict[str, dict] = {}
+        components = {"schemas": {}}  # type: ignore
         for rule in self.app.url_map.iter_rules():
             func = self.app.view_functions[rule.endpoint]
             response_schemas = getattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, {})
@@ -140,6 +141,8 @@ class QuartSchema:
                 path_object["summary"] = summary
 
             for status_code, schema in response_schemas.items():
+                definitions, schema = _split_definitions(schema)
+                components["schemas"].update(definitions)
                 path_object["responses"][status_code] = {  # type: ignore
                     "content": {
                         "application/json": {
@@ -149,16 +152,20 @@ class QuartSchema:
                 }
 
             if request_schema is not None:
+                definitions, schema = _split_definitions(request_schema)
+                components["schemas"].update(definitions)
                 path_object["requestBody"] = {
                     "content": {
                         "application/json": {
-                            "schema": request_schema,
+                            "schema": schema,
                         },
                     },
                 }
 
             if querystring_schema is not None:
-                for name, type_ in querystring_schema["properties"].items():
+                definitions, schema = _split_definitions(querystring_schema)
+                components["schemas"].update(definitions)
+                for name, type_ in schema["properties"].items():
                     path_object["parameters"].append(  # type: ignore
                         {
                             "name": name,
@@ -189,6 +196,7 @@ class QuartSchema:
                 "title": self.title,
                 "version": self.version,
             },
+            "components": components,
             "paths": paths,
         }
 
@@ -200,3 +208,9 @@ class QuartSchema:
             swagger_js_url="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.37.2/swagger-ui-bundle.js",  # noqa: E501
             swagger_css_url="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.37.2/swagger-ui.min.css",  # noqa: E501
         )
+
+
+def _split_definitions(schema: dict) -> Tuple[dict, dict]:
+    new_schema = schema.copy()
+    definitions = new_schema.pop("definitions", {})
+    return definitions, new_schema
