@@ -20,7 +20,23 @@ from .validation import (
 
 PATH_RE = re.compile("<(?:[^:]*:)?([^>]+)>")
 
-DOCS_TEMPLATE = """
+REDOC_TEMPLATE = """
+<head>
+  <title>{{ title }}</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+  </style>
+</head>
+<body>
+  <redoc spec-url="{{ openapi_path }}"></redoc>
+  <script src="{{ redoc_js_url }}"></script>
+</body>
+"""
+
+SWAGGER_TEMPLATE = """
 <head>
   <link type="text/css" rel="stylesheet" href="{{ swagger_css_url }}">
   <title>{{ title }}</title>
@@ -94,17 +110,54 @@ class JSONEncoder(QuartJSONEncoder):
 
 
 class QuartSchema:
+    """A Quart-Schema instance.
+
+    This can be used to initialise Quart-Schema documentation a given
+    app, either directly,
+
+    .. code-block:: python
+
+        app = Quart(__name__)
+        QuartSchema(app)
+
+    or via the factory pattern,
+
+    .. code-block:: python
+
+        quart_schema = QuartSchema()
+
+        def create_app():
+            app = Quart(__name__)
+            quart_schema.init_app(app)
+            return app
+
+    This can be customised using the following arguments,
+
+    Arguments:
+        openapi_path: The path used to serve the openapi json on, or None
+            to disable documentation.
+        redoc_ui_path: The path used to serve the documentation UI using
+            redoc or None to disable redoc documentation.
+        swagger_ui_path: The path used to serve the documentation UI using
+            swagger or None to disable swagger documentation.
+        title: The publishable title for the app.
+        version: The publishable version for the app.
+
+    """
+
     def __init__(
         self,
         app: Optional[Quart] = None,
         *,
         openapi_path: Optional[str] = "/openapi.json",
-        docs_path: Optional[str] = "/docs",
+        redoc_ui_path: Optional[str] = "/redocs",
+        swagger_ui_path: Optional[str] = "/docs",
         title: Optional[str] = None,
         version: str = "0.1.0",
     ) -> None:
         self.openapi_path = openapi_path
-        self.docs_path = docs_path
+        self.redoc_ui_path = redoc_ui_path
+        self.swagger_ui_path = swagger_ui_path
         self.title = title
         self.version = version
         if app is not None:
@@ -117,8 +170,10 @@ class QuartSchema:
         app.json_encoder = JSONEncoder
         if self.openapi_path is not None:
             self.app.add_url_rule(self.openapi_path, "openapi", self.openapi)
-        if self.docs_path is not None:
-            self.app.add_url_rule(self.docs_path, "docs", self.docs)
+            if self.redoc_ui_path is not None:
+                self.app.add_url_rule(self.redoc_ui_path, "redoc_ui", self.redoc_ui)
+            if self.swagger_ui_path is not None:
+                self.app.add_url_rule(self.swagger_ui_path, "swagger_ui", self.swagger_ui)
 
     async def openapi(self) -> dict:
         paths: Dict[str, dict] = {}
@@ -200,13 +255,21 @@ class QuartSchema:
             "paths": paths,
         }
 
-    async def docs(self) -> str:
+    async def swagger_ui(self) -> str:
         return await render_template_string(
-            DOCS_TEMPLATE,
+            SWAGGER_TEMPLATE,
             title=self.title,
             openapi_path=self.openapi_path,
             swagger_js_url="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.37.2/swagger-ui-bundle.js",  # noqa: E501
             swagger_css_url="https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.37.2/swagger-ui.min.css",  # noqa: E501
+        )
+
+    async def redoc_ui(self) -> str:
+        return await render_template_string(
+            REDOC_TEMPLATE,
+            title=self.title,
+            openapi_path=self.openapi_path,
+            redoc_js_url="https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js",
         )
 
 

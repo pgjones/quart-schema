@@ -47,9 +47,11 @@ methods,
             ... # Do something with data, e.g. save to the DB
             await websocket.send_as(data, Todo)
 
-The documentation UI will be served by default at ``/docs`` from the
-openapi definition at ``/openapi.json``. Note that there is currently
-no documentation standard for WebSockets.
+The documentation is served by default at ``/openapi.json`` according
+tot eh OpenAPI standard, or at ``/docs`` for a `SwaggerUI
+<https://swagger.io/tools/swagger-ui/>`_ interface, or ``/redocs`` for
+a `redoc <https://github.com/Redocly/redoc>`_ interface. Note that
+there is currently no documentation standard for WebSockets.
 
 Contributing
 ------------

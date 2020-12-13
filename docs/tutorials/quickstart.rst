@@ -57,3 +57,9 @@ with the docs available at
 .. code-block::
 
     localhost:5000/docs
+
+or
+
+.. code-block::
+
+    localhost:5000/redocs
