@@ -131,10 +131,14 @@ class QuartSchema:
                 continue
 
             path_object = {  # type: ignore
-                "description": func.__doc__,
                 "parameters": [],
                 "responses": {},
             }
+            if func.__doc__ is not None:
+                summary, *description = func.__doc__.splitlines()
+                path_object["description"] = "\n".join(description)
+                path_object["summary"] = summary
+
             for status_code, schema in response_schemas.items():
                 path_object["responses"][status_code] = {  # type: ignore
                     "content": {
