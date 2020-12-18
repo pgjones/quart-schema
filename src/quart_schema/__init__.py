@@ -1,4 +1,4 @@
-from .extension import QuartSchema, SchemaValidationError
+from .extension import hide_route, QuartSchema, SchemaValidationError
 from .validation import (
     RequestSchemaValidationError,
     ResponseSchemaValidationError,
@@ -8,6 +8,7 @@ from .validation import (
 )
 
 __all__ = (
+    "hide_route",
     "QuartSchema",
     "RequestSchemaValidationError",
     "ResponseSchemaValidationError",
