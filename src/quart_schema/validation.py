@@ -33,6 +33,17 @@ class RequestSchemaValidationError(BadRequest):
 
 
 def validate_querystring(model_class: Union[Type[BaseModel], Type[Dataclass]]) -> Callable:
+    """Validate the querystring arguments.
+
+    This ensures that the query string arguments can be converted to
+    the *model_class*. If they cannot a `RequestSchemaValidationError`
+    is raised which by default results in a 400 response.
+
+    Arguments:
+        model_class: The model to use, either a pydantic dataclass or
+            a class that inherits from pydantic's BaseModel. All the
+            fields must be optional.
+    """
     schema = model_schema(model_class, ref_prefix=REF_PREFIX)
 
     if len(schema.get("required", [])) != 0:
@@ -56,7 +67,18 @@ def validate_querystring(model_class: Union[Type[BaseModel], Type[Dataclass]]) -
     return decorator
 
 
-def validate_request(model_class: Union[Type[BaseModel], Type[Dataclass], None]) -> Callable:
+def validate_request(model_class: Union[Type[BaseModel], Type[Dataclass]]) -> Callable:
+    """Validate the request data.
+
+    This ensures that the request body is JSON and that the body can
+    be converted to the *model_class*. If they cannot a
+    `RequestSchemaValidationError` is raised which by default results
+    in a 400 response.
+
+    Arguments:
+        model_class: The model to use, either a pydantic dataclass or
+            a class that inherits from pydantic's BaseModel.
+    """
     schema = model_schema(model_class, ref_prefix=REF_PREFIX)
 
     def decorator(func: Callable) -> Callable:
@@ -80,6 +102,21 @@ def validate_request(model_class: Union[Type[BaseModel], Type[Dataclass], None])
 def validate_response(
     model_class: Union[Type[BaseModel], Type[Dataclass]], status_code: int = 200
 ) -> Callable:
+    """Validate the response data.
+
+    This ensures that the response is a either dictionary that the
+    body can be converted to the *model_class* or an instance of the
+    *model_class*. If this is not possible a
+    `ResponseSchemaValidationError` is raised which by default results
+    in a 500 response. The returned value is then a dictionary which
+    Quart encodes as JSON.
+
+    Arguments:
+        model_class: The model to use, either a pydantic dataclass or
+            a class that inherits from pydantic's BaseModel.
+        status_code: The status code this validation applies
+            to. Defaults to 200.
+    """
     schema = model_schema(model_class, ref_prefix=REF_PREFIX)
 
     def decorator(func: Callable) -> Callable:
