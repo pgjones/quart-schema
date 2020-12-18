@@ -37,11 +37,27 @@ return values are allowed, including status and headers,
     return {"effort": 2, "task": "Finish the docs"}, 200
     return {"effort": 2, "task": "Finish the docs"}, {"X-Header": "value"}
 
-.. note::
+Handling multiple/different status codes
+----------------------------------------
 
-    The response validation is tied to the status code, which defaults
-    to 200. This allows different response structures for different
-    status codes as required.
+The :func:`~quart_schema.validation.validate_response` decorator's
+second argument is the status code the validation applies too. By
+default this is assumed to be ``200``, but can be changed to validate
+responses that are sent with a different status code.
+
+To validate a route that returns different different responses by
+status code the decorator can be used multiple times,
+
+.. code-block:: python
+
+    @app.route("/")
+    @validate_response(Todo, 200)
+    @validate_response(CreatedTodo, 201)
+    async def index():
+        if ...:
+            return Todo(), 200
+        else:
+            return CreatedTodo(), 201
 
 Handling validation errors
 --------------------------
