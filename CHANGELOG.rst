@@ -1,3 +1,9 @@
+0.3.0 2020-12-18
+----------------
+
+* Add the ability to hide routes from the openapi specification. This
+  changes routes from default hidden to default visible.
+
 0.2.0 2020-12-13
 ----------------
 
