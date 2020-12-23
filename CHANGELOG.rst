@@ -1,3 +1,12 @@
+0.4.0 2020-12-23
+----------------
+
+* Ensure models/dataclasses are converted to a dict, thereby
+  preventing confusing errors when model/dataclass instances are
+  returned without validation.
+* Allow validation of form encoded data, in the same way JSON encoded
+  data is currently validated.
+
 0.3.0 2020-12-18
 ----------------
 
