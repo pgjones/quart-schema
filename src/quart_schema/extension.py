@@ -2,12 +2,13 @@ from __future__ import annotations
 
 import re
 from dataclasses import asdict, is_dataclass
+from functools import wraps
 from types import new_class
 from typing import Any, Callable, cast, Dict, Optional, overload, Tuple, Type, Union
 
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 from pydantic.json import pydantic_encoder
-from quart import Quart, render_template_string
+from quart import Quart, render_template_string, Response, ResponseReturnValue
 from quart.json import JSONEncoder as QuartJSONEncoder
 from quart.wrappers import Websocket
 
@@ -181,6 +182,7 @@ class QuartSchema:
         self.title = self.app.name if self.title is None else self.title
         app.websocket_class = new_class("Websocket", (Websocket, WebsocketMixin))  # type: ignore
         app.json_encoder = JSONEncoder
+        app.make_response = convert_model_result(app.make_response)  # type: ignore
         app.config.setdefault(
             "QUART_SCHEMA_SWAGGER_JS_URL",
             "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.37.2/swagger-ui-bundle.js",
@@ -306,3 +308,24 @@ def _split_definitions(schema: dict) -> Tuple[dict, dict]:
     new_schema = schema.copy()
     definitions = new_schema.pop("definitions", {})
     return definitions, new_schema
+
+
+def convert_model_result(func: Callable) -> Callable:
+    @wraps(func)
+    async def decorator(result: ResponseReturnValue) -> Response:
+        status_or_headers = None
+        headers = None
+        if isinstance(result, tuple):
+            value, status_or_headers, headers = result + (None,) * (3 - len(result))
+        else:
+            value = result
+
+        if is_dataclass(value):
+            dict_or_value = asdict(value)
+        elif isinstance(value, BaseModel):
+            dict_or_value = value.dict()
+        else:
+            dict_or_value = value
+        return await func((dict_or_value, status_or_headers, headers))
+
+    return decorator
