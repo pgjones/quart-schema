@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
+from enum import auto, Enum
 from functools import wraps
 from typing import Any, Callable, cast, Type, TYPE_CHECKING, Union
 
@@ -30,6 +31,11 @@ class ResponseSchemaValidationError(Exception):
 
 class RequestSchemaValidationError(BadRequest):
     pass
+
+
+class DataSource(Enum):
+    FORM = auto()
+    JSON = auto()
 
 
 def validate_querystring(model_class: Union[Type[BaseModel], Type[Dataclass]]) -> Callable:
@@ -67,7 +73,11 @@ def validate_querystring(model_class: Union[Type[BaseModel], Type[Dataclass]]) -
     return decorator
 
 
-def validate_request(model_class: Union[Type[BaseModel], Type[Dataclass]]) -> Callable:
+def validate_request(
+    model_class: Union[Type[BaseModel], Type[Dataclass]],
+    *,
+    source: DataSource = DataSource.JSON,
+) -> Callable:
     """Validate the request data.
 
     This ensures that the request body is JSON and that the body can
@@ -78,15 +88,25 @@ def validate_request(model_class: Union[Type[BaseModel], Type[Dataclass]]) -> Ca
     Arguments:
         model_class: The model to use, either a pydantic dataclass or
             a class that inherits from pydantic's BaseModel.
+        source: The source of the data to validate (json or form
+            encoded).
     """
     schema = model_schema(model_class, ref_prefix=REF_PREFIX)
+    if source == DataSource.FORM and any(
+        schema["properties"][field]["type"] == "object" for field in schema["properties"]
+    ):
+        raise SchemaInvalidError("Form must have nested objects")
 
     def decorator(func: Callable) -> Callable:
-        setattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, schema)
+        setattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, (schema, source))
 
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
-            data = await request.get_json()
+            if source == DataSource.JSON:
+                data = await request.get_json()
+            else:
+                data = await request.form
+
             try:
                 model = model_class(**data)
             except (TypeError, ValidationError):

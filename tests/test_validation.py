@@ -6,6 +6,7 @@ from pydantic.dataclasses import dataclass
 from quart import Quart, websocket
 
 from quart_schema import (
+    DataSource,
     QuartSchema,
     SchemaValidationError,
     validate_querystring,
@@ -75,6 +76,28 @@ async def test_request_validation(path: str, json: dict, status: int) -> None:
 
     test_client = app.test_client()
     response = await test_client.post(path, json=json)
+    assert response.status_code == status
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "data, status",
+    [
+        ({"name": "bob"}, 200),
+        ({"age": 2}, 400),
+    ],
+)
+async def test_request_form_validation(data: dict, status: int) -> None:
+    app = Quart(__name__)
+    QuartSchema(app)
+
+    @app.route("/", methods=["POST"])
+    @validate_request(Details, source=DataSource.FORM)
+    async def item(data: Details) -> str:
+        return ""
+
+    test_client = app.test_client()
+    response = await test_client.post("/", form=data)
     assert response.status_code == status
 
 

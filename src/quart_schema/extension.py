@@ -14,6 +14,7 @@ from quart.wrappers import Websocket
 
 from .typing import BM, DC, WebsocketProtocol
 from .validation import (
+    DataSource,
     QUART_SCHEMA_QUERYSTRING_ATTRIBUTE,
     QUART_SCHEMA_REQUEST_ATTRIBUTE,
     QUART_SCHEMA_RESPONSE_ATTRIBUTE,
@@ -235,11 +236,17 @@ class QuartSchema:
 
             request_schema = getattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, None)
             if request_schema is not None:
-                definitions, schema = _split_definitions(request_schema)
+                definitions, schema = _split_definitions(request_schema[0])
                 components["schemas"].update(definitions)
+
+                if request_schema[1] == DataSource.JSON:
+                    encoding = "application/json"
+                else:
+                    encoding = "application/x-www-form-urlencoded"
+
                 path_object["requestBody"] = {
                     "content": {
-                        "application/json": {
+                        encoding: {
                             "schema": schema,
                         },
                     },
