@@ -5,9 +5,9 @@ from typing import Any, Type, TypeVar
 from pydantic import BaseModel
 
 try:
-    from typing import Protocol
+    from typing import Protocol, TypedDict
 except ImportError:
-    from typing_extensions import Protocol  # type: ignore
+    from typing_extensions import Protocol, TypedDict  # type: ignore
 
 
 class Dataclass(Protocol):
@@ -27,3 +27,14 @@ class WebsocketProtocol(Protocol):
 
 BM = TypeVar("BM", bound=BaseModel)
 DC = TypeVar("DC", bound=Dataclass)
+
+
+class ExternalDocumentationObject(TypedDict, total=False):
+    description: str
+    url: str
+
+
+class TagObject(TypedDict, total=False):
+    name: str
+    description: str
+    externalDocs: ExternalDocumentationObject  # noqa: N815

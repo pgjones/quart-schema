@@ -4,7 +4,7 @@ import re
 from dataclasses import asdict, is_dataclass
 from functools import wraps
 from types import new_class
-from typing import Any, Callable, cast, Dict, Optional, overload, Tuple, Type, Union
+from typing import Any, Callable, cast, Dict, Iterable, List, Optional, overload, Tuple, Type, Union
 
 from pydantic import BaseModel, ValidationError
 from pydantic.json import pydantic_encoder
@@ -12,7 +12,7 @@ from quart import Quart, render_template_string, Response, ResponseReturnValue
 from quart.json import JSONEncoder as QuartJSONEncoder
 from quart.wrappers import Websocket
 
-from .typing import BM, DC, WebsocketProtocol
+from .typing import BM, DC, TagObject, WebsocketProtocol
 from .validation import (
     DataSource,
     QUART_SCHEMA_QUERYSTRING_ATTRIBUTE,
@@ -21,6 +21,7 @@ from .validation import (
 )
 
 QUART_SCHEMA_HIDDEN_ATTRIBUTE = "_quart_schema_hidden"
+QUART_SCHEMA_TAG_ATTRIBUTE = "_quart_schema_tag"
 
 PATH_RE = re.compile("<(?:[^:]*:)?([^>]+)>")
 
@@ -169,12 +170,14 @@ class QuartSchema:
         swagger_ui_path: Optional[str] = "/docs",
         title: Optional[str] = None,
         version: str = "0.1.0",
+        tags: Optional[List[TagObject]] = None,
     ) -> None:
         self.openapi_path = openapi_path
         self.redoc_ui_path = redoc_ui_path
         self.swagger_ui_path = swagger_ui_path
         self.title = title
         self.version = version
+        self.tags = tags
         if app is not None:
             self.init_app(app)
 
@@ -221,6 +224,9 @@ class QuartSchema:
                 summary, *description = func.__doc__.splitlines()
                 path_object["description"] = "\n".join(description)
                 path_object["summary"] = summary
+
+            if getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE, None) is not None:
+                path_object["tags"] = list(getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE))
 
             response_schemas = getattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, {})
             for status_code, schema in response_schemas.items():
@@ -289,6 +295,7 @@ class QuartSchema:
             },
             "components": components,
             "paths": paths,
+            "tags": self.tags,
         }
 
     @hide_route
@@ -334,5 +341,26 @@ def convert_model_result(func: Callable) -> Callable:
         else:
             dict_or_value = value
         return await func((dict_or_value, status_or_headers, headers))
+
+    return decorator
+
+
+def tag(tags: Iterable[str]) -> Callable:
+    """Add tag names to the route.
+
+    This allows for tags to be associated with the route, thereby
+    allowing control over which routes are shown in the documentation.
+
+    Arguments:
+        tags: A List (or iterable) or tags to associate.
+
+    """
+
+    def decorator(func: Callable) -> Callable:
+        existing_tags = getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE, set())
+        existing_tags.update(set(tags))
+        setattr(func, QUART_SCHEMA_TAG_ATTRIBUTE, existing_tags)
+
+        return func
 
     return decorator

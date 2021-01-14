@@ -1,4 +1,4 @@
-from .extension import hide_route, QuartSchema, SchemaValidationError
+from .extension import hide_route, QuartSchema, SchemaValidationError, tag
 from .validation import (
     DataSource,
     RequestSchemaValidationError,
@@ -15,6 +15,7 @@ __all__ = (
     "RequestSchemaValidationError",
     "ResponseSchemaValidationError",
     "SchemaValidationError",
+    "tag",
     "validate_querystring",
     "validate_request",
     "validate_response",

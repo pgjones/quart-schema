@@ -10,4 +10,5 @@ How to guides
    querystring_validation.rst
    request_validation.rst
    response_validation.rst
+   tagging.rst
    websocket_validation.rst
