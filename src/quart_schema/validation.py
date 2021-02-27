@@ -161,7 +161,7 @@ def validate_response(
             ):
                 status = int(status_or_headers)
 
-            if status in schemas:
+            if status == status_code:
                 if isinstance(value, dict):
                     try:
                         model_value = model_class(**value)
