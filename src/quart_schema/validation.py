@@ -18,7 +18,6 @@ if TYPE_CHECKING:
 QUART_SCHEMA_REQUEST_ATTRIBUTE = "_quart_schema_request_schema"
 QUART_SCHEMA_RESPONSE_ATTRIBUTE = "_quart_schema_response_schemas"
 QUART_SCHEMA_QUERYSTRING_ATTRIBUTE = "_quart_schema_querystring_schema"
-REF_PREFIX = "#/components/schemas/"
 
 
 class SchemaInvalidError(Exception):
@@ -50,13 +49,13 @@ def validate_querystring(model_class: Union[Type[BaseModel], Type[Dataclass]]) -
             a class that inherits from pydantic's BaseModel. All the
             fields must be optional.
     """
-    schema = model_schema(model_class, ref_prefix=REF_PREFIX)
+    schema = model_schema(model_class)
 
     if len(schema.get("required", [])) != 0:
         raise SchemaInvalidError("Fields must be optional")
 
     def decorator(func: Callable) -> Callable:
-        setattr(func, QUART_SCHEMA_QUERYSTRING_ATTRIBUTE, schema)
+        setattr(func, QUART_SCHEMA_QUERYSTRING_ATTRIBUTE, model_class)
 
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -91,14 +90,14 @@ def validate_request(
         source: The source of the data to validate (json or form
             encoded).
     """
-    schema = model_schema(model_class, ref_prefix=REF_PREFIX)
+    schema = model_schema(model_class)
     if source == DataSource.FORM and any(
         schema["properties"][field]["type"] == "object" for field in schema["properties"]
     ):
         raise SchemaInvalidError("Form must not have nested objects")
 
     def decorator(func: Callable) -> Callable:
-        setattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, (schema, source))
+        setattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, (model_class, source))
 
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
@@ -137,11 +136,10 @@ def validate_response(
         status_code: The status code this validation applies
             to. Defaults to 200.
     """
-    schema = model_schema(model_class, ref_prefix=REF_PREFIX)
 
     def decorator(func: Callable) -> Callable:
         schemas = getattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, {})
-        schemas[status_code] = schema
+        schemas[status_code] = model_class
         setattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, schemas)
 
         @wraps(func)

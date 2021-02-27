@@ -8,6 +8,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 from pydantic import BaseModel
 from pydantic.json import pydantic_encoder
+from pydantic.schema import model_schema
 from quart import Quart, render_template_string, Response, ResponseReturnValue
 from quart.json import JSONEncoder as QuartJSONEncoder
 
@@ -22,6 +23,7 @@ from .validation import (
 
 QUART_SCHEMA_HIDDEN_ATTRIBUTE = "_quart_schema_hidden"
 QUART_SCHEMA_TAG_ATTRIBUTE = "_quart_schema_tag"
+REF_PREFIX = "#/components/schemas/"
 
 PATH_RE = re.compile("<(?:[^:]*:)?([^>]+)>")
 
@@ -191,8 +193,9 @@ class QuartSchema:
             if getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE, None) is not None:
                 path_object["tags"] = list(getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE))
 
-            response_schemas = getattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, {})
-            for status_code, schema in response_schemas.items():
+            response_models = getattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, {})
+            for status_code, model_class in response_models.items():
+                schema = model_schema(model_class, ref_prefix=REF_PREFIX)
                 definitions, schema = _split_definitions(schema)
                 components["schemas"].update(definitions)
                 path_object["responses"][status_code] = {  # type: ignore
@@ -203,12 +206,13 @@ class QuartSchema:
                     },
                 }
 
-            request_schema = getattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, None)
-            if request_schema is not None:
-                definitions, schema = _split_definitions(request_schema[0])
+            request_data = getattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, None)
+            if request_data is not None:
+                schema = model_schema(request_data[0], ref_prefix=REF_PREFIX)
+                definitions, schema = _split_definitions(schema)
                 components["schemas"].update(definitions)
 
-                if request_schema[1] == DataSource.JSON:
+                if request_data[1] == DataSource.JSON:
                     encoding = "application/json"
                 else:
                     encoding = "application/x-www-form-urlencoded"
@@ -221,9 +225,10 @@ class QuartSchema:
                     },
                 }
 
-            querystring_schema = getattr(func, QUART_SCHEMA_QUERYSTRING_ATTRIBUTE, None)
-            if querystring_schema is not None:
-                definitions, schema = _split_definitions(querystring_schema)
+            querystring_model = getattr(func, QUART_SCHEMA_QUERYSTRING_ATTRIBUTE, None)
+            if querystring_model is not None:
+                schema = model_schema(querystring_model, ref_prefix=REF_PREFIX)
+                definitions, schema = _split_definitions(schema)
                 components["schemas"].update(definitions)
                 for name, type_ in schema["properties"].items():
                     path_object["parameters"].append(  # type: ignore
