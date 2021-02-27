@@ -4,15 +4,15 @@ import re
 from dataclasses import asdict, is_dataclass
 from functools import wraps
 from types import new_class
-from typing import Any, Callable, cast, Dict, Iterable, List, Optional, overload, Tuple, Type, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel
 from pydantic.json import pydantic_encoder
 from quart import Quart, render_template_string, Response, ResponseReturnValue
 from quart.json import JSONEncoder as QuartJSONEncoder
-from quart.wrappers import Websocket
 
-from .typing import BM, DC, TagObject, WebsocketProtocol
+from .mixins import TestClientMixin, WebsocketMixin
+from .typing import TagObject
 from .validation import (
     DataSource,
     QUART_SCHEMA_QUERYSTRING_ATTRIBUTE,
@@ -67,10 +67,6 @@ SWAGGER_TEMPLATE = """
 """
 
 
-class SchemaValidationError(Exception):
-    pass
-
-
 def hide_route(func: Callable) -> Callable:
     """Mark the func as hidden.
 
@@ -79,44 +75,6 @@ def hide_route(func: Callable) -> Callable:
     """
     setattr(func, QUART_SCHEMA_HIDDEN_ATTRIBUTE, True)
     return func
-
-
-class WebsocketMixin:
-    @overload
-    async def receive_as(self: WebsocketProtocol, model_class: Type[BM]) -> BM:
-        ...
-
-    @overload
-    async def receive_as(self: WebsocketProtocol, model_class: Type[DC]) -> DC:
-        ...
-
-    async def receive_as(
-        self: WebsocketProtocol, model_class: Union[Type[BM], Type[DC]]
-    ) -> Union[BM, DC]:
-        data = await self.receive_json()
-        try:
-            return model_class(**data)
-        except ValidationError:
-            raise SchemaValidationError()
-
-    async def send_as(
-        self: WebsocketProtocol, value: Any, model_class: Union[Type[BM], Type[DC]]
-    ) -> None:
-        if isinstance(value, dict):
-            try:
-                model_value = model_class(**value)
-            except ValidationError:
-                raise SchemaValidationError()
-        elif type(value) == model_class:
-            model_value = value
-        else:
-            raise SchemaValidationError()
-        if is_dataclass(model_value):
-            data = asdict(model_value)
-        else:
-            model_value = cast(BM, model_value)
-            data = model_value.dict()
-        await self.send_json(data)
 
 
 class JSONEncoder(QuartJSONEncoder):
@@ -184,7 +142,12 @@ class QuartSchema:
     def init_app(self, app: Quart) -> None:
         self.app = app
         self.title = self.app.name if self.title is None else self.title
-        app.websocket_class = new_class("Websocket", (Websocket, WebsocketMixin))  # type: ignore
+        app.test_client_class = new_class(  # type: ignore
+            "TestClient", (TestClientMixin, app.test_client_class)
+        )
+        app.websocket_class = new_class(  # type: ignore
+            "Websocket", (WebsocketMixin, app.websocket_class)
+        )
         app.json_encoder = JSONEncoder
         app.make_response = convert_model_result(app.make_response)  # type: ignore
         app.config.setdefault(

@@ -1,4 +1,5 @@
-from .extension import hide_route, QuartSchema, SchemaValidationError, tag
+from .extension import hide_route, QuartSchema, tag
+from .mixins import SchemaValidationError
 from .validation import (
     DataSource,
     RequestSchemaValidationError,

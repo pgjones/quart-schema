@@ -11,4 +11,5 @@ How to guides
    request_validation.rst
    response_validation.rst
    tagging.rst
+   testing.rst
    websocket_validation.rst

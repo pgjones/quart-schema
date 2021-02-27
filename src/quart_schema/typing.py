@@ -1,8 +1,10 @@
 from __future__ import annotations
 
-from typing import Any, Type, TypeVar
+from typing import Any, AnyStr, Optional, Type, TypeVar, Union
 
 from pydantic import BaseModel
+from quart.wrappers import Response
+from werkzeug.datastructures import Headers
 
 try:
     from typing import Protocol, TypedDict
@@ -22,6 +24,23 @@ class WebsocketProtocol(Protocol):
         ...
 
     async def send_json(self, data: dict) -> None:
+        ...
+
+
+class TestClientProtocol(Protocol):
+    async def _make_request(
+        self,
+        path: str,
+        method: str,
+        headers: Optional[Union[dict, Headers]],
+        data: Optional[AnyStr],
+        form: Optional[dict],
+        query_string: Optional[dict],
+        json: Any,
+        scheme: str,
+        root_path: str,
+        http_version: str,
+    ) -> Response:
         ...
 
 

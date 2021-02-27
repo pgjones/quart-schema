@@ -40,7 +40,7 @@ reverse_relative = true
 
 [tool.poetry.dependencies]
 python = ">=3.7"
-pydantic=">=1.7"
+pydantic=">=1.8"
 quart = ">=0.14"
 typing_extensions = { version = "*", python = "<3.8" }
 
