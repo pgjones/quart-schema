@@ -95,7 +95,7 @@ def validate_request(
     if source == DataSource.FORM and any(
         schema["properties"][field]["type"] == "object" for field in schema["properties"]
     ):
-        raise SchemaInvalidError("Form must have nested objects")
+        raise SchemaInvalidError("Form must not have nested objects")
 
     def decorator(func: Callable) -> Callable:
         setattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, (schema, source))
