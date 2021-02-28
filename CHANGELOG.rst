@@ -1,3 +1,13 @@
+0.6.0 2021-02-28
+----------------
+
+* Improve testing, and support easy hypothesis testing. This allows
+  Pydantic models and dataclasses to be sent from the test client.
+* Bugfix correct error message.
+* Bugfix response validation logic.
+* Store the model type rather than derived schema (no noticeable
+  impact on the public API).
+
 0.5.0 2021-02-16
 ----------------
 
