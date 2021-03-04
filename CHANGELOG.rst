@@ -1,3 +1,10 @@
+0.7.0 2021-03-04
+----------------
+
+* Support automatically converting between camelCased JSON and
+  snake_cased model/dataclass variable names. This introduces the
+  pyhumps dependency.
+
 0.6.0 2021-02-28
 ----------------
 
