@@ -5,6 +5,7 @@ How to guides
 .. toctree::
    :maxdepth: 1
 
+   casing.rst
    configuration.rst
    documenting.rst
    querystring_validation.rst

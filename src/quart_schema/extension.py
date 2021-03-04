@@ -1,16 +1,18 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Mapping
 from dataclasses import asdict, is_dataclass
 from functools import wraps
 from types import new_class
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
+from humps import camelize, decamelize
 from pydantic import BaseModel
 from pydantic.json import pydantic_encoder
 from pydantic.schema import model_schema
 from quart import Quart, render_template_string, Response, ResponseReturnValue
-from quart.json import JSONEncoder as QuartJSONEncoder
+from quart.json import JSONDecoder as QuartJSONDecoder, JSONEncoder as QuartJSONEncoder
 
 from .mixins import TestClientMixin, WebsocketMixin
 from .typing import TagObject
@@ -79,9 +81,24 @@ def hide_route(func: Callable) -> Callable:
     return func
 
 
-class JSONEncoder(QuartJSONEncoder):
+class PydanticJSONEncoder(QuartJSONEncoder):
     def default(self, object_: Any) -> Any:
         return pydantic_encoder(object_)
+
+
+class CasingJSONEncoder(PydanticJSONEncoder):
+    def encode(self, object_: Any) -> Any:
+        if isinstance(object_, (list, Mapping)):
+            object_ = camelize(object_)
+        return super().encode(camelize(object_))
+
+
+class CasingJSONDecoder(QuartJSONDecoder):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        super().__init__(*args, object_hook=self.object_hook, **kwargs)
+
+    def object_hook(self, object_: dict) -> Any:
+        return decamelize(object_)
 
 
 class QuartSchema:
@@ -131,6 +148,7 @@ class QuartSchema:
         title: Optional[str] = None,
         version: str = "0.1.0",
         tags: Optional[List[TagObject]] = None,
+        convert_casing: bool = False,
     ) -> None:
         self.openapi_path = openapi_path
         self.redoc_ui_path = redoc_ui_path
@@ -138,6 +156,7 @@ class QuartSchema:
         self.title = title
         self.version = version
         self.tags = tags
+        self.convert_casing = convert_casing
         if app is not None:
             self.init_app(app)
 
@@ -150,7 +169,11 @@ class QuartSchema:
         app.websocket_class = new_class(  # type: ignore
             "Websocket", (WebsocketMixin, app.websocket_class)
         )
-        app.json_encoder = JSONEncoder
+        if self.convert_casing:
+            app.json_decoder = CasingJSONDecoder
+            app.json_encoder = CasingJSONEncoder
+        else:
+            app.json_encoder = PydanticJSONEncoder
         app.make_response = convert_model_result(app.make_response)  # type: ignore
         app.config.setdefault(
             "QUART_SCHEMA_SWAGGER_JS_URL",
@@ -196,6 +219,8 @@ class QuartSchema:
             response_models = getattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, {})
             for status_code, model_class in response_models.items():
                 schema = model_schema(model_class, ref_prefix=REF_PREFIX)
+                if self.convert_casing:
+                    schema = camelize(schema)
                 definitions, schema = _split_definitions(schema)
                 components["schemas"].update(definitions)
                 path_object["responses"][status_code] = {  # type: ignore
@@ -209,6 +234,8 @@ class QuartSchema:
             request_data = getattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, None)
             if request_data is not None:
                 schema = model_schema(request_data[0], ref_prefix=REF_PREFIX)
+                if self.convert_casing:
+                    schema = camelize(schema)
                 definitions, schema = _split_definitions(schema)
                 components["schemas"].update(definitions)
 
@@ -228,6 +255,8 @@ class QuartSchema:
             querystring_model = getattr(func, QUART_SCHEMA_QUERYSTRING_ATTRIBUTE, None)
             if querystring_model is not None:
                 schema = model_schema(querystring_model, ref_prefix=REF_PREFIX)
+                if self.convert_casing:
+                    schema = camelize(schema)
                 definitions, schema = _split_definitions(schema)
                 components["schemas"].update(definitions)
                 for name, type_ in schema["properties"].items():
