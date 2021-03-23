@@ -15,7 +15,7 @@ from quart import Quart, render_template_string, Response, ResponseReturnValue
 from quart.json import JSONDecoder as QuartJSONDecoder, JSONEncoder as QuartJSONEncoder
 
 from .mixins import TestClientMixin, WebsocketMixin
-from .typing import TagObject
+from .typing import TagObject, ServerObject
 from .validation import (
     DataSource,
     QUART_SCHEMA_QUERYSTRING_ATTRIBUTE,
@@ -149,6 +149,7 @@ class QuartSchema:
         version: str = "0.1.0",
         tags: Optional[List[TagObject]] = None,
         convert_casing: bool = False,
+        servers: Optional[List[ServerObject]] = []
     ) -> None:
         self.openapi_path = openapi_path
         self.redoc_ui_path = redoc_ui_path
@@ -157,6 +158,7 @@ class QuartSchema:
         self.version = version
         self.tags = tags
         self.convert_casing = convert_casing
+        self.servers = servers
         if app is not None:
             self.init_app(app)
 
@@ -293,6 +295,7 @@ class QuartSchema:
             "components": components,
             "paths": paths,
             "tags": self.tags,
+            "servers": self.servers
         }
 
     @hide_route

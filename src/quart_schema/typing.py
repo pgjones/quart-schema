@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, AnyStr, Optional, Type, TypeVar, Union
+from typing import Any, AnyStr, Optional, Type, TypeVar, Union, List
 
 from pydantic import BaseModel
 from quart.wrappers import Response
@@ -57,3 +57,21 @@ class TagObject(TypedDict, total=False):
     name: str
     description: str
     externalDocs: ExternalDocumentationObject  # noqa: N815
+
+
+class VariableObject(TypedDict, total=False):
+    enum: List[str]
+    default: str
+    description: str
+
+
+class VariableObjectList(TypedDict, total=False):
+    host: VariableObject
+    port: VariableObject
+    basePath: VariableObject
+
+
+class ServerObject(TypedDict, total=False):
+    url: str
+    description: str
+    variables: VariableObjectList
