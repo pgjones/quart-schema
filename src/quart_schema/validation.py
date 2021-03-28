@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, is_dataclass
 from enum import auto, Enum
 from functools import wraps
-from typing import Any, Callable, cast, Type, TYPE_CHECKING, Union
+from typing import Any, Callable, cast, Optional, Type, TYPE_CHECKING, Union
 
 from pydantic import BaseModel, ValidationError
 from pydantic.schema import model_schema
@@ -25,11 +25,14 @@ class SchemaInvalidError(Exception):
 
 
 class ResponseSchemaValidationError(Exception):
-    pass
+    def __init__(self, validation_error: Optional[ValidationError] = None) -> None:
+        self.validation_error = validation_error
 
 
 class RequestSchemaValidationError(BadRequest):
-    pass
+    def __init__(self, validation_error: Union[TypeError, ValidationError]) -> None:
+        super().__init__()
+        self.validation_error = validation_error
 
 
 class DataSource(Enum):
@@ -61,8 +64,8 @@ def validate_querystring(model_class: Union[Type[BaseModel], Type[Dataclass]]) -
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             try:
                 model = model_class(**request.args)
-            except (TypeError, ValidationError):
-                raise RequestSchemaValidationError()
+            except (TypeError, ValidationError) as error:
+                raise RequestSchemaValidationError(error)
             else:
                 return await func(*args, query_args=model, **kwargs)
             return await func(*args, **kwargs)
@@ -108,8 +111,8 @@ def validate_request(
 
             try:
                 model = model_class(**data)
-            except (TypeError, ValidationError):
-                raise RequestSchemaValidationError()
+            except (TypeError, ValidationError) as error:
+                raise RequestSchemaValidationError(error)
             else:
                 return await func(*args, data=model, **kwargs)
 
@@ -163,8 +166,8 @@ def validate_response(
                 if isinstance(value, dict):
                     try:
                         model_value = model_class(**value)
-                    except ValidationError:
-                        raise ResponseSchemaValidationError()
+                    except ValidationError as error:
+                        raise ResponseSchemaValidationError(error)
                 elif type(value) == model_class:
                     model_value = value
                 else:

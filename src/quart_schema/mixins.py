@@ -12,7 +12,9 @@ from .typing import BM, DC, TestClientProtocol, WebsocketProtocol
 
 
 class SchemaValidationError(Exception):
-    pass
+    def __init__(self, validation_error: Optional[ValidationError] = None) -> None:
+        super().__init__()
+        self.validation_error = validation_error
 
 
 class WebsocketMixin:
@@ -30,8 +32,8 @@ class WebsocketMixin:
         data = await self.receive_json()
         try:
             return model_class(**data)
-        except ValidationError:
-            raise SchemaValidationError()
+        except ValidationError as error:
+            raise SchemaValidationError(error)
 
     async def send_as(
         self: WebsocketProtocol, value: Any, model_class: Union[Type[BM], Type[DC]]
@@ -39,8 +41,8 @@ class WebsocketMixin:
         if isinstance(value, dict):
             try:
                 model_value = model_class(**value)
-            except ValidationError:
-                raise SchemaValidationError()
+            except ValidationError as error:
+                raise SchemaValidationError(error)
         elif type(value) == model_class:
             model_value = value
         else:
