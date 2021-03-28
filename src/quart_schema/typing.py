@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, AnyStr, Optional, Type, TypeVar, Union, List
+from typing import Any, AnyStr, Dict, List, Optional, Type, TypeVar, Union
 
 from pydantic import BaseModel
 from quart.wrappers import Response
@@ -65,13 +65,7 @@ class VariableObject(TypedDict, total=False):
     description: str
 
 
-class VariableObjectList(TypedDict, total=False):
-    host: VariableObject
-    port: VariableObject
-    basePath: VariableObject
-
-
 class ServerObject(TypedDict, total=False):
     url: str
     description: str
-    variables: VariableObjectList
+    variables: Dict[str, VariableObject]
