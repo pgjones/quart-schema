@@ -7,7 +7,7 @@ from typing import Any, Callable, cast, Optional, Type, TYPE_CHECKING, Union
 
 from pydantic import BaseModel, ValidationError
 from pydantic.schema import model_schema
-from quart import request
+from quart import current_app, request
 from werkzeug.datastructures import Headers
 from werkzeug.exceptions import BadRequest
 
@@ -67,8 +67,7 @@ def validate_querystring(model_class: Union[Type[BaseModel], Type[Dataclass]]) -
             except (TypeError, ValidationError) as error:
                 raise RequestSchemaValidationError(error)
             else:
-                return await func(*args, query_args=model, **kwargs)
-            return await func(*args, **kwargs)
+                return await current_app.ensure_async(func)(*args, query_args=model, **kwargs)
 
         return wrapper
 
@@ -114,7 +113,7 @@ def validate_request(
             except (TypeError, ValidationError) as error:
                 raise RequestSchemaValidationError(error)
             else:
-                return await func(*args, data=model, **kwargs)
+                return await current_app.ensure_async(func)(*args, data=model, **kwargs)
 
         return wrapper
 
@@ -147,7 +146,7 @@ def validate_response(
 
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
-            result = await func(*args, **kwargs)
+            result = await current_app.ensure_async(func)(*args, **kwargs)
 
             status_or_headers = None
             headers = None
