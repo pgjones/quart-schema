@@ -42,7 +42,7 @@ reverse_relative = true
 pyhumps = ">=1.6.1"
 python = ">=3.7"
 pydantic=">=1.8"
-quart = ">=0.14"
+quart = ">=0.15"
 typing_extensions = { version = "*", python = "<3.8" }
 
 [tool.poetry.dev-dependencies]

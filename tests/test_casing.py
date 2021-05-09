@@ -22,7 +22,7 @@ async def test_request_casing() -> None:
 
     test_client = app.test_client()
     response = await test_client.post("/", json={"snakeCase": "Hello"})
-    assert await response.get_data(raw=False) == "Data(snake_case='Hello')"
+    assert await response.get_data(as_text=True) == "Data(snake_case='Hello')"
 
 
 @pytest.mark.asyncio
@@ -37,4 +37,4 @@ async def test_response_casing() -> None:
 
     test_client = app.test_client()
     response = await test_client.get("/")
-    assert await response.get_data(raw=False) == '{"snakeCase":"Hello"}'
+    assert await response.get_data(as_text=True) == '{"snakeCase":"Hello"}'

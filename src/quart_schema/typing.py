@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, AnyStr, Dict, List, Optional, Type, TypeVar, Union
 
 from pydantic import BaseModel
+from quart.datastructures import FileStorage
 from quart.wrappers import Response
 from werkzeug.datastructures import Headers
 
@@ -35,11 +36,13 @@ class TestClientProtocol(Protocol):
         headers: Optional[Union[dict, Headers]],
         data: Optional[AnyStr],
         form: Optional[dict],
+        files: Optional[Dict[str, FileStorage]],
         query_string: Optional[dict],
         json: Any,
         scheme: str,
         root_path: str,
         http_version: str,
+        scope_base: Optional[dict],
     ) -> Response:
         ...
 

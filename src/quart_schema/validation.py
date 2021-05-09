@@ -8,8 +8,8 @@ from typing import Any, Callable, cast, Optional, Type, TYPE_CHECKING, Union
 from pydantic import BaseModel, ValidationError
 from pydantic.schema import model_schema
 from quart import request
-from quart.exceptions import BadRequest
 from werkzeug.datastructures import Headers
+from werkzeug.exceptions import BadRequest
 
 if TYPE_CHECKING:
     from pydantic.dataclasses import Dataclass

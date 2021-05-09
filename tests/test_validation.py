@@ -136,12 +136,12 @@ async def test_websocket_validation() -> None:
 
     @app.websocket("/ws")
     async def ws() -> None:
-        await websocket.receive_as(Item)
+        await websocket.receive_as(Item)  # type: ignore
         with pytest.raises(SchemaValidationError):
-            await websocket.receive_as(Item)
-        await websocket.send_as(VALID_DICT, Item)
+            await websocket.receive_as(Item)  # type: ignore
+        await websocket.send_as(VALID_DICT, Item)  # type: ignore
         with pytest.raises(SchemaValidationError):
-            await websocket.send_as(VALID_DICT, Details)
+            await websocket.send_as(VALID_DICT, Details)  # type: ignore
 
     test_client = app.test_client()
     async with test_client.websocket("/ws") as test_websocket:

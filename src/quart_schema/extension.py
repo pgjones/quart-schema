@@ -165,9 +165,7 @@ class QuartSchema:
     def init_app(self, app: Quart) -> None:
         self.app = app
         self.title = self.app.name if self.title is None else self.title
-        app.test_client_class = new_class(  # type: ignore
-            "TestClient", (TestClientMixin, app.test_client_class)
-        )
+        app.test_client_class = new_class("TestClient", (TestClientMixin, app.test_client_class))
         app.websocket_class = new_class(  # type: ignore
             "Websocket", (WebsocketMixin, app.websocket_class)
         )
@@ -282,7 +280,7 @@ class QuartSchema:
             paths.setdefault(path, {})
 
             for method in rule.methods:
-                if method == "HEAD" or (method == "OPTIONS" and rule.provide_automatic_options):
+                if method == "HEAD" or (method == "OPTIONS" and rule.provide_automatic_options):  # type: ignore  # noqa: E501
                     continue
                 paths[path][method.lower()] = path_object
 

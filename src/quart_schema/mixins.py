@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
-from typing import Any, AnyStr, cast, Optional, overload, Type, Union
+from typing import Any, AnyStr, cast, Dict, Optional, overload, Type, Union
 
 from pydantic import BaseModel, ValidationError
 from quart import Response
+from quart.datastructures import FileStorage
 from quart.testing.utils import sentinel
 from werkzeug.datastructures import Headers
 
@@ -62,12 +63,14 @@ class TestClientMixin:
         method: str,
         headers: Optional[Union[dict, Headers]],
         data: Optional[AnyStr],
-        form: Any,
-        query_string: Any,
+        form: Optional[dict],
+        files: Optional[Dict[str, FileStorage]],
+        query_string: Optional[dict],
         json: Any,
         scheme: str,
         root_path: str,
         http_version: str,
+        scope_base: Optional[dict],
     ) -> Response:
         if json is not sentinel:
             if is_dataclass(json):
@@ -85,5 +88,16 @@ class TestClientMixin:
             elif isinstance(query_string, BaseModel):
                 query_string = query_string.dict()
         return await super()._make_request(  # type: ignore
-            path, method, headers, data, form, query_string, json, scheme, root_path, http_version
+            path,
+            method,
+            headers,
+            data,
+            form,
+            files,
+            query_string,
+            json,
+            scheme,
+            root_path,
+            http_version,
+            scope_base,
         )
