@@ -1,3 +1,11 @@
+0.8.0 2021-05-11
+----------------
+
+* Support Quart 0.15.0 as the minimum version.
+* Add spec for OpenAPI servers within openapi route.
+* Make the Pydantic validation error available.
+* Update to swagger-ui 3.47.1.
+
 0.7.0 2021-03-04
 ----------------
 

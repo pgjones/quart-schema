@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "quart-schema"
-version = "0.7.0"
+version = "0.8.0"
 description = "A Quart extension to provide schema validation"
 authors = ["pgjones <philip.graham.jones@googlemail.com>"]
 classifiers = [
