@@ -89,8 +89,8 @@ can't find an answer please `open an issue
 <https://gitlab.com/pgjones/quart-schema/issues>`_.
 
 
-.. |Build Status| image:: https://gitlab.com/pgjones/quart-schema/badges/master/pipeline.svg
-   :target: https://gitlab.com/pgjones/quart-schema/commits/master
+.. |Build Status| image:: https://gitlab.com/pgjones/quart-schema/badges/main/pipeline.svg
+   :target: https://gitlab.com/pgjones/quart-schema/commits/main
 
 .. |docs| image:: https://img.shields.io/badge/docs-passing-brightgreen.svg
    :target: https://pgjones.gitlab.io/quart-schema/
@@ -102,4 +102,4 @@ can't find an answer please `open an issue
    :target: https://pypi.python.org/pypi/Quart-Schema/
 
 .. |license| image:: https://img.shields.io/badge/license-MIT-blue.svg
-   :target: https://gitlab.com/pgjones/quart-schema/blob/master/LICENSE
+   :target: https://gitlab.com/pgjones/quart-schema/blob/main/LICENSE
