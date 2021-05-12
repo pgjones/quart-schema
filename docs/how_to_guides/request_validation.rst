@@ -69,18 +69,3 @@ with everything working as in the JSON example above.
    Form encoded data is a flat structure, therefore Quart-Schema will
    raise a ``SchemaInvalidError`` if the model proposed has nested
    structures.
-
-Handling validation errors
---------------------------
-
-By default if the client sends a body that doesn't satisfy the schema
-a 400 bad request response will be sent. You can alter this by adding
-an error handler, for example for a JSON error response,
-
-.. code-block:: python
-
-    from quart_schema import RequestSchemaValidationError
-
-    @app.errorhandler(RequestSchemaValidationError)
-    async def handle_request_validation_error():
-        return {"error": "VALIDATION"}, 400

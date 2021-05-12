@@ -8,6 +8,7 @@ How to guides
    casing.rst
    configuration.rst
    documenting.rst
+   error_handling.rst
    querystring_validation.rst
    request_validation.rst
    response_validation.rst
