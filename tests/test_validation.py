@@ -8,6 +8,7 @@ from quart import Quart, websocket
 from quart_schema import (
     DataSource,
     QuartSchema,
+    ResponseReturnValue,
     SchemaValidationError,
     validate_querystring,
     validate_request,
@@ -66,12 +67,12 @@ async def test_request_validation(path: str, json: dict, status: int) -> None:
 
     @app.route("/", methods=["POST"])
     @validate_request(Item)
-    async def item(data: Item) -> str:
+    async def item(data: Item) -> ResponseReturnValue:
         return ""
 
     @app.route("/dc", methods=["POST"])
-    @validate_request(DCItem)  # type: ignore
-    async def dcitem(data: DCItem) -> str:
+    @validate_request(DCItem)
+    async def dcitem(data: DCItem) -> ResponseReturnValue:
         return ""
 
     test_client = app.test_client()
@@ -93,7 +94,7 @@ async def test_request_form_validation(data: dict, status: int) -> None:
 
     @app.route("/", methods=["POST"])
     @validate_request(Details, source=DataSource.FORM)
-    async def item(data: Details) -> str:
+    async def item(data: Details) -> ResponseReturnValue:
         return ""
 
     test_client = app.test_client()
@@ -121,7 +122,7 @@ async def test_response_validation(model: Any, return_value: Any, status: int) -
 
     @app.route("/")
     @validate_response(model)
-    async def item() -> Any:
+    async def item() -> ResponseReturnValue:
         return return_value
 
     test_client = app.test_client()
@@ -165,8 +166,8 @@ async def test_querystring_validation(path: str, status: int) -> None:
     QuartSchema(app)
 
     @app.route("/")
-    @validate_querystring(QueryItem)  # type: ignore
-    async def query_item(query_args: QueryItem) -> str:
+    @validate_querystring(QueryItem)
+    async def query_item(query_args: QueryItem) -> ResponseReturnValue:
         return ""
 
     test_client = app.test_client()

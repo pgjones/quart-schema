@@ -1,9 +1,15 @@
 from __future__ import annotations
 
-from typing import Any, AnyStr, Dict, List, Optional, Type, TypeVar, Union
+from typing import Any, AnyStr, Dict, List, Optional, Tuple, Type, TypeVar, Union
 
 from pydantic import BaseModel
 from quart.datastructures import FileStorage
+from quart.typing import (
+    HeadersValue,
+    ResponseReturnValue as QuartResponseReturnValue,
+    ResponseValue as QuartResponseValue,
+    StatusCode,
+)
 from quart.wrappers import Response
 from werkzeug.datastructures import Headers
 
@@ -11,6 +17,19 @@ try:
     from typing import Protocol, TypedDict
 except ImportError:
     from typing_extensions import Protocol, TypedDict  # type: ignore
+
+
+PydanticModel = Union[Type[BaseModel], Type]  # Type[Dataclass] does not work
+
+ResponseValue = Union[QuartResponseValue, PydanticModel]
+
+ResponseReturnValue = Union[
+    QuartResponseReturnValue,
+    ResponseValue,
+    Tuple[ResponseValue, HeadersValue],
+    Tuple[ResponseValue, StatusCode],
+    Tuple[ResponseValue, StatusCode, HeadersValue],
+]
 
 
 class Dataclass(Protocol):

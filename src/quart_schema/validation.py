@@ -3,17 +3,15 @@ from __future__ import annotations
 from dataclasses import asdict, is_dataclass
 from enum import auto, Enum
 from functools import wraps
-from typing import Any, Callable, cast, Optional, Type, TYPE_CHECKING, Union
+from typing import Any, Callable, cast, Optional, Union
 
 from pydantic import BaseModel, ValidationError
 from pydantic.schema import model_schema
-from quart import current_app, request
+from quart import current_app, request, ResponseReturnValue as QuartResponseReturnValue
 from werkzeug.datastructures import Headers
 from werkzeug.exceptions import BadRequest
 
-if TYPE_CHECKING:
-    from pydantic.dataclasses import Dataclass
-
+from .typing import PydanticModel, ResponseReturnValue
 
 QUART_SCHEMA_REQUEST_ATTRIBUTE = "_quart_schema_request_schema"
 QUART_SCHEMA_RESPONSE_ATTRIBUTE = "_quart_schema_response_schemas"
@@ -40,7 +38,7 @@ class DataSource(Enum):
     JSON = auto()
 
 
-def validate_querystring(model_class: Union[Type[BaseModel], Type[Dataclass]]) -> Callable:
+def validate_querystring(model_class: PydanticModel) -> Callable:
     """Validate the querystring arguments.
 
     This ensures that the query string arguments can be converted to
@@ -75,7 +73,7 @@ def validate_querystring(model_class: Union[Type[BaseModel], Type[Dataclass]]) -
 
 
 def validate_request(
-    model_class: Union[Type[BaseModel], Type[Dataclass]],
+    model_class: PydanticModel,
     *,
     source: DataSource = DataSource.JSON,
 ) -> Callable:
@@ -120,9 +118,7 @@ def validate_request(
     return decorator
 
 
-def validate_response(
-    model_class: Union[Type[BaseModel], Type[Dataclass]], status_code: int = 200
-) -> Callable:
+def validate_response(model_class: PydanticModel, status_code: int = 200) -> Callable:
     """Validate the response data.
 
     This ensures that the response is a either dictionary that the
@@ -139,7 +135,9 @@ def validate_response(
             to. Defaults to 200.
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(
+        func: Callable[..., ResponseReturnValue]
+    ) -> Callable[..., QuartResponseReturnValue]:
         schemas = getattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, {})
         schemas[status_code] = model_class
         setattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, schemas)

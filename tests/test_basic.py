@@ -1,11 +1,12 @@
-from typing import Any, Optional
+from typing import Optional
 
 import pytest
 from pydantic import BaseModel
 from pydantic.dataclasses import dataclass
 from quart import Quart
 
-from quart_schema import QuartSchema
+from quart_schema import QuartSchema, ResponseReturnValue
+from quart_schema.typing import PydanticModel
 
 
 @dataclass
@@ -21,12 +22,12 @@ class Details(BaseModel):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("type_", [DCDetails, Details])
-async def test_make_response(type_: Any) -> None:
+async def test_make_response(type_: PydanticModel) -> None:
     app = Quart(__name__)
     QuartSchema(app)
 
     @app.route("/")
-    async def index() -> Any:
+    async def index() -> ResponseReturnValue:
         return type_(name="bob", age=2)
 
     test_client = app.test_client()

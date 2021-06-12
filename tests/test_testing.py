@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Optional
 
 import pytest
 from hypothesis import given, strategies as st
@@ -6,7 +6,8 @@ from pydantic import BaseModel
 from pydantic.dataclasses import dataclass
 from quart import Quart
 
-from quart_schema import DataSource, QuartSchema, validate_request
+from quart_schema import DataSource, QuartSchema, ResponseReturnValue, validate_request
+from quart_schema.typing import PydanticModel
 
 
 @dataclass
@@ -22,13 +23,13 @@ class Details(BaseModel):
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("type_", [DCDetails, Details])
-async def test_send_json(type_: Any) -> None:
+async def test_send_json(type_: PydanticModel) -> None:
     app = Quart(__name__)
     QuartSchema(app)
 
     @app.route("/", methods=["POST"])
     @validate_request(type_)
-    async def index(data: Any) -> Any:
+    async def index(data: PydanticModel) -> ResponseReturnValue:
         return data
 
     test_client = app.test_client()
@@ -38,13 +39,13 @@ async def test_send_json(type_: Any) -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("type_", [DCDetails, Details])
-async def test_send_form(type_: Any) -> None:
+async def test_send_form(type_: PydanticModel) -> None:
     app = Quart(__name__)
     QuartSchema(app)
 
     @app.route("/", methods=["POST"])
     @validate_request(type_, source=DataSource.FORM)
-    async def index(data: Any) -> Any:
+    async def index(data: PydanticModel) -> ResponseReturnValue:
         return data
 
     test_client = app.test_client()
@@ -59,8 +60,8 @@ async def test_hypothesis_dataclass(data: DCDetails) -> None:
     QuartSchema(app)
 
     @app.route("/", methods=["POST"])
-    @validate_request(DCDetails)  # type: ignore
-    async def index(data: DCDetails) -> Any:
+    @validate_request(DCDetails)
+    async def index(data: DCDetails) -> ResponseReturnValue:
         return data
 
     test_client = app.test_client()

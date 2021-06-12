@@ -1,5 +1,6 @@
 from .extension import hide_route, QuartSchema, tag
 from .mixins import SchemaValidationError
+from .typing import ResponseReturnValue
 from .validation import (
     DataSource,
     RequestSchemaValidationError,
@@ -14,6 +15,7 @@ __all__ = (
     "hide_route",
     "QuartSchema",
     "RequestSchemaValidationError",
+    "ResponseReturnValue",
     "ResponseSchemaValidationError",
     "SchemaValidationError",
     "tag",
