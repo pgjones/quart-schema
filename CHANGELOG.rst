@@ -1,3 +1,11 @@
+0.9.0 2021-07-21
+----------------
+
+* Improve the typing. This should result in less type: ignores being
+  required.
+* Support stdlib dataclasses, alongside the existing pydantic
+  dataclass support - with the former prefered.
+
 0.8.0 2021-05-11
 ----------------
 
