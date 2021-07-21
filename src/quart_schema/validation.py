@@ -6,6 +6,7 @@ from functools import wraps
 from typing import Any, Callable, cast, Optional, Union
 
 from pydantic import BaseModel, ValidationError
+from pydantic.dataclasses import dataclass as pydantic_dataclass
 from pydantic.schema import model_schema
 from quart import current_app, request, ResponseReturnValue as QuartResponseReturnValue
 from werkzeug.datastructures import Headers
@@ -46,10 +47,13 @@ def validate_querystring(model_class: PydanticModel) -> Callable:
     is raised which by default results in a 400 response.
 
     Arguments:
-        model_class: The model to use, either a pydantic dataclass or
-            a class that inherits from pydantic's BaseModel. All the
-            fields must be optional.
+        model_class: The model to use, either a dataclass, pydantic
+            dataclass or a class that inherits from pydantic's
+            BaseModel. All the fields must be optional.
     """
+    if is_dataclass(model_class):
+        model_class = pydantic_dataclass(model_class)
+
     schema = model_schema(model_class)
 
     if len(schema.get("required", [])) != 0:
@@ -85,11 +89,15 @@ def validate_request(
     in a 400 response.
 
     Arguments:
-        model_class: The model to use, either a pydantic dataclass or
-            a class that inherits from pydantic's BaseModel.
+        model_class: The model to use, either a dataclass, pydantic
+            dataclass or a class that inherits from pydantic's
+            BaseModel. All the fields must be optional.
         source: The source of the data to validate (json or form
             encoded).
     """
+    if is_dataclass(model_class):
+        model_class = pydantic_dataclass(model_class)
+
     schema = model_schema(model_class)
     if source == DataSource.FORM and any(
         schema["properties"][field]["type"] == "object" for field in schema["properties"]
@@ -129,11 +137,14 @@ def validate_response(model_class: PydanticModel, status_code: int = 200) -> Cal
     Quart encodes as JSON.
 
     Arguments:
-        model_class: The model to use, either a pydantic dataclass or
-            a class that inherits from pydantic's BaseModel.
+        model_class: The model to use, either a dataclass, pydantic
+            dataclass or a class that inherits from pydantic's
+            BaseModel. All the fields must be optional.
         status_code: The status code this validation applies
             to. Defaults to 200.
     """
+    if is_dataclass(model_class):
+        model_class = pydantic_dataclass(model_class)
 
     def decorator(
         func: Callable[..., ResponseReturnValue]
@@ -167,6 +178,8 @@ def validate_response(model_class: PydanticModel, status_code: int = 200) -> Cal
                         raise ResponseSchemaValidationError(error)
                 elif type(value) == model_class:
                     model_value = value
+                elif is_dataclass(value):
+                    model_value = model_class(**asdict(value))
                 else:
                     raise ResponseSchemaValidationError()
                 if is_dataclass(model_value):

@@ -36,7 +36,7 @@ example,
 .. code-block:: python
 
     from hypothesis import given, strategies as st
-    from pydantic.dataclasses import dataclass
+    from dataclasses import dataclass
     # Other imports not shown
 
     @dataclass

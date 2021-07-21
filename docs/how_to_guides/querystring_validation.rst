@@ -9,7 +9,7 @@ route handler, as so,
 
 .. code-block:: python
 
-    from pydantic.dataclasses import dataclass
+    from dataclasses import dataclass
 
     from quart_schema import validate_querystring
 

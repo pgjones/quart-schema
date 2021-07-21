@@ -9,10 +9,10 @@ object to be validated,
 .. code-block:: python
     :caption: schema.py
 
+    from dataclasses import dataclass
     from datetime import datetime
     from typing import Optional
 
-    from pydantic.dataclasses import dataclass
     from quart import Quart
     from quart_schema import QuartSchema, validate_request, validate_response
 

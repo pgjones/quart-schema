@@ -1,9 +1,9 @@
+from dataclasses import dataclass
 from typing import Optional
 
 import pytest
 from hypothesis import given, strategies as st
 from pydantic import BaseModel
-from pydantic.dataclasses import dataclass
 from quart import Quart
 
 from quart_schema import DataSource, QuartSchema, ResponseReturnValue, validate_request

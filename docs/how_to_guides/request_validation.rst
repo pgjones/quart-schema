@@ -9,7 +9,7 @@ so,
 
 .. code-block:: python
 
-    from pydantic.dataclasses import dataclass
+    from dataclasses import dataclass
 
     from quart_schema import validate_request
 
@@ -48,7 +48,7 @@ body is form (application/x-www-form-urlencoded) encoded the
 
 .. code-block:: python
 
-    from pydantic.dataclasses import dataclass
+    from dataclasses import dataclass
 
     from quart_schema import DataSource, validate_request
 

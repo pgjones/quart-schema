@@ -11,7 +11,7 @@ used,
 
 .. code-block:: python
 
-    from pydantic.dataclasses import dataclass
+    from dataclasses import dataclass
 
     from quart import websocket
 

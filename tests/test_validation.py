@@ -1,8 +1,9 @@
+from dataclasses import dataclass
 from typing import Any, Optional
 
 import pytest
 from pydantic import BaseModel
-from pydantic.dataclasses import dataclass
+from pydantic.dataclasses import dataclass as pydantic_dataclass
 from quart import Quart, websocket
 
 from quart_schema import (
@@ -44,16 +45,30 @@ class Item(BaseModel):
     details: Details
 
 
+@pydantic_dataclass
+class PyDCDetails:
+    name: str
+    age: Optional[int] = None
+
+
+@pydantic_dataclass
+class PyDCItem:
+    count: int
+    details: PyDCDetails
+
+
 VALID_DICT = {"count": 2, "details": {"name": "bob"}}
 INVALID_DICT = {"count": 2, "name": "bob"}
 VALID = Item(count=2, details=Details(name="bob"))
 INVALID = Details(name="bob")
 VALID_DC = DCItem(count=2, details=DCDetails(name="bob"))
 INVALID_DC = DCDetails(name="bob")
+VALID_PyDC = PyDCItem(count=2, details=PyDCDetails(name="bob"))
+INVALID_PyDC = PyDCDetails(name="bob")
 
 
 @pytest.mark.asyncio
-@pytest.mark.parametrize("path", ["/", "/dc"])
+@pytest.mark.parametrize("path", ["/", "/dc", "/pydc"])
 @pytest.mark.parametrize(
     "json, status",
     [
@@ -73,6 +88,11 @@ async def test_request_validation(path: str, json: dict, status: int) -> None:
     @app.route("/dc", methods=["POST"])
     @validate_request(DCItem)
     async def dcitem(data: DCItem) -> ResponseReturnValue:
+        return ""
+
+    @app.route("/pydc", methods=["POST"])
+    @validate_request(PyDCItem)
+    async def pydcitem(data: PyDCItem) -> ResponseReturnValue:
         return ""
 
     test_client = app.test_client()
@@ -114,6 +134,10 @@ async def test_request_form_validation(data: dict, status: int) -> None:
         (DCItem, INVALID_DICT, 500),
         (DCItem, VALID_DC, 200),
         (DCItem, INVALID_DC, 500),
+        (PyDCItem, VALID_DICT, 200),
+        (PyDCItem, INVALID_DICT, 500),
+        (PyDCItem, VALID_PyDC, 200),
+        (PyDCItem, INVALID_PyDC, 500),
     ],
 )
 async def test_response_validation(model: Any, return_value: Any, status: int) -> None:

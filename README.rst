@@ -18,10 +18,10 @@ methods.
 
 .. code-block:: python
 
+    from dataclasses import dataclass
     from datetime import datetime
     from typing import Optional
 
-    from pydantic.dataclasses import dataclass
     from quart import Quart, websocket
     from quart_schema import QuartSchema, validate_request, validate_response
 
