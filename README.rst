@@ -33,7 +33,7 @@ methods.
         task: str
         due: Optional[datetime]
 
-    @app.route("/", methods=["POST"])
+    @app.post("/")
     @validate_request(Todo)
     @validate_response(Todo, 201)
     async def create_todo(data: Todo) -> Todo:
