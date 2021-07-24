@@ -16,6 +16,12 @@ py39:
   - pip install tox
   - tox -e docs,format,mypy,py39,pep8,package
 
+openapi-spec:
+  image: python:3.9
+  script:
+  - pip install openapi-spec-validator .
+  - cd compliance && QUART_APP=todo:app quart schema | openapi-spec-validator -
+
 pages:
   image: python:3.9
   script:
