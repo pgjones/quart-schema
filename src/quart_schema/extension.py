@@ -324,6 +324,7 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
                         "schema": schema,
                     },
                 },
+                "description": model_class.__doc__,
             }
 
         request_data = getattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, None)
@@ -387,6 +388,6 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
         },
         "components": components,
         "paths": paths,
-        "tags": extension.tags,
+        "tags": extension.tags or [],
         "servers": extension.servers,
     }
