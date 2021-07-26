@@ -159,7 +159,7 @@ class QuartSchema:
         self.swagger_ui_path = swagger_ui_path
         self.title = title
         self.version = version
-        self.tags = tags
+        self.tags: List[TagObject] = tags or []
         self.convert_casing = convert_casing
         self.servers = servers
         if app is not None:
@@ -388,6 +388,6 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
         },
         "components": components,
         "paths": paths,
-        "tags": extension.tags or [],
+        "tags": extension.tags,
         "servers": extension.servers,
     }
