@@ -1,3 +1,10 @@
+0.10.0 2021-07-26
+-----------------
+
+* Add a ``quart schema`` command which outputs the QUART_APP schema to
+  stdout or a file.
+* Bugfix ensure the output is compliant with the openapi spec.
+
 0.9.0 2021-07-21
 ----------------
 
