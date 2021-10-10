@@ -14,16 +14,22 @@ py39:
   image: python:3.9
   script:
   - pip install tox
-  - tox -e docs,format,mypy,py39,pep8,package
+  - tox -e py39
+
+py310:
+  image: python:3.10
+  script:
+  - pip install tox
+  - tox -e docs,format,mypy,py310,pep8,package
 
 openapi-spec:
-  image: python:3.9
+  image: python:3.10
   script:
   - pip install openapi-spec-validator .
   - cd compliance && QUART_APP=todo:app quart schema | openapi-spec-validator -
 
 pages:
-  image: python:3.9
+  image: python:3.10
   script:
   - pip install . sphinx pydata-sphinx-theme
   - rm -rf docs/source && sphinx-apidoc -e -f -o docs/reference/source/ src/quart_schema/
