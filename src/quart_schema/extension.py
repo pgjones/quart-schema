@@ -9,7 +9,7 @@ from types import new_class
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 import click
-from humps import camelize, decamelize
+from humps import camelize, decamelize  # type: ignore[import]
 from pydantic import BaseModel
 from pydantic.json import pydantic_encoder
 from pydantic.schema import model_schema
