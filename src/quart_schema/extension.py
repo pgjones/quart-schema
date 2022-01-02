@@ -369,6 +369,7 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
                 {
                     "name": name,
                     "in": "path",
+                    "required": True,
                 }
             )
 
