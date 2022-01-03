@@ -11,6 +11,7 @@ from quart_schema import (
     QuartSchema,
     ResponseReturnValue,
     SchemaValidationError,
+    validate_headers,
     validate_querystring,
     validate_request,
     validate_response,
@@ -196,4 +197,35 @@ async def test_querystring_validation(path: str, status: int) -> None:
 
     test_client = app.test_client()
     response = await test_client.get(path)
+    assert response.status_code == status
+
+
+@dataclass
+class Headers:
+    x_required: str
+    x_optional: Optional[int] = None
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "request_headers, status",
+    [
+        ({"X-Required": "abc", "X-Optional": "2"}, 200),
+        ({"X-Required": "abc", "User-Agent": "abc"}, 200),
+        ({}, 400),
+        ({"X-Required": "abc", "X-Optional": "abc"}, 400),
+        ({"X-Optional": "2"}, 400),
+    ],
+)
+async def test_header_validation(request_headers: dict, status: int) -> None:
+    app = Quart(__name__)
+    QuartSchema(app)
+
+    @app.route("/")
+    @validate_headers(Headers)
+    async def headers_item(headers: Headers) -> ResponseReturnValue:
+        return ""
+
+    test_client = app.test_client()
+    response = await test_client.get("/", headers=request_headers)
     assert response.status_code == status

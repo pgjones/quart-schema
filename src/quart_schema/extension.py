@@ -21,6 +21,7 @@ from .mixins import TestClientMixin, WebsocketMixin
 from .typing import ServerObject, TagObject
 from .validation import (
     DataSource,
+    QUART_SCHEMA_HEADERS_ATTRIBUTE,
     QUART_SCHEMA_QUERYSTRING_ATTRIBUTE,
     QUART_SCHEMA_REQUEST_ATTRIBUTE,
     QUART_SCHEMA_RESPONSE_ATTRIBUTE,
@@ -360,6 +361,20 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
                     {
                         "name": name,
                         "in": "query",
+                        "schema": type_,
+                    }
+                )
+
+        headers_model = getattr(func, QUART_SCHEMA_HEADERS_ATTRIBUTE, None)
+        if headers_model is not None:
+            schema = model_schema(headers_model, ref_prefix=REF_PREFIX)
+            definitions, schema = _split_definitions(schema)
+            components["schemas"].update(definitions)
+            for name, type_ in schema["properties"].items():
+                path_object["parameters"].append(  # type: ignore
+                    {
+                        "name": name.replace("_", "-"),
+                        "in": "header",
                         "schema": type_,
                     }
                 )

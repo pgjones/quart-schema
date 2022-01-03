@@ -14,6 +14,7 @@ from werkzeug.exceptions import BadRequest
 
 from .typing import PydanticModel, ResponseReturnValue
 
+QUART_SCHEMA_HEADERS_ATTRIBUTE = "_quart_schema_headers_schema"
 QUART_SCHEMA_REQUEST_ATTRIBUTE = "_quart_schema_request_schema"
 QUART_SCHEMA_RESPONSE_ATTRIBUTE = "_quart_schema_response_schemas"
 QUART_SCHEMA_QUERYSTRING_ATTRIBUTE = "_quart_schema_querystring_schema"
@@ -70,6 +71,45 @@ def validate_querystring(model_class: PydanticModel) -> Callable:
                 raise RequestSchemaValidationError(error)
             else:
                 return await current_app.ensure_async(func)(*args, query_args=model, **kwargs)
+
+        return wrapper
+
+    return decorator
+
+
+def validate_headers(model_class: PydanticModel) -> Callable:
+    """Validate the headers.
+
+    This ensures that the headers can be converted to the
+    *model_class*. If they cannot a `RequestSchemaValidationError` is
+    raised which by default results in a 400 response.
+
+    Arguments:
+        model_class: The model to use, either a dataclass, pydantic
+            dataclass or a class that inherits from pydantic's
+            BaseModel.
+
+    """
+    if is_builtin_dataclass(model_class):
+        model_class = pydantic_dataclass(model_class)
+
+    def decorator(func: Callable) -> Callable:
+        setattr(func, QUART_SCHEMA_HEADERS_ATTRIBUTE, model_class)
+
+        @wraps(func)
+        async def wrapper(*args: Any, **kwargs: Any) -> Any:
+            try:
+                headers = {}
+                for raw_key in request.headers.keys():
+                    key = raw_key.replace("-", "_").lower()
+                    if key in model_class.__annotations__:
+                        headers[key] = ",".join(request.headers.get_all(raw_key))
+
+                model = model_class(**headers)
+            except (TypeError, ValidationError) as error:
+                raise RequestSchemaValidationError(error)
+            else:
+                return await current_app.ensure_async(func)(*args, headers=model, **kwargs)
 
         return wrapper
 
