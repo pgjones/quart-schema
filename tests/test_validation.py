@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, Optional
+from typing import Any, Optional, Tuple, Union
 
 import pytest
 from pydantic import BaseModel
@@ -217,7 +217,7 @@ class Headers:
         ({"X-Optional": "2"}, 400),
     ],
 )
-async def test_header_validation(request_headers: dict, status: int) -> None:
+async def test_request_header_validation(request_headers: dict, status: int) -> None:
     app = Quart(__name__)
     QuartSchema(app)
 
@@ -228,4 +228,30 @@ async def test_header_validation(request_headers: dict, status: int) -> None:
 
     test_client = app.test_client()
     response = await test_client.get("/", headers=request_headers)
+    assert response.status_code == status
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize(
+    "response_headers, status",
+    [
+        ({"X-Required": "abc", "X-Optional": "2"}, 200),
+        ({"X-Required": "abc", "User-Agent": "abc"}, 200),
+        (Headers(x_required="abc"), 200),
+        ({}, 500),
+        ({"X-Required": "abc", "X-Optional": "abc"}, 500),
+        ({"X-Optional": "2"}, 500),
+    ],
+)
+async def test_response_header_validation(response_headers: dict, status: int) -> None:
+    app = Quart(__name__)
+    QuartSchema(app)
+
+    @app.route("/")
+    @validate_response(DCItem, 200, Headers)
+    async def headers_item() -> Tuple[dict, int, Union[dict, Headers]]:
+        return VALID_DICT, 200, response_headers
+
+    test_client = app.test_client()
+    response = await test_client.get("/")
     assert response.status_code == status

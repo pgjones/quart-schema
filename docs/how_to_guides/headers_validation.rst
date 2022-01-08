@@ -1,12 +1,16 @@
 Headers Validation
 ==================
 
-Headers are a mandatory part of a request that allow for additional
-meta data describing the request. It is possible to validate that
-certain headers are present, or that if headers are present they are
-of a certain type. This is done by validating them against a schema
-you define. Quart-Schema allows validation via decorating the route
-handler, as so,
+Headers are a mandatory part of a request or response that allow for
+additional meta data describing the request or the response. It is
+possible to validate that certain headers are present, or that if
+headers are present they are of a certain type.
+
+Request headers
+---------------
+
+Request headers can be validated against a schema you define by
+decorating the route handler, as so,
 
 .. code-block:: python
 
@@ -41,7 +45,7 @@ be passed into your route handler as the ``headers`` argument.
    matching conventions.
 
 Handling validation errors
---------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 By default if the client sends headers that don't satisfy the schema a
 400 bad request response will be sent. You can alter this by adding an
@@ -54,3 +58,31 @@ error handler, for example for a JSON error response,
     @app.errorhandler(RequestSchemaValidationError)
     async def handle_request_validation_error():
         return {"error": "VALIDATION"}, 400
+
+Response headers
+----------------
+
+Request headers can be validated alongside the response body bt
+decorating the route handler with a relevant schema, as so,
+
+.. code-block:: python
+
+    from dataclasses import dataclass
+
+    from quart_schema import validate_response
+
+    @dataclass
+    class Headers:
+        x_required: str
+        x_optional: Optional[int] = None
+
+    @app.route("/")
+    @validate_response(Body, 200, Headers)
+    async def index():
+        ...
+        return body, 200, headers
+
+this will require that the headers variable adds a ``X-Required``
+header to the response and optionally ``X-Optional`` of type int. The
+headers object can be a dictionary (as with Quart) or a ``Headers``
+instance.

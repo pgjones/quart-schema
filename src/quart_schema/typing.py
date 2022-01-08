@@ -5,7 +5,7 @@ from typing import Any, AnyStr, Dict, List, Optional, Tuple, Type, TypeVar, Unio
 from pydantic import BaseModel
 from quart.datastructures import FileStorage
 from quart.typing import (
-    HeadersValue,
+    HeadersValue as QuartHeadersValue,
     ResponseReturnValue as QuartResponseReturnValue,
     ResponseValue as QuartResponseValue,
     StatusCode,
@@ -22,6 +22,7 @@ except ImportError:
 PydanticModel = Union[Type[BaseModel], Type]  # Type[Dataclass] does not work
 
 ResponseValue = Union[QuartResponseValue, PydanticModel]
+HeadersValue = Union[QuartHeadersValue, PydanticModel]
 
 ResponseReturnValue = Union[
     QuartResponseReturnValue,

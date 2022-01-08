@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, is_dataclass
 from enum import auto, Enum
 from functools import wraps
-from typing import Any, Callable, cast, Optional, Union
+from typing import Any, Callable, cast, Optional, Type, TypeVar, Union
 
 from pydantic import BaseModel, ValidationError
 from pydantic.dataclasses import dataclass as pydantic_dataclass, is_builtin_dataclass
@@ -99,13 +99,7 @@ def validate_headers(model_class: PydanticModel) -> Callable:
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             try:
-                headers = {}
-                for raw_key in request.headers.keys():
-                    key = raw_key.replace("-", "_").lower()
-                    if key in model_class.__annotations__:
-                        headers[key] = ",".join(request.headers.get_all(raw_key))
-
-                model = model_class(**headers)
+                model = _convert_headers(request.headers, model_class)
             except (TypeError, ValidationError) as error:
                 raise RequestSchemaValidationError(error)
             else:
@@ -166,7 +160,11 @@ def validate_request(
     return decorator
 
 
-def validate_response(model_class: PydanticModel, status_code: int = 200) -> Callable:
+def validate_response(
+    model_class: PydanticModel,
+    status_code: int = 200,
+    headers_model_class: Optional[PydanticModel] = None,
+) -> Callable:
     """Validate the response data.
 
     This ensures that the response is a either dictionary that the
@@ -179,18 +177,24 @@ def validate_response(model_class: PydanticModel, status_code: int = 200) -> Cal
     Arguments:
         model_class: The model to use, either a dataclass, pydantic
             dataclass or a class that inherits from pydantic's
-            BaseModel. All the fields must be optional.
+            BaseModel.
         status_code: The status code this validation applies
             to. Defaults to 200.
+         headers_model_class: The model to use to validate response
+            headers, either a dataclass, pydantic dataclass or a class
+            that inherits from pydantic's BaseModel. Is optional.
     """
     if is_builtin_dataclass(model_class):
         model_class = pydantic_dataclass(model_class)
+
+    if is_builtin_dataclass(headers_model_class):
+        headers_model_class = pydantic_dataclass(headers_model_class)
 
     def decorator(
         func: Callable[..., ResponseReturnValue]
     ) -> Callable[..., QuartResponseReturnValue]:
         schemas = getattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, {})
-        schemas[status_code] = model_class
+        schemas[status_code] = (model_class, headers_model_class)
         setattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, schemas)
 
         @wraps(func)
@@ -205,31 +209,66 @@ def validate_response(model_class: PydanticModel, status_code: int = 200) -> Cal
                 value = result
 
             status = 200
-            if status_or_headers is not None and not isinstance(
-                status_or_headers, (Headers, dict, list)
-            ):
+            if isinstance(status_or_headers, int):
                 status = int(status_or_headers)
 
             if status == status_code:
-                if isinstance(value, dict):
-                    try:
+                try:
+                    if isinstance(value, dict):
                         model_value = model_class(**value)
+                    elif type(value) == model_class:
+                        model_value = value
+                    elif is_builtin_dataclass(value):
+                        model_value = model_class(**asdict(value))
+                    else:
+                        raise ResponseSchemaValidationError()
+                except ValidationError as error:
+                    raise ResponseSchemaValidationError(error)
+
+                if is_dataclass(model_value):
+                    return_value = asdict(model_value)
+                else:
+                    return_value = cast(BaseModel, model_value).dict()
+
+                if headers_model_class is not None:
+                    try:
+                        if isinstance(headers, dict):
+                            headers_model_value = _convert_headers(headers, headers_model_class)
+                        elif type(value) == headers_model_class:
+                            headers_model_value = headers
+                        elif is_builtin_dataclass(headers):
+                            headers_model_value = headers_model_class(**asdict(headers))
+                        else:
+                            raise ResponseSchemaValidationError()
                     except ValidationError as error:
                         raise ResponseSchemaValidationError(error)
-                elif type(value) == model_class:
-                    model_value = value
-                elif is_builtin_dataclass(value):
-                    model_value = model_class(**asdict(value))
+
+                    if is_dataclass(headers_model_value):
+                        headers_value = asdict(headers_model_value)
+                    else:
+                        headers_value = cast(BaseModel, headers_model_value).dict()
                 else:
-                    raise ResponseSchemaValidationError()
-                if is_dataclass(model_value):
-                    return asdict(model_value), status_or_headers, headers
-                else:
-                    model_value = cast(BaseModel, model_value)
-                    return model_value.dict(), status_or_headers, headers
+                    headers_value = headers
+
+                return return_value, status, headers_value
             else:
                 return result
 
         return wrapper
 
     return decorator
+
+
+T = TypeVar("T")
+
+
+def _convert_headers(headers: Union[dict, Headers], model_class: Type[T]) -> T:
+    result = {}
+    for raw_key in headers.keys():
+        key = raw_key.replace("-", "_").lower()
+        if key in model_class.__annotations__:
+            if isinstance(headers, Headers):
+                result[key] = ",".join(headers.get_all(raw_key))
+            else:
+                result[key] = headers[raw_key]
+    return model_class(**result)

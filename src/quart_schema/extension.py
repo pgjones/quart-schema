@@ -313,7 +313,8 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
             path_object["tags"] = list(getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE))
 
         response_models = getattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, {})
-        for status_code, model_class in response_models.items():
+        for status_code in response_models.keys():
+            model_class, headers_model_class = response_models[status_code]
             schema = model_schema(model_class, ref_prefix=REF_PREFIX)
             if extension.convert_casing:
                 schema = camelize(schema)
@@ -327,6 +328,16 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
                 },
                 "description": model_class.__doc__,
             }
+            if headers_model_class is not None:
+                schema = model_schema(headers_model_class, ref_prefix=REF_PREFIX)
+                definitions, schema = _split_definitions(schema)
+                components["schemas"].update(definitions)
+                path_object["responses"][status_code]["content"]["headers"] = {  # type: ignore
+                    name.replace("_", "-"): {
+                        "schema": type_,
+                    }
+                    for name, type_ in schema["properties"].items()
+                }
 
         request_data = getattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, None)
         if request_data is not None:
