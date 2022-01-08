@@ -273,6 +273,7 @@ def validate(
     validate_request, validate_headers, and validate_response
     decorators. Please see the docstrings for those decorators.
     """
+
     def decorator(func: Callable) -> Callable:
         if querystring is not None:
             func = validate_querystring(querystring)(func)
