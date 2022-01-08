@@ -3,7 +3,7 @@ from __future__ import annotations
 from dataclasses import asdict, is_dataclass
 from enum import auto, Enum
 from functools import wraps
-from typing import Any, Callable, cast, Optional, Type, TypeVar, Union
+from typing import Any, Callable, cast, Dict, Optional, Tuple, Type, TypeVar, Union
 
 from pydantic import BaseModel, ValidationError
 from pydantic.dataclasses import dataclass as pydantic_dataclass, is_builtin_dataclass
@@ -255,6 +255,34 @@ def validate_response(
                 return result
 
         return wrapper
+
+    return decorator
+
+
+def validate(
+    *,
+    querystring: Optional[PydanticModel] = None,
+    request: Optional[PydanticModel] = None,
+    request_source: DataSource = DataSource.JSON,
+    headers: Optional[PydanticModel] = None,
+    responses: Dict[int, Tuple[PydanticModel, Optional[PydanticModel]]],
+) -> Callable:
+    """Validate the route.
+
+    This is a shorthand combination of of the validate_querystring,
+    validate_request, validate_headers, and validate_response
+    decorators. Please see the docstrings for those decorators.
+    """
+    def decorator(func: Callable) -> Callable:
+        if querystring is not None:
+            func = validate_querystring(querystring)(func)
+        if request is not None:
+            func = validate_request(request, source=request_source)(func)
+        if headers is not None:
+            func = validate_headers(headers)(func)
+        for status, models in responses.items():
+            func = validate_response(models[0], status, models[1])
+        return func
 
     return decorator
 
