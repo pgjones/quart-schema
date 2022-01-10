@@ -320,24 +320,30 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
                 schema = camelize(schema)
             definitions, schema = _split_definitions(schema)
             components["schemas"].update(definitions)
-            path_object["responses"][status_code] = {  # type: ignore
+            response_object = {
                 "content": {
                     "application/json": {
                         "schema": schema,
                     },
                 },
-                "description": model_class.__doc__,
+                "description": "",
             }
+            if model_class.__doc__ is not None:
+                summary, *description = model_class.__doc__.splitlines()
+                response_object["description"] = "\n".join(description)
+                response_object["summary"] = summary
+
             if headers_model_class is not None:
                 schema = model_schema(headers_model_class, ref_prefix=REF_PREFIX)
                 definitions, schema = _split_definitions(schema)
                 components["schemas"].update(definitions)
-                path_object["responses"][status_code]["content"]["headers"] = {  # type: ignore
+                response_object["content"]["headers"] = {  # type: ignore
                     name.replace("_", "-"): {
                         "schema": type_,
                     }
                     for name, type_ in schema["properties"].items()
                 }
+            path_object["responses"][status_code] = response_object  # type: ignore
 
         request_data = getattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, None)
         if request_data is not None:
