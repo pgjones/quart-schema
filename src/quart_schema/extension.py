@@ -329,9 +329,7 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
                 "description": "",
             }
             if model_class.__doc__ is not None:
-                summary, *description = model_class.__doc__.splitlines()
-                response_object["description"] = "\n".join(description)
-                response_object["summary"] = summary
+                response_object["description"] = model_class.__doc__
 
             if headers_model_class is not None:
                 schema = model_schema(headers_model_class, ref_prefix=REF_PREFIX)
