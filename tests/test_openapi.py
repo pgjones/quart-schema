@@ -98,8 +98,7 @@ async def test_openapi() -> None:
                                     "x-name": {"schema": {"title": "X Name", "type": "string"}}
                                 },
                             },
-                            "description": "",
-                            "summary": "Result(name: str)",
+                            "description": "Result(name: str)",
                         }
                     },
                 }
