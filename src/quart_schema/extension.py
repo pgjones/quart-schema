@@ -16,6 +16,7 @@ from pydantic.schema import model_schema
 from quart import current_app, Quart, render_template_string, Response, ResponseReturnValue
 from quart.cli import pass_script_info, ScriptInfo
 from quart.json import JSONDecoder as QuartJSONDecoder, JSONEncoder as QuartJSONEncoder
+from werkzeug.routing import NumberConverter
 
 from .mixins import TestClientMixin, WebsocketMixin
 from .typing import ServerObject, TagObject
@@ -395,11 +396,16 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
                 )
 
         for name, converter in rule._converters.items():
+            type_ = "string"
+            if isinstance(converter, NumberConverter):
+                type_ = "number"
+
             path_object["parameters"].append(  # type: ignore
                 {
                     "name": name,
                     "in": "path",
                     "required": True,
+                    "schema": {"type": type_},
                 }
             )
 

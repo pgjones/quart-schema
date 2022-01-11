@@ -37,7 +37,7 @@ class TodoBM(BaseModel):
     due: Optional[datetime]
 
 
-@app.get("/")
+@app.get("/<int:id>/")
 @validate_response(TodoBM)
-async def get_todo() -> Todo:
+async def get_todo(id: int) -> Todo:
     pass
