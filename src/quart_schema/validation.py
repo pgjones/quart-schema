@@ -29,10 +29,22 @@ class ResponseSchemaValidationError(Exception):
         self.validation_error = validation_error
 
 
+class ResponseHeadersValidationError(ResponseSchemaValidationError):
+    pass
+
+
 class RequestSchemaValidationError(BadRequest):
     def __init__(self, validation_error: Union[TypeError, ValidationError]) -> None:
         super().__init__()
         self.validation_error = validation_error
+
+
+class QuerystringValidationError(RequestSchemaValidationError):
+    pass
+
+
+class RequestHeadersValidationError(RequestSchemaValidationError):
+    pass
 
 
 class DataSource(Enum):
@@ -68,7 +80,7 @@ def validate_querystring(model_class: PydanticModel) -> Callable:
             try:
                 model = model_class(**request.args)
             except (TypeError, ValidationError) as error:
-                raise RequestSchemaValidationError(error)
+                raise QuerystringValidationError(error)
             else:
                 return await current_app.ensure_async(func)(*args, query_args=model, **kwargs)
 
@@ -101,7 +113,7 @@ def validate_headers(model_class: PydanticModel) -> Callable:
             try:
                 model = _convert_headers(request.headers, model_class)
             except (TypeError, ValidationError) as error:
-                raise RequestSchemaValidationError(error)
+                raise RequestHeadersValidationError(error)
             else:
                 return await current_app.ensure_async(func)(*args, headers=model, **kwargs)
 
@@ -239,9 +251,9 @@ def validate_response(
                         elif is_builtin_dataclass(headers):
                             headers_model_value = headers_model_class(**asdict(headers))
                         else:
-                            raise ResponseSchemaValidationError()
+                            raise ResponseHeadersValidationError()
                     except ValidationError as error:
-                        raise ResponseSchemaValidationError(error)
+                        raise ResponseHeadersValidationError(error)
 
                     if is_dataclass(headers_model_value):
                         headers_value = asdict(headers_model_value)
