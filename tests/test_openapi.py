@@ -1,7 +1,6 @@
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
-import pytest
 from quart import Quart
 
 from quart_schema import (
@@ -34,7 +33,6 @@ class Headers:
     x_name: str
 
 
-@pytest.mark.asyncio
 async def test_openapi() -> None:
     app = Quart(__name__)
     QuartSchema(app)

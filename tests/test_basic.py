@@ -27,7 +27,6 @@ class PyDCDetails:
     age: Optional[int] = None
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("type_", [DCDetails, Details, PyDCDetails])
 async def test_make_response(type_: PydanticModel) -> None:
     app = Quart(__name__)

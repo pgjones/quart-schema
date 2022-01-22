@@ -21,7 +21,6 @@ class Details(BaseModel):
     age: Optional[int]
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("type_", [DCDetails, Details])
 async def test_send_json(type_: PydanticModel) -> None:
     app = Quart(__name__)
@@ -37,7 +36,6 @@ async def test_send_json(type_: PydanticModel) -> None:
     assert (await response.get_json()) == {"name": "bob", "age": 2}
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("type_", [DCDetails, Details])
 async def test_send_form(type_: PydanticModel) -> None:
     app = Quart(__name__)
@@ -54,7 +52,6 @@ async def test_send_form(type_: PydanticModel) -> None:
 
 
 @given(st.builds(DCDetails))
-@pytest.mark.asyncio
 async def test_hypothesis_dataclass(data: DCDetails) -> None:
     app = Quart(__name__)
     QuartSchema(app)

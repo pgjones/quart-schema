@@ -68,7 +68,6 @@ VALID_PyDC = PyDCItem(count=2, details=PyDCDetails(name="bob"))
 INVALID_PyDC = PyDCDetails(name="bob")
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize("path", ["/", "/dc", "/pydc"])
 @pytest.mark.parametrize(
     "json, status",
@@ -101,7 +100,6 @@ async def test_request_validation(path: str, json: dict, status: int) -> None:
     assert response.status_code == status
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "data, status",
     [
@@ -123,7 +121,6 @@ async def test_request_form_validation(data: dict, status: int) -> None:
     assert response.status_code == status
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "model, return_value, status",
     [
@@ -155,7 +152,6 @@ async def test_response_validation(model: Any, return_value: Any, status: int) -
     assert response.status_code == status
 
 
-@pytest.mark.asyncio
 async def test_websocket_validation() -> None:
     app = Quart(__name__)
     QuartSchema(app)
@@ -175,7 +171,6 @@ async def test_websocket_validation() -> None:
         await test_websocket.send_json(INVALID_DICT)
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "path, status",
     [
@@ -206,7 +201,6 @@ class Headers:
     x_optional: Optional[int] = None
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "request_headers, status",
     [
@@ -231,7 +225,6 @@ async def test_request_header_validation(request_headers: dict, status: int) -> 
     assert response.status_code == status
 
 
-@pytest.mark.asyncio
 @pytest.mark.parametrize(
     "response_headers, status",
     [
