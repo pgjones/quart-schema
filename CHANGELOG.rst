@@ -1,3 +1,20 @@
+0.11.0 2022-02-03
+-----------------
+
+* Support validation of request headers, including the description of
+  the headers in the OpenAPI schema.
+* Support validation of response headers, including the description of
+  the headers in the OpenAPI schema.
+* Add a single decorator ``validate`` shorthand.
+* Fix and improve the response summary & description, so as to match
+  the OpenAPI specification.
+* Add schema to the path parameters, so as to better describe and
+  match the OpenAPI specification.
+* Add specific errors for Querystring and header validation, so they
+  can be handled differently to Request body validation if desired.
+* Bugfix ensure required is set for path paramters, so as to match the
+  OpenAPI specification.
+
 0.10.0 2021-07-26
 -----------------
 
