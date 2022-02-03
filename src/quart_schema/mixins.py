@@ -101,4 +101,5 @@ class TestClientMixin:
             root_path,
             http_version,
             scope_base,
+            auth,
         )
