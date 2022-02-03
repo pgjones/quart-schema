@@ -1,13 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import asdict, is_dataclass
-from typing import Any, AnyStr, cast, Dict, Optional, overload, Type, Union
+from typing import Any, AnyStr, cast, Dict, Optional, overload, Tuple, Type, Union
 
 from pydantic import BaseModel, ValidationError
 from quart import Response
 from quart.datastructures import FileStorage
 from quart.testing.utils import sentinel
-from werkzeug.datastructures import Headers
+from werkzeug.datastructures import Authorization, Headers
 
 from .typing import BM, DC, TestClientProtocol, WebsocketProtocol
 
@@ -71,6 +71,7 @@ class TestClientMixin:
         root_path: str,
         http_version: str,
         scope_base: Optional[dict],
+        auth: Optional[Union[Authorization, Tuple[str, str]]] = None,
     ) -> Response:
         if json is not sentinel:
             if is_dataclass(json):
