@@ -1,3 +1,8 @@
+0.11.1 2022-02-03
+-----------------
+
+* Bugfix add auth parameter to TestClientMixin.
+
 0.11.0 2022-02-03
 -----------------
 
