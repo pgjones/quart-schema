@@ -26,13 +26,13 @@ If you are,
  * new to Pydantic then try the `pydantic documentation
    <https://pydantic-docs.helpmanual.io/>`_,
 
-Quart-Schema is developed on `GitLab
-<https://gitlab.com/pgjones/quart-schema>`_. If you come across an
+Quart-Schema is developed on `GitHub
+<https://github.com/pgjones/quart-schema>`_. If you come across an
 issue, or have a feature request please open an `issue
-<https://gitlab.com/pgjones/quart-schema/issues>`_.If you want to
+<https://github.com/pgjones/quart-schema/issues>`_.If you want to
 contribute a fix or the feature-implementation please do (typo fixes
 welcome), by proposing a `merge request
-<https://gitlab.com/pgjones/quart-schema/merge_requests>`_. If you
+<https://github.com/pgjones/quart-schema/merge_requests>`_. If you
 want to ask for help try `on gitter
 <https://gitter.im/python-quart/lobby>`_.
 
