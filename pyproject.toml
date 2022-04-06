@@ -57,6 +57,7 @@ warn_unused_configs = true
 warn_unused_ignores = true
 
 [tool.poetry.dependencies]
+pydata_sphinx_theme = { version = "*", optional = true }
 pyhumps = ">=1.6.1"
 python = ">=3.7"
 pydantic=">=1.9"
@@ -65,6 +66,9 @@ typing_extensions = { version = "*", python = "<3.8" }
 
 [tool.poetry.dev-dependencies]
 tox = "*"
+
+[tool.poetry.extras]
+docs = ["pydata_sphinx_theme"]
 
 [tool.pytest.ini_options]
 addopts = "--no-cov-on-fail --showlocals --strict-markers"
