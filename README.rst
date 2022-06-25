@@ -36,7 +36,7 @@ methods.
     @app.post("/")
     @validate_request(Todo)
     @validate_response(Todo, 201)
-    async def create_todo(data: Todo) -> Todo:
+    async def create_todo(data: Todo) -> tuple[Todo, int]:
         ... # Do something with data, e.g. save to the DB
         return data, 201
 
