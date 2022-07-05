@@ -92,3 +92,13 @@ class ServerObject(TypedDict, total=False):
     url: str
     description: str
     variables: Dict[str, VariableObject]
+
+
+class SecurityScheme(TypedDict, total=False):
+    name: str
+    config: Dict[str, Any]
+
+
+class Security(TypedDict, total=False):
+    name: str
+    scopes: Optional[List[str]]

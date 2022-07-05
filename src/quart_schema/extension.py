@@ -19,7 +19,7 @@ from quart.json import JSONDecoder as QuartJSONDecoder, JSONEncoder as QuartJSON
 from werkzeug.routing import NumberConverter
 
 from .mixins import TestClientMixin, WebsocketMixin
-from .typing import ServerObject, TagObject
+from .typing import ServerObject, TagObject, SecurityScheme, Security
 from .validation import (
     DataSource,
     QUART_SCHEMA_HEADERS_ATTRIBUTE,
@@ -30,6 +30,7 @@ from .validation import (
 
 QUART_SCHEMA_HIDDEN_ATTRIBUTE = "_quart_schema_hidden"
 QUART_SCHEMA_TAG_ATTRIBUTE = "_quart_schema_tag"
+QUART_SCHEMA_SECURITY_ATTRIBUTE = "_quart_security_tag"
 REF_PREFIX = "#/components/schemas/"
 
 PATH_RE = re.compile("<(?:[^:]*:)?([^>]+)>")
@@ -155,6 +156,8 @@ class QuartSchema:
         tags: Optional[List[TagObject]] = None,
         convert_casing: bool = False,
         servers: Optional[List[ServerObject]] = [],
+        security_schemes: Optional[List[SecurityScheme]] = [],
+        security: Optional[List[Security]] = [],
     ) -> None:
         self.openapi_path = openapi_path
         self.redoc_ui_path = redoc_ui_path
@@ -164,6 +167,8 @@ class QuartSchema:
         self.tags: List[TagObject] = tags or []
         self.convert_casing = convert_casing
         self.servers = servers
+        self.security_schemes = security_schemes
+        self.security = security
         if app is not None:
             self.init_app(app)
 
@@ -293,6 +298,18 @@ def tag(tags: Iterable[str]) -> Callable:
     return decorator
 
 
+def security_scheme(schemes: Iterable[Security]) -> Callable:
+
+    def decorator(func: Callable) -> Callable:
+        existing_security: List[Security] = getattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE, list())
+        existing_security.extend(schemes)
+        setattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE, existing_security)
+
+        return func
+
+    return decorator
+
+
 def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
     paths: Dict[str, dict] = {}
     components = {"schemas": {}}  # type: ignore
@@ -312,6 +329,10 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
 
         if getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE, None) is not None:
             path_object["tags"] = list(getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE))
+
+        if getattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE, None) is not None:
+            route_security = getattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE)
+            path_object["security"] = [{s["name"]: s.get("scopes", [])} for s in route_security]
 
         response_models = getattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, {})
         for status_code in response_models.keys():
@@ -417,6 +438,9 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
                 continue
             paths[path][method.lower()] = path_object
 
+    if extension.security_schemes:
+        components["securitySchemes"] = {scheme["name"]: scheme["config"] for scheme in extension.security_schemes}
+
     return {
         "openapi": "3.0.3",
         "info": {
@@ -427,4 +451,5 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
         "paths": paths,
         "tags": extension.tags,
         "servers": extension.servers,
+        "security": [{s["name"]: s.get("scopes", [])} for s in extension.security]
     }
