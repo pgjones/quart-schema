@@ -301,9 +301,7 @@ def tag(tags: Iterable[str]) -> Callable:
 def security_scheme(schemes: Iterable[Security]) -> Callable:
 
     def decorator(func: Callable) -> Callable:
-        existing_security: List[Security] = getattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE, list())
-        existing_security.extend(schemes)
-        setattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE, existing_security)
+        setattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE, schemes)
 
         return func
 
