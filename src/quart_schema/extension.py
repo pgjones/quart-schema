@@ -373,13 +373,11 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
             definitions, schema = _split_definitions(schema)
             components["schemas"].update(definitions)
             for name, type_ in schema["properties"].items():
-                path_object["parameters"].append(  # type: ignore
-                    {
-                        "name": name,
-                        "in": "query",
-                        "schema": type_,
-                    }
-                )
+                param = {"name": name, "in": "query", "schema": type_}
+                if "description" in type_:
+                    param["description"] = type_.pop("description")
+
+                path_object["parameters"].append(param)
 
         headers_model = getattr(func, QUART_SCHEMA_HEADERS_ATTRIBUTE, None)
         if headers_model is not None:
@@ -387,13 +385,11 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
             definitions, schema = _split_definitions(schema)
             components["schemas"].update(definitions)
             for name, type_ in schema["properties"].items():
-                path_object["parameters"].append(  # type: ignore
-                    {
-                        "name": name.replace("_", "-"),
-                        "in": "header",
-                        "schema": type_,
-                    }
-                )
+                param = {"name": name.replace("_", "-"), "in": "header", "schema": type_}
+                if "description" in type_:
+                    param["description"] = type_.pop("description")
+
+                path_object["parameters"].append(param)
 
         for name, converter in rule._converters.items():
             type_ = "string"
