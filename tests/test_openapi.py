@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from typing import Optional, Tuple
 
+from pydantic import Field
 from quart import Quart
 
 from quart_schema import (
@@ -14,7 +15,7 @@ from quart_schema import (
 
 @dataclass
 class QueryItem:
-    count_le: Optional[int] = None
+    count_le: Optional[int] = Field(description="count_le description")
 
 
 @dataclass
@@ -30,7 +31,7 @@ class Result:
 
 @dataclass
 class Headers:
-    x_name: str
+    x_name: str = Field(..., description="x-name description")
 
 
 async def test_openapi() -> None:
@@ -70,11 +71,13 @@ async def test_openapi() -> None:
                         {
                             "in": "query",
                             "name": "count_le",
+                            "description": "count_le description",
                             "schema": {"title": "Count Le", "type": "integer"},
                         },
                         {
                             "in": "header",
                             "name": "x-name",
+                            "description": "x-name description",
                             "schema": {"title": "X Name", "type": "string"},
                         },
                     ],
@@ -105,7 +108,13 @@ async def test_openapi() -> None:
                                     }
                                 },
                                 "headers": {
-                                    "x-name": {"schema": {"title": "X Name", "type": "string"}}
+                                    "x-name": {
+                                        "schema": {
+                                            "title": "X Name",
+                                            "type": "string",
+                                            "description": "x-name description",
+                                        }
+                                    }
                                 },
                             },
                             "description": "Result(name: str)",
