@@ -182,11 +182,11 @@ class QuartSchema:
         app.make_response = convert_model_result(app.make_response)  # type: ignore
         app.config.setdefault(
             "QUART_SCHEMA_SWAGGER_JS_URL",
-            "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.47.1/swagger-ui-bundle.js",
+            "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.12.0/swagger-ui-bundle.js",
         )
         app.config.setdefault(
             "QUART_SCHEMA_SWAGGER_CSS_URL",
-            "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/3.47.1/swagger-ui.min.css",
+            "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.12.0/swagger-ui.min.css",
         )
         app.config.setdefault(
             "QUART_SCHEMA_REDOC_JS_URL",
