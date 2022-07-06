@@ -141,6 +141,8 @@ class QuartSchema:
             swagger or None to disable swagger documentation.
         title: The publishable title for the app.
         version: The publishable version for the app.
+        security_schemes: The security schemes to be configured for this app.
+        security: The security schemes to apply globally (to all routes).
 
     """
 
@@ -155,9 +157,9 @@ class QuartSchema:
         version: str = "0.1.0",
         tags: Optional[List[TagObject]] = None,
         convert_casing: bool = False,
-        servers: Optional[List[ServerObject]] = [],
-        security_schemes: Optional[List[SecurityScheme]] = [],
-        security: Optional[List[Security]] = [],
+        servers: Optional[List[ServerObject]] = None,
+        security_schemes: Optional[List[SecurityScheme]] = None,
+        security: Optional[List[Security]] = None,
     ) -> None:
         self.openapi_path = openapi_path
         self.redoc_ui_path = redoc_ui_path
@@ -166,9 +168,9 @@ class QuartSchema:
         self.version = version
         self.tags: List[TagObject] = tags or []
         self.convert_casing = convert_casing
-        self.servers = servers
-        self.security_schemes = security_schemes
-        self.security = security
+        self.servers = servers or []
+        self.security_schemes = security_schemes or []
+        self.security = security or []
         if app is not None:
             self.init_app(app)
 
@@ -284,7 +286,7 @@ def tag(tags: Iterable[str]) -> Callable:
     allowing control over which routes are shown in the documentation.
 
     Arguments:
-        tags: A List (or iterable) or tags to associate.
+        tags: A List (or iterable) of tags to associate.
 
     """
 
@@ -299,6 +301,16 @@ def tag(tags: Iterable[str]) -> Callable:
 
 
 def security_scheme(schemes: Iterable[Security]) -> Callable:
+    """Add security schemes to the route.
+
+    Allows security schemes to be associated with this route. Security
+    schemes first need to be defined on the constructor and can be
+    referenced here by name.
+
+    Arguments:
+        schemes: A List (or iterable) of security schemes to associate.
+
+    """
 
     def decorator(func: Callable) -> Callable:
         setattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE, schemes)
@@ -437,7 +449,9 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
             paths[path][method.lower()] = path_object
 
     if extension.security_schemes:
-        components["securitySchemes"] = {scheme["name"]: scheme["config"] for scheme in extension.security_schemes}
+        components["securitySchemes"] = {
+            scheme["name"]: scheme["config"] for scheme in extension.security_schemes
+        }
 
     return {
         "openapi": "3.0.3",
@@ -449,5 +463,5 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
         "paths": paths,
         "tags": extension.tags,
         "servers": extension.servers,
-        "security": [{s["name"]: s.get("scopes", [])} for s in extension.security]
+        "security": [{s["name"]: s.get("scopes", [])} for s in extension.security],
     }
