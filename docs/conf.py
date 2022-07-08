@@ -20,13 +20,12 @@
 import os
 import sys
 from importlib.metadata import version as imp_version
+sys.path.insert(0, os.path.abspath('../'))
 
-sys.path.insert(0, os.path.abspath("../"))
 
-
-project = "Quart-Schema"
-copyright = "2020, Philip Jones"
-author = "Philip Jones"
+project = 'Quart-Schema'
+copyright = '2020, Philip Jones'
+author = 'Philip Jones'
 version = imp_version("quart-schema")
 release = version
 
@@ -35,14 +34,14 @@ release = version
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = ["sphinx.ext.autodoc", "sphinx.ext.napoleon"]
+extensions = ['sphinx.ext.autodoc', 'sphinx.ext.napoleon']
 
-source_suffix = ".rst"
+source_suffix = '.rst'
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
-exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+exclude_patterns = ['_build', 'Thumbs.db', '.DS_Store']
 
 
 # -- Options for HTML output -------------------------------------------------
