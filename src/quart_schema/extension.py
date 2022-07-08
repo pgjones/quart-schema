@@ -307,7 +307,7 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
         }
         if func.__doc__ is not None:
             summary, *description = func.__doc__.splitlines()
-            path_object["description"] = "\n".join(description)
+            path_object["description"] = "\n".join([line.strip() for line in description])
             path_object["summary"] = summary
 
         if getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE, None) is not None:

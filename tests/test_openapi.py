@@ -43,6 +43,9 @@ async def test_openapi() -> None:
     @validate_headers(Headers)
     @validate_response(Result, 200, Headers)
     async def index() -> Tuple[Result, int, Headers]:
+        """Summary
+        Multi-line
+        description."""
         return Result(name="bob"), 200, Headers(x_name="jeff")
 
     test_client = app.test_client()
@@ -54,6 +57,8 @@ async def test_openapi() -> None:
         "paths": {
             "/": {
                 "get": {
+                    "summary": "Summary",
+                    "description": "Multi-line\ndescription.",
                     "parameters": [
                         {
                             "in": "query",
