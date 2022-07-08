@@ -45,7 +45,13 @@ async def test_openapi() -> None:
     async def index() -> Tuple[Result, int, Headers]:
         """Summary
         Multi-line
-        description."""
+        description.
+
+        This is a new paragraph
+
+            And this is an indented codeblock.
+
+        And another paragraph."""
         return Result(name="bob"), 200, Headers(x_name="jeff")
 
     test_client = app.test_client()
@@ -58,7 +64,8 @@ async def test_openapi() -> None:
             "/": {
                 "get": {
                     "summary": "Summary",
-                    "description": "Multi-line\ndescription.",
+                    "description": "Multi-line\ndescription.\n\nThis is a new paragraph\n\n    And this is an indented "
+                    "codeblock.\n\nAnd another paragraph.",
                     "parameters": [
                         {
                             "in": "query",

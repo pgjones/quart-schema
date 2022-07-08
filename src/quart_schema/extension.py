@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import inspect
 import json
 import re
 from collections.abc import Mapping
@@ -306,8 +307,8 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
             "responses": {},
         }
         if func.__doc__ is not None:
-            summary, *description = func.__doc__.splitlines()
-            path_object["description"] = "\n".join([line.strip() for line in description])
+            summary, *description = inspect.getdoc(func).splitlines()
+            path_object["description"] = "\n".join(description)
             path_object["summary"] = summary
 
         if getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE, None) is not None:
