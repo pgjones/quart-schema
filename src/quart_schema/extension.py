@@ -331,7 +331,7 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
                 "description": "",
             }
             if model_class.__doc__ is not None:
-                response_object["description"] = model_class.__doc__
+                response_object["description"] = inspect.getdoc(model_class)
 
             if headers_model_class is not None:
                 schema = model_schema(headers_model_class, ref_prefix=REF_PREFIX)
