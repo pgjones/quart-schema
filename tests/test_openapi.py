@@ -65,8 +65,8 @@ async def test_openapi() -> None:
             "/": {
                 "get": {
                     "summary": "Summary",
-                    "description": "Multi-line\ndescription.\n\nThis is a new paragraph\n\n    And this is an indented "
-                    "codeblock.\n\nAnd another paragraph.",
+                    "description": "Multi-line\ndescription.\n\nThis is a new paragraph\n\n    "
+                    "And this is an indented codeblock.\n\nAnd another paragraph.",
                     "parameters": [
                         {
                             "in": "query",

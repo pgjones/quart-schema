@@ -378,7 +378,7 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
                 if "description" in type_:
                     param["description"] = type_.pop("description")
 
-                path_object["parameters"].append(param)
+                path_object["parameters"].append(param)  # type: ignore
 
         headers_model = getattr(func, QUART_SCHEMA_HEADERS_ATTRIBUTE, None)
         if headers_model is not None:
@@ -390,7 +390,7 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
                 if "description" in type_:
                     param["description"] = type_.pop("description")
 
-                path_object["parameters"].append(param)
+                path_object["parameters"].append(param)  # type: ignore
 
         for name, converter in rule._converters.items():
             type_ = "string"
