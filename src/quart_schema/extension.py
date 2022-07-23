@@ -294,6 +294,99 @@ def tag(tags: Iterable[str]) -> Callable:
     return decorator
 
 
+def _update_paths_and_components(
+    func: Callable,
+    path_object: Dict[str, Any],
+    components: Dict[str, Any],
+    extension: QuartSchema,
+) -> None:
+    if func.__doc__ is not None:
+        summary, *description = inspect.getdoc(func).splitlines()
+        path_object["description"] = "\n".join(description)
+        path_object["summary"] = summary
+
+    if getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE, None) is not None:
+        path_object["tags"] = list(getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE))
+
+    response_models = getattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, {})
+    for status_code in response_models.keys():
+        model_class, headers_model_class = response_models[status_code]
+        schema = model_schema(model_class, ref_prefix=REF_PREFIX)
+        if extension.convert_casing:
+            schema = camelize(schema)
+        definitions, schema = _split_definitions(schema)
+        components["schemas"].update(definitions)
+        response_object = {
+            "content": {
+                "application/json": {
+                    "schema": schema,
+                },
+            },
+            "description": "",
+        }
+        if model_class.__doc__ is not None:
+            response_object["description"] = inspect.getdoc(model_class)
+
+        if headers_model_class is not None:
+            schema = model_schema(headers_model_class, ref_prefix=REF_PREFIX)
+            definitions, schema = _split_definitions(schema)
+            components["schemas"].update(definitions)
+            response_object["content"]["headers"] = {  # type: ignore
+                name.replace("_", "-"): {
+                    "schema": type_,
+                }
+                for name, type_ in schema["properties"].items()
+            }
+        path_object["responses"][status_code] = response_object
+
+    request_data = getattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, None)
+    if request_data is not None:
+        schema = model_schema(request_data[0], ref_prefix=REF_PREFIX)
+        if extension.convert_casing:
+            schema = camelize(schema)
+        definitions, schema = _split_definitions(schema)
+        components["schemas"].update(definitions)
+
+        if request_data[1] == DataSource.JSON:
+            encoding = "application/json"
+        else:
+            encoding = "application/x-www-form-urlencoded"
+
+        path_object["requestBody"] = {
+            "content": {
+                encoding: {
+                    "schema": schema,
+                },
+            },
+        }
+
+    querystring_model = getattr(func, QUART_SCHEMA_QUERYSTRING_ATTRIBUTE, None)
+    if querystring_model is not None:
+        schema = model_schema(querystring_model, ref_prefix=REF_PREFIX)
+        if extension.convert_casing:
+            schema = camelize(schema)
+        definitions, schema = _split_definitions(schema)
+        components["schemas"].update(definitions)
+        for name, type_ in schema["properties"].items():
+            param = {"name": name, "in": "query", "schema": type_}
+            if "description" in type_:
+                param["description"] = type_.pop("description")
+
+            path_object["parameters"].append(param)
+
+    headers_model = getattr(func, QUART_SCHEMA_HEADERS_ATTRIBUTE, None)
+    if headers_model is not None:
+        schema = model_schema(headers_model, ref_prefix=REF_PREFIX)
+        definitions, schema = _split_definitions(schema)
+        components["schemas"].update(definitions)
+        for name, type_ in schema["properties"].items():
+            param = {"name": name.replace("_", "-"), "in": "header", "schema": type_}
+            if "description" in type_:
+                param["description"] = type_.pop("description")
+
+            path_object["parameters"].append(param)
+
+
 def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
     paths: Dict[str, dict] = {}
     components = {"schemas": {}}  # type: ignore
@@ -306,91 +399,8 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
             "parameters": [],
             "responses": {},
         }
-        if func.__doc__ is not None:
-            summary, *description = inspect.getdoc(func).splitlines()
-            path_object["description"] = "\n".join(description)
-            path_object["summary"] = summary
 
-        if getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE, None) is not None:
-            path_object["tags"] = list(getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE))
-
-        response_models = getattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, {})
-        for status_code in response_models.keys():
-            model_class, headers_model_class = response_models[status_code]
-            schema = model_schema(model_class, ref_prefix=REF_PREFIX)
-            if extension.convert_casing:
-                schema = camelize(schema)
-            definitions, schema = _split_definitions(schema)
-            components["schemas"].update(definitions)
-            response_object = {
-                "content": {
-                    "application/json": {
-                        "schema": schema,
-                    },
-                },
-                "description": "",
-            }
-            if model_class.__doc__ is not None:
-                response_object["description"] = inspect.getdoc(model_class)
-
-            if headers_model_class is not None:
-                schema = model_schema(headers_model_class, ref_prefix=REF_PREFIX)
-                definitions, schema = _split_definitions(schema)
-                components["schemas"].update(definitions)
-                response_object["content"]["headers"] = {  # type: ignore
-                    name.replace("_", "-"): {
-                        "schema": type_,
-                    }
-                    for name, type_ in schema["properties"].items()
-                }
-            path_object["responses"][status_code] = response_object  # type: ignore
-
-        request_data = getattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, None)
-        if request_data is not None:
-            schema = model_schema(request_data[0], ref_prefix=REF_PREFIX)
-            if extension.convert_casing:
-                schema = camelize(schema)
-            definitions, schema = _split_definitions(schema)
-            components["schemas"].update(definitions)
-
-            if request_data[1] == DataSource.JSON:
-                encoding = "application/json"
-            else:
-                encoding = "application/x-www-form-urlencoded"
-
-            path_object["requestBody"] = {
-                "content": {
-                    encoding: {
-                        "schema": schema,
-                    },
-                },
-            }
-
-        querystring_model = getattr(func, QUART_SCHEMA_QUERYSTRING_ATTRIBUTE, None)
-        if querystring_model is not None:
-            schema = model_schema(querystring_model, ref_prefix=REF_PREFIX)
-            if extension.convert_casing:
-                schema = camelize(schema)
-            definitions, schema = _split_definitions(schema)
-            components["schemas"].update(definitions)
-            for name, type_ in schema["properties"].items():
-                param = {"name": name, "in": "query", "schema": type_}
-                if "description" in type_:
-                    param["description"] = type_.pop("description")
-
-                path_object["parameters"].append(param)  # type: ignore
-
-        headers_model = getattr(func, QUART_SCHEMA_HEADERS_ATTRIBUTE, None)
-        if headers_model is not None:
-            schema = model_schema(headers_model, ref_prefix=REF_PREFIX)
-            definitions, schema = _split_definitions(schema)
-            components["schemas"].update(definitions)
-            for name, type_ in schema["properties"].items():
-                param = {"name": name.replace("_", "-"), "in": "header", "schema": type_}
-                if "description" in type_:
-                    param["description"] = type_.pop("description")
-
-                path_object["parameters"].append(param)  # type: ignore
+        _update_paths_and_components(func, path_object, components, extension)
 
         for name, converter in rule._converters.items():
             type_ = "string"
@@ -412,7 +422,18 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
         for method in rule.methods:
             if method == "HEAD" or (method == "OPTIONS" and rule.provide_automatic_options):  # type: ignore  # noqa: E501
                 continue
-            paths[path][method.lower()] = path_object
+            method_path_object = path_object.copy()
+            view_class = getattr(func, "view_class", None)
+            if view_class is not None:
+                sub_func = getattr(view_class, method.lower(), None)
+                if sub_func is not None:
+                    _update_paths_and_components(
+                        sub_func,
+                        method_path_object,
+                        components,
+                        extension,
+                    )
+            paths[path][method.lower()] = method_path_object
 
     return {
         "openapi": "3.0.3",
