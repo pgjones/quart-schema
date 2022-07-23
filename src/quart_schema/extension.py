@@ -16,8 +16,8 @@ from pydantic.json import pydantic_encoder
 from pydantic.schema import model_schema
 from quart import current_app, Quart, render_template_string, Response, ResponseReturnValue
 from quart.cli import pass_script_info, ScriptInfo
-from quart.json import JSONDecoder as QuartJSONDecoder, JSONEncoder as QuartJSONEncoder
-from werkzeug.routing import NumberConverter
+from quart.json.provider import DefaultJSONProvider
+from werkzeug.routing.converters import NumberConverter
 
 from .mixins import TestClientMixin, WebsocketMixin
 from .typing import ServerObject, TagObject
@@ -87,7 +87,7 @@ def hide_route(func: Callable) -> Callable:
     return func
 
 
-class PydanticJSONEncoder(QuartJSONEncoder):
+class PydanticJSONEncoder(json.JSONEncoder):
     def default(self, object_: Any) -> Any:
         return pydantic_encoder(object_)
 
@@ -99,12 +99,29 @@ class CasingJSONEncoder(PydanticJSONEncoder):
         return super().encode(camelize(object_))
 
 
-class CasingJSONDecoder(QuartJSONDecoder):
+class CasingJSONDecoder(json.JSONDecoder):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, object_hook=self.object_hook, **kwargs)
 
     def object_hook(self, object_: dict) -> Any:
         return decamelize(object_)
+
+
+class JSONProvider(DefaultJSONProvider):
+    def __init__(self, app: Quart, convert_casing: bool) -> None:
+        super().__init__(app)
+        self._convert_casing = convert_casing
+
+    def dumps(self, object_: Any, **kwargs: Any) -> str:
+        if self._convert_casing:
+            kwargs["cls"] = CasingJSONEncoder
+        else:
+            kwargs["cls"] = PydanticJSONEncoder
+        return super().dumps(object_, **kwargs)
+
+    def loads(self, object_: str | bytes, **kwargs: Any) -> Any:
+        kwargs["cls"] = CasingJSONDecoder
+        return super().loads(object_, **kwargs)
 
 
 class QuartSchema:
@@ -175,11 +192,7 @@ class QuartSchema:
         app.websocket_class = new_class(  # type: ignore
             "Websocket", (WebsocketMixin, app.websocket_class)
         )
-        if self.convert_casing:
-            app.json_decoder = CasingJSONDecoder
-            app.json_encoder = CasingJSONEncoder
-        else:
-            app.json_encoder = PydanticJSONEncoder
+        app.json = JSONProvider(app, self.convert_casing)
         app.make_response = convert_model_result(app.make_response)  # type: ignore
         app.config.setdefault(
             "QUART_SCHEMA_SWAGGER_JS_URL",
