@@ -1,3 +1,12 @@
+0.12.0 2022-07-23
+-----------------
+
+* Increase swagger version to 4.12.0.
+* Render endpoint summary not as code.
+* Bugfix ignore websocket routes when generating openapi description.
+* Require Quart >= 0.18
+* Switch to GitHub rather than GitLab.
+
 0.11.1 2022-02-03
 -----------------
 
