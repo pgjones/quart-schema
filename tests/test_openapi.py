@@ -55,6 +55,10 @@ async def test_openapi() -> None:
         And another paragraph."""
         return Result(name="bob"), 200, Headers(x_name="jeff")
 
+    @app.websocket("/ws")
+    async def ws() -> None:
+        pass
+
     test_client = app.test_client()
     response = await test_client.get("/openapi.json")
     assert (await response.get_json()) == {

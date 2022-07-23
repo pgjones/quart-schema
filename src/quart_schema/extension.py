@@ -311,6 +311,9 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
     paths: Dict[str, dict] = {}
     components = {"schemas": {}}  # type: ignore
     for rule in app.url_map.iter_rules():
+        if rule.websocket:
+            continue
+
         func = app.view_functions[rule.endpoint]
         if getattr(func, QUART_SCHEMA_HIDDEN_ATTRIBUTE, False):
             continue
