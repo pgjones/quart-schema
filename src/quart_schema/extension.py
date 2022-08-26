@@ -48,6 +48,7 @@ REDOC_TEMPLATE = """
 <body>
   <redoc spec-url="{{ openapi_path }}"></redoc>
   <script src="{{ redoc_js_url }}"></script>
+  <noscript>This page requires Javascript to function.</noscript>
 </body>
 """
 
