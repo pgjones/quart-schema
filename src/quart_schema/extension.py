@@ -307,6 +307,17 @@ def tag(tags: Iterable[str]) -> Callable:
     return decorator
 
 
+def _camelize_refs(schema):
+    for k, v in schema.items():
+        if k == '$ref' and v.startswith('#/'):
+            components = v.split('/')
+            components[-1] = camelize(components[-1])
+            schema[k] = '/'.join(components)
+        elif isinstance(v, dict):
+            _camelize_refs(schema[k])
+    return schema
+
+
 def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
     paths: Dict[str, dict] = {}
     components = {"schemas": {}}  # type: ignore
@@ -336,6 +347,7 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
             schema = model_schema(model_class, ref_prefix=REF_PREFIX)
             if extension.convert_casing:
                 schema = camelize(schema)
+                schema = _camelize_refs(schema)
             definitions, schema = _split_definitions(schema)
             components["schemas"].update(definitions)
             response_object = {
