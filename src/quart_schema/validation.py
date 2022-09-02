@@ -5,6 +5,7 @@ from enum import auto, Enum
 from functools import wraps
 from typing import Any, Callable, cast, Dict, Optional, Tuple, Type, TypeVar, Union
 
+from humps import decamelize
 from pydantic import BaseModel, ValidationError
 from pydantic.dataclasses import dataclass as pydantic_dataclass, is_builtin_dataclass
 from pydantic.schema import model_schema
@@ -78,7 +79,13 @@ def validate_querystring(model_class: PydanticModel) -> Callable:
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             try:
-                model = model_class(**request.args)
+                try:
+                    if current_app.extensions['QUART_SCHEMA'].convert_casing:
+                        request_args = decamelize(request.args)
+                except KeyError:
+                    request_args = request.args
+
+                model = model_class(**request_args)
             except (TypeError, ValidationError) as error:
                 raise QuerystringValidationError(error)
             else:
