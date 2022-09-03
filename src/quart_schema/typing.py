@@ -14,9 +14,9 @@ from quart.wrappers import Response
 from werkzeug.datastructures import Headers
 
 try:
-    from typing import Protocol, TypedDict
+    from typing import Literal, Protocol, TypedDict
 except ImportError:
-    from typing_extensions import Protocol, TypedDict  # type: ignore
+    from typing_extensions import Literal, Protocol, TypedDict  # type: ignore
 
 
 PydanticModel = Union[Type[BaseModel], Type]  # Type[Dataclass] does not work
@@ -92,3 +92,19 @@ class ServerObject(TypedDict, total=False):
     url: str
     description: str
     variables: Dict[str, VariableObject]
+
+
+SecuritySchemeObject = TypedDict(
+    "SecuritySchemeObject",
+    {
+        "type": Literal["apiKey", "http", "mutualTLS", "oauth2", "openIdConnect"],
+        "description": str,
+        "name": str,
+        "in": Literal["query", "header", "cookie"],
+        "scheme": str,
+        "bearerFormat": str,
+        "openIdConnectUrl": str,
+        "flows": dict,
+    },
+    total=False,
+)

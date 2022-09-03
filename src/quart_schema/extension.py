@@ -20,7 +20,7 @@ from quart.json.provider import DefaultJSONProvider
 from werkzeug.routing.converters import NumberConverter
 
 from .mixins import TestClientMixin, WebsocketMixin
-from .typing import ServerObject, TagObject
+from .typing import SecuritySchemeObject, ServerObject, TagObject
 from .validation import (
     DataSource,
     QUART_SCHEMA_HEADERS_ATTRIBUTE,
@@ -31,6 +31,7 @@ from .validation import (
 
 QUART_SCHEMA_HIDDEN_ATTRIBUTE = "_quart_schema_hidden"
 QUART_SCHEMA_TAG_ATTRIBUTE = "_quart_schema_tag"
+QUART_SCHEMA_SECURITY_ATTRIBUTE = "_quart_schema_security_tag"
 REF_PREFIX = "#/components/schemas/"
 
 PATH_RE = re.compile("<(?:[^:]*:)?([^>]+)>")
@@ -159,6 +160,8 @@ class QuartSchema:
             swagger or None to disable swagger documentation.
         title: The publishable title for the app.
         version: The publishable version for the app.
+        security_schemes: The security schemes to be configured for this app.
+        security: The security schemes to apply globally (to all routes).
 
     """
 
@@ -173,16 +176,20 @@ class QuartSchema:
         version: str = "0.1.0",
         tags: Optional[List[TagObject]] = None,
         convert_casing: bool = False,
-        servers: Optional[List[ServerObject]] = [],
+        servers: Optional[List[ServerObject]] = None,
+        security_schemes: Optional[Dict[str, SecuritySchemeObject]] = None,
+        security: Optional[List[Dict[str, List[str]]]] = None,
     ) -> None:
         self.openapi_path = openapi_path
         self.redoc_ui_path = redoc_ui_path
         self.swagger_ui_path = swagger_ui_path
         self.title = title
         self.version = version
-        self.tags: List[TagObject] = tags or []
+        self.tags: List[TagObject] = tags
         self.convert_casing = convert_casing
         self.servers = servers
+        self.security_schemes = security_schemes
+        self.security = security
         if app is not None:
             self.init_app(app)
 
@@ -294,7 +301,7 @@ def tag(tags: Iterable[str]) -> Callable:
     allowing control over which routes are shown in the documentation.
 
     Arguments:
-        tags: A List (or iterable) or tags to associate.
+        tags: A List (or iterable) of tags to associate.
 
     """
 
@@ -302,6 +309,26 @@ def tag(tags: Iterable[str]) -> Callable:
         existing_tags: Set[str] = getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE, set())
         existing_tags.update(set(tags))
         setattr(func, QUART_SCHEMA_TAG_ATTRIBUTE, existing_tags)
+
+        return func
+
+    return decorator
+
+
+def security_scheme(schemes: Iterable[Dict[str, List[str]]]) -> Callable:
+    """Add security schemes to the route.
+
+    Allows security schemes to be associated with this route. Security
+    schemes first need to be defined on the constructor and can be
+    referenced here by name.
+
+    Arguments:
+        schemes: A List (or iterable) of security schemes to associate.
+
+    """
+
+    def decorator(func: Callable) -> Callable:
+        setattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE, schemes)
 
         return func
 
@@ -319,17 +346,20 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
         if getattr(func, QUART_SCHEMA_HIDDEN_ATTRIBUTE, False):
             continue
 
-        path_object = {  # type: ignore
+        operation_object = {  # type: ignore
             "parameters": [],
             "responses": {},
         }
         if func.__doc__ is not None:
             summary, *description = inspect.getdoc(func).splitlines()
-            path_object["description"] = "\n".join(description)
-            path_object["summary"] = summary
+            operation_object["description"] = "\n".join(description)
+            operation_object["summary"] = summary
 
         if getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE, None) is not None:
-            path_object["tags"] = list(getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE))
+            operation_object["tags"] = list(getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE))
+
+        if getattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE, None) is not None:
+            operation_object["security"] = list(getattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE))
 
         response_models = getattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, {})
         for status_code in response_models.keys():
@@ -360,7 +390,7 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
                     }
                     for name, type_ in schema["properties"].items()
                 }
-            path_object["responses"][status_code] = response_object  # type: ignore
+            operation_object["responses"][status_code] = response_object  # type: ignore
 
         request_data = getattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, None)
         if request_data is not None:
@@ -375,7 +405,7 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
             else:
                 encoding = "application/x-www-form-urlencoded"
 
-            path_object["requestBody"] = {
+            operation_object["requestBody"] = {
                 "content": {
                     encoding: {
                         "schema": schema,
@@ -395,7 +425,7 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
                 if "description" in type_:
                     param["description"] = type_.pop("description")
 
-                path_object["parameters"].append(param)  # type: ignore
+                operation_object["parameters"].append(param)  # type: ignore
 
         headers_model = getattr(func, QUART_SCHEMA_HEADERS_ATTRIBUTE, None)
         if headers_model is not None:
@@ -407,14 +437,14 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
                 if "description" in type_:
                     param["description"] = type_.pop("description")
 
-                path_object["parameters"].append(param)  # type: ignore
+                operation_object["parameters"].append(param)  # type: ignore
 
         for name, converter in rule._converters.items():
             type_ = "string"
             if isinstance(converter, NumberConverter):
                 type_ = "number"
 
-            path_object["parameters"].append(  # type: ignore
+            operation_object["parameters"].append(  # type: ignore
                 {
                     "name": name,
                     "in": "path",
@@ -429,9 +459,12 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
         for method in rule.methods:
             if method == "HEAD" or (method == "OPTIONS" and rule.provide_automatic_options):  # type: ignore  # noqa: E501
                 continue
-            paths[path][method.lower()] = path_object
+            paths[path][method.lower()] = operation_object
 
-    return {
+    if extension.security_schemes is not None:
+        components["securitySchemes"] = extension.security_schemes
+
+    openapi_schema: dict = {
         "openapi": "3.0.3",
         "info": {
             "title": extension.title,
@@ -439,6 +472,11 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
         },
         "components": components,
         "paths": paths,
-        "tags": extension.tags,
-        "servers": extension.servers,
     }
+    if extension.tags is not None:
+        openapi_schema["tags"] = extension.tags
+    if extension.security is not None:
+        openapi_schema["security"] = extension.security
+    if extension.servers is not None:
+        openapi_schema["servers"] = extension.servers
+    return openapi_schema

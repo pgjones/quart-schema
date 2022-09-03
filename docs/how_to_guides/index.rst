@@ -13,6 +13,7 @@ How to guides
    querystring_validation.rst
    request_validation.rst
    response_validation.rst
+   security_schemes.rst
    tagging.rst
    testing.rst
    websocket_validation.rst

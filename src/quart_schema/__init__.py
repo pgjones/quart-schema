@@ -1,4 +1,4 @@
-from .extension import hide_route, QuartSchema, tag
+from .extension import hide_route, QuartSchema, security_scheme, tag
 from .mixins import SchemaValidationError
 from .typing import ResponseReturnValue
 from .validation import (
@@ -19,6 +19,7 @@ __all__ = (
     "ResponseReturnValue",
     "ResponseSchemaValidationError",
     "SchemaValidationError",
+    "security_scheme",
     "tag",
     "validate_headers",
     "validate_querystring",

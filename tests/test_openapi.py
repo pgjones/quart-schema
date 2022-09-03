@@ -1,11 +1,12 @@
 from dataclasses import dataclass
-from typing import Optional, Tuple
+from typing import Dict, Optional, Tuple
 
 from pydantic import Field
 from quart import Quart
 
 from quart_schema import (
     QuartSchema,
+    security_scheme,
     validate_headers,
     validate_querystring,
     validate_request,
@@ -127,6 +128,30 @@ async def test_openapi() -> None:
                 }
             }
         },
-        "servers": [],
-        "tags": [],
     }
+
+
+async def test_security_schemes() -> None:
+    app = Quart(__name__)
+    QuartSchema(
+        app,
+        security_schemes={
+            "MyBearer": {"type": "http", "scheme": "bearer"},
+            "MyBasicAuth": {"type": "http", "scheme": "basic"},
+        },
+        security=[{"MyBearer": []}, {"MyBasicAuth": ["foo", "bar"]}],
+    )
+
+    @app.route("/")
+    @security_scheme([{"MyBearer": []}])
+    async def index() -> Tuple[Dict, int]:
+        return {}, 200
+
+    test_client = app.test_client()
+    response = await (await test_client.get("/openapi.json")).get_json()
+    assert response["security"] == [{"MyBearer": []}, {"MyBasicAuth": ["foo", "bar"]}]
+    assert response["components"]["securitySchemes"] == {
+        "MyBearer": {"type": "http", "scheme": "bearer"},
+        "MyBasicAuth": {"type": "http", "scheme": "basic"},
+    }
+    assert response["paths"]["/"]["get"]["security"] == [{"MyBearer": []}]
