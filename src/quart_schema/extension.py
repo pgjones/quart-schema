@@ -7,7 +7,7 @@ from collections.abc import Mapping
 from dataclasses import asdict, is_dataclass
 from functools import wraps
 from types import new_class
-from typing import Any, Callable, Dict, Iterable, List, Optional, Set, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
 
 import click
 from humps import camelize, decamelize  # type: ignore[attr-defined]
@@ -306,9 +306,7 @@ def tag(tags: Iterable[str]) -> Callable:
     """
 
     def decorator(func: Callable) -> Callable:
-        existing_tags: Set[str] = getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE, set())
-        existing_tags.update(set(tags))
-        setattr(func, QUART_SCHEMA_TAG_ATTRIBUTE, existing_tags)
+        setattr(func, QUART_SCHEMA_TAG_ATTRIBUTE, set(tags))
 
         return func
 
