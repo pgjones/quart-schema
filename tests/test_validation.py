@@ -178,7 +178,7 @@ async def test_websocket_validation() -> None:
         ("/?count_le=2", 200),
         ("/?count_le=2&count_gt=0", 200),
         ("/?count_le=a", 400),
-        ("/?count=a", 400),
+        ("/?count=a", 200),
     ],
 )
 async def test_querystring_validation(path: str, status: int) -> None:

@@ -122,7 +122,7 @@ async def test_openapi() -> None:
                                     }
                                 },
                             },
-                            "description": "Result(name: str)",
+                            "description": "",
                         }
                     },
                 }
