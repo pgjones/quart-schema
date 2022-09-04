@@ -1,3 +1,12 @@
+0.13.0 2022-09-04
+-----------------
+
+* Make it clear that redocs require Javascript to work.
+* Add the ability to add security tags.
+* Ensure the tag decorator overwrites any existing, this is a
+  backwards incompatible change.
+* Ensure casing conversion happens for request query string args.
+
 0.12.0 2022-07-23
 -----------------
 
