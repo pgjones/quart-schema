@@ -19,7 +19,7 @@ from quart.cli import pass_script_info, ScriptInfo
 from quart.json.provider import DefaultJSONProvider
 from werkzeug.routing.converters import NumberConverter
 
-from .mixins import TestClientMixin, WebsocketMixin
+from .mixins import create_test_client_mixin, RequestMixin, WebsocketMixin
 from .typing import SecuritySchemeObject, ServerObject, TagObject
 from .validation import (
     DataSource,
@@ -196,12 +196,19 @@ class QuartSchema:
     def init_app(self, app: Quart) -> None:
         app.extensions["QUART_SCHEMA"] = self
         self.title = app.name if self.title is None else self.title
-        app.test_client_class = new_class("TestClient", (TestClientMixin, app.test_client_class))
+        app.test_client_class = new_class(
+            "TestClient", (create_test_client_mixin(self.convert_casing), app.test_client_class)
+        )
         app.websocket_class = new_class(  # type: ignore
             "Websocket", (WebsocketMixin, app.websocket_class)
         )
         app.json = JSONProvider(app, self.convert_casing)
         app.make_response = convert_model_result(app.make_response)  # type: ignore
+        if self.convert_casing:
+            app.request_class = new_class(  # type: ignore
+                "Request", (RequestMixin, app.request_class)
+            )
+
         app.config.setdefault(
             "QUART_SCHEMA_SWAGGER_JS_URL",
             "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.12.0/swagger-ui-bundle.js",

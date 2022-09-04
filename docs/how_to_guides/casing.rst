@@ -1,5 +1,5 @@
-Convert camelCase JSON keys and snake_case variable names
-=========================================================
+Convert camelCase keys to snake_case variable names
+===================================================
 
 Javascript and hence JSON have a convention of using camelCased key
 names, whereas Python by convention uses snake_cased variabled
@@ -11,6 +11,6 @@ key name is the variable name. To convert between pass
 
     QuartSchema(app, convert_casing=True)
 
-This will require that JSON sent to the app is camelCased and will
-ensure that JSON returned from the app is camelCased and that the
-OpenAPI schema is correct (also camelCased).
+This will require that JSON and query string sent to the app is
+camelCased and will ensure that JSON returned from the app is
+camelCased and that the OpenAPI schema is correct (also camelCased).
