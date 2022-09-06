@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from pydantic import Field
 from quart import Quart
@@ -155,3 +155,31 @@ async def test_security_schemes() -> None:
         "MyBasicAuth": {"type": "http", "scheme": "basic"},
     }
     assert response["paths"]["/"]["get"]["security"] == [{"MyBearer": []}]
+
+
+@dataclass
+class Employee:
+    name: str
+
+
+@dataclass
+class Employees:
+    resources: List[Employee]
+
+
+async def test_openapi_refs() -> None:
+    app = Quart(__name__)
+    QuartSchema(app, convert_casing=True)
+
+    @app.route("/")
+    @validate_response(Employees)
+    async def index() -> Employees:
+        return Employees(resources=[Employee(name="bob")])
+
+    test_client = app.test_client()
+    response = await test_client.get("/openapi.json")
+    schema = await response.get_json()
+    ref = schema["paths"]["/"]["get"]["responses"]["200"]["content"]["application/json"]["schema"][
+        "properties"
+    ]["resources"]["items"]["$ref"]
+    assert ref[len("#/components/schemas/") :] in schema["components"]["schemas"].keys()

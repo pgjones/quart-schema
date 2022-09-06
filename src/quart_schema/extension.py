@@ -233,7 +233,7 @@ class QuartSchema:
 
     @hide_route
     async def openapi(self) -> dict:
-        return _build_openapi_schema(current_app, self)
+        return _build_openapi_schema(current_app._get_current_object(), self)  # type: ignore
 
     @hide_route
     async def swagger_ui(self) -> str:
@@ -277,6 +277,14 @@ def _schema_command(info: ScriptInfo, output: Optional[str]) -> None:
 def _split_definitions(schema: dict) -> Tuple[dict, dict]:
     new_schema = schema.copy()
     definitions = new_schema.pop("definitions", {})
+    return definitions, new_schema
+
+
+def _split_convert_definitions(schema: dict, convert_casing: bool) -> Tuple[dict, dict]:
+    definitions, new_schema = _split_definitions(schema)
+    if convert_casing:
+        new_schema = camelize(new_schema)
+        definitions = {key: camelize(definition) for key, definition in definitions.items()}
     return definitions, new_schema
 
 
@@ -340,7 +348,7 @@ def security_scheme(schemes: Iterable[Dict[str, List[str]]]) -> Callable:
     return decorator
 
 
-def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
+def _build_openapi_schema(app: Quart, extension: QuartSchema) -> Response:
     paths: Dict[str, dict] = {}
     components = {"schemas": {}}  # type: ignore
     for rule in app.url_map.iter_rules():
@@ -370,9 +378,7 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
         for status_code in response_models.keys():
             model_class, headers_model_class = response_models[status_code]
             schema = model_schema(model_class, ref_prefix=REF_PREFIX)
-            if extension.convert_casing:
-                schema = camelize(schema)
-            definitions, schema = _split_definitions(schema)
+            definitions, schema = _split_convert_definitions(schema, extension.convert_casing)
             components["schemas"].update(definitions)
             response_object = {
                 "content": {
@@ -400,9 +406,7 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
         request_data = getattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, None)
         if request_data is not None:
             schema = model_schema(request_data[0], ref_prefix=REF_PREFIX)
-            if extension.convert_casing:
-                schema = camelize(schema)
-            definitions, schema = _split_definitions(schema)
+            definitions, schema = _split_convert_definitions(schema, extension.convert_casing)
             components["schemas"].update(definitions)
 
             if request_data[1] == DataSource.JSON:
@@ -421,9 +425,7 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
         querystring_model = getattr(func, QUART_SCHEMA_QUERYSTRING_ATTRIBUTE, None)
         if querystring_model is not None:
             schema = model_schema(querystring_model, ref_prefix=REF_PREFIX)
-            if extension.convert_casing:
-                schema = camelize(schema)
-            definitions, schema = _split_definitions(schema)
+            definitions, schema = _split_convert_definitions(schema, extension.convert_casing)
             components["schemas"].update(definitions)
             for name, type_ in schema["properties"].items():
                 param = {"name": name, "in": "query", "schema": type_}
@@ -484,4 +486,4 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
         openapi_schema["security"] = extension.security
     if extension.servers is not None:
         openapi_schema["servers"] = extension.servers
-    return openapi_schema
+    return DefaultJSONProvider(app).response(openapi_schema)
