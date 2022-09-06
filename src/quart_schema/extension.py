@@ -232,8 +232,9 @@ class QuartSchema:
         app.cli.add_command(_schema_command)
 
     @hide_route
-    async def openapi(self) -> dict:
-        return _build_openapi_schema(current_app._get_current_object(), self)  # type: ignore
+    async def openapi(self) -> Response:
+        openapi_schema = _build_openapi_schema(current_app, self)
+        return DefaultJSONProvider(current_app._get_current_object()).response(openapi_schema)  # type: ignore # noqa: E501
 
     @hide_route
     async def swagger_ui(self) -> str:
@@ -348,7 +349,7 @@ def security_scheme(schemes: Iterable[Dict[str, List[str]]]) -> Callable:
     return decorator
 
 
-def _build_openapi_schema(app: Quart, extension: QuartSchema) -> Response:
+def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
     paths: Dict[str, dict] = {}
     components = {"schemas": {}}  # type: ignore
     for rule in app.url_map.iter_rules():
@@ -486,4 +487,4 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> Response:
         openapi_schema["security"] = extension.security
     if extension.servers is not None:
         openapi_schema["servers"] = extension.servers
-    return DefaultJSONProvider(app).response(openapi_schema)
+    return openapi_schema
