@@ -172,6 +172,7 @@ def validate_response(
     model_class: Model,
     status_code: int = 200,
     headers_model_class: Optional[Model] = None,
+    by_alias: bool = False,
 ) -> Callable:
     """Validate the response data.
 
@@ -188,9 +189,11 @@ def validate_response(
             BaseModel.
         status_code: The status code this validation applies
             to. Defaults to 200.
-         headers_model_class: The model to use to validate response
+        headers_model_class: The model to use to validate response
             headers, either a dataclass, pydantic dataclass or a class
             that inherits from pydantic's BaseModel. Is optional.
+        by_alias: (Only for pydantic Models) Serialize model using
+            field aliases instead of field names.
     """
     model_class = _to_pydantic_model(model_class)
     headers_model_class = _to_pydantic_model(headers_model_class)
@@ -233,7 +236,7 @@ def validate_response(
                 if is_dataclass(model_value):
                     return_value = asdict(model_value)
                 else:
-                    return_value = cast(BaseModel, model_value).dict()
+                    return_value = cast(BaseModel, model_value).dict(by_alias=by_alias)
 
                 if headers_model_class is not None:
                     try:
