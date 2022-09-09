@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, AnyStr, Dict, List, Optional, Tuple, Type, TypeVar, Union
+from typing import Any, AnyStr, Dict, List, Optional, Tuple, Type, TYPE_CHECKING, TypeVar, Union
 
 from pydantic import BaseModel
 from quart.datastructures import FileStorage
@@ -13,13 +13,17 @@ from quart.typing import (
 from quart.wrappers import Response
 from werkzeug.datastructures import Headers
 
+if TYPE_CHECKING:
+    from pydantic.dataclasses import Dataclass
+
 try:
-    from typing import Protocol, TypedDict
+    from typing import Literal, Protocol, TypedDict
 except ImportError:
-    from typing_extensions import Protocol, TypedDict  # type: ignore
+    from typing_extensions import Literal, Protocol, TypedDict  # type: ignore
 
 
-PydanticModel = Union[Type[BaseModel], Type]  # Type[Dataclass] does not work
+Model = Union[Type[BaseModel], Type["Dataclass"], Type]
+PydanticModel = Union[Type[BaseModel], Type["Dataclass"]]
 
 ResponseValue = Union[QuartResponseValue, PydanticModel]
 HeadersValue = Union[QuartHeadersValue, PydanticModel]
@@ -31,13 +35,6 @@ ResponseReturnValue = Union[
     Tuple[ResponseValue, StatusCode],
     Tuple[ResponseValue, StatusCode, HeadersValue],
 ]
-
-
-class Dataclass(Protocol):
-    __pydantic_model__: Type[BaseModel]
-
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        ...
 
 
 class WebsocketProtocol(Protocol):
@@ -68,7 +65,7 @@ class TestClientProtocol(Protocol):
 
 
 BM = TypeVar("BM", bound=BaseModel)
-DC = TypeVar("DC", bound=Dataclass)
+DC = TypeVar("DC", bound="Dataclass")
 
 
 class ExternalDocumentationObject(TypedDict, total=False):
@@ -92,3 +89,19 @@ class ServerObject(TypedDict, total=False):
     url: str
     description: str
     variables: Dict[str, VariableObject]
+
+
+SecuritySchemeObject = TypedDict(
+    "SecuritySchemeObject",
+    {
+        "type": Literal["apiKey", "http", "mutualTLS", "oauth2", "openIdConnect"],
+        "description": str,
+        "name": str,
+        "in": Literal["query", "header", "cookie"],
+        "scheme": str,
+        "bearerFormat": str,
+        "openIdConnectUrl": str,
+        "flows": dict,
+    },
+    total=False,
+)

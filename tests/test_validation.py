@@ -5,6 +5,7 @@ import pytest
 from pydantic import BaseModel
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 from quart import Quart, websocket
+from quart.views import View
 
 from quart_schema import (
     DataSource,
@@ -152,6 +153,31 @@ async def test_response_validation(model: Any, return_value: Any, status: int) -
     assert response.status_code == status
 
 
+@pytest.mark.parametrize(
+    "return_value, status",
+    [
+        (VALID_DICT, 200),
+        (INVALID_DICT, 500),
+    ],
+)
+async def test_view_response_validation(return_value: Any, status: int) -> None:
+    class ValidatedView(View):
+        decorators = [validate_response(Item)]
+        methods = ["GET"]
+
+        def dispatch_request(self, **kwargs: Any) -> ResponseReturnValue:  # type: ignore
+            return return_value
+
+    app = Quart(__name__)
+    QuartSchema(app)
+
+    app.add_url_rule("/", view_func=ValidatedView.as_view("view"))
+
+    test_client = app.test_client()
+    response = await test_client.get("/")
+    assert response.status_code == status
+
+
 async def test_websocket_validation() -> None:
     app = Quart(__name__)
     QuartSchema(app)
@@ -178,7 +204,7 @@ async def test_websocket_validation() -> None:
         ("/?count_le=2", 200),
         ("/?count_le=2&count_gt=0", 200),
         ("/?count_le=a", 400),
-        ("/?count=a", 400),
+        ("/?count=a", 200),
     ],
 )
 async def test_querystring_validation(path: str, status: int) -> None:

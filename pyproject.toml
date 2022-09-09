@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "quart-schema"
-version = "0.11.1"
+version = "0.13.0"
 description = "A Quart extension to provide schema validation"
 authors = ["pgjones <philip.graham.jones@googlemail.com>"]
 classifiers = [
@@ -60,8 +60,8 @@ warn_unused_ignores = true
 pydata_sphinx_theme = { version = "*", optional = true }
 pyhumps = ">=1.6.1"
 python = ">=3.7"
-pydantic=">=1.9"
-quart = ">=0.16.3"
+pydantic=">=1.10"
+quart = ">=0.18"
 typing_extensions = { version = "*", python = "<3.8" }
 
 [tool.poetry.dev-dependencies]

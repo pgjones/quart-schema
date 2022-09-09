@@ -6,13 +6,13 @@ from functools import wraps
 from typing import Any, Callable, cast, Dict, Optional, Tuple, Type, TypeVar, Union
 
 from pydantic import BaseModel, ValidationError
-from pydantic.dataclasses import dataclass as pydantic_dataclass, is_builtin_dataclass
+from pydantic.dataclasses import dataclass as pydantic_dataclass
 from pydantic.schema import model_schema
 from quart import current_app, request, ResponseReturnValue as QuartResponseReturnValue
 from werkzeug.datastructures import Headers
 from werkzeug.exceptions import BadRequest
 
-from .typing import PydanticModel, ResponseReturnValue
+from .typing import Model, PydanticModel, ResponseReturnValue
 
 QUART_SCHEMA_HEADERS_ATTRIBUTE = "_quart_schema_headers_schema"
 QUART_SCHEMA_REQUEST_ATTRIBUTE = "_quart_schema_request_schema"
@@ -52,7 +52,7 @@ class DataSource(Enum):
     JSON = auto()
 
 
-def validate_querystring(model_class: PydanticModel) -> Callable:
+def validate_querystring(model_class: Model) -> Callable:
     """Validate the querystring arguments.
 
     This ensures that the query string arguments can be converted to
@@ -64,9 +64,7 @@ def validate_querystring(model_class: PydanticModel) -> Callable:
             dataclass or a class that inherits from pydantic's
             BaseModel. All the fields must be optional.
     """
-    if is_builtin_dataclass(model_class):
-        model_class = pydantic_dataclass(model_class)
-
+    model_class = _to_pydantic_model(model_class)
     schema = model_schema(model_class)
 
     if len(schema.get("required", [])) != 0:
@@ -89,7 +87,7 @@ def validate_querystring(model_class: PydanticModel) -> Callable:
     return decorator
 
 
-def validate_headers(model_class: PydanticModel) -> Callable:
+def validate_headers(model_class: Model) -> Callable:
     """Validate the headers.
 
     This ensures that the headers can be converted to the
@@ -102,8 +100,7 @@ def validate_headers(model_class: PydanticModel) -> Callable:
             BaseModel.
 
     """
-    if is_builtin_dataclass(model_class):
-        model_class = pydantic_dataclass(model_class)
+    model_class = _to_pydantic_model(model_class)
 
     def decorator(func: Callable) -> Callable:
         setattr(func, QUART_SCHEMA_HEADERS_ATTRIBUTE, model_class)
@@ -123,7 +120,7 @@ def validate_headers(model_class: PydanticModel) -> Callable:
 
 
 def validate_request(
-    model_class: PydanticModel,
+    model_class: Model,
     *,
     source: DataSource = DataSource.JSON,
 ) -> Callable:
@@ -141,10 +138,9 @@ def validate_request(
         source: The source of the data to validate (json or form
             encoded).
     """
-    if is_builtin_dataclass(model_class):
-        model_class = pydantic_dataclass(model_class)
-
+    model_class = _to_pydantic_model(model_class)
     schema = model_schema(model_class)
+
     if source == DataSource.FORM and any(
         schema["properties"][field]["type"] == "object" for field in schema["properties"]
     ):
@@ -173,9 +169,9 @@ def validate_request(
 
 
 def validate_response(
-    model_class: PydanticModel,
+    model_class: Model,
     status_code: int = 200,
-    headers_model_class: Optional[PydanticModel] = None,
+    headers_model_class: Optional[Model] = None,
 ) -> Callable:
     """Validate the response data.
 
@@ -196,11 +192,8 @@ def validate_response(
             headers, either a dataclass, pydantic dataclass or a class
             that inherits from pydantic's BaseModel. Is optional.
     """
-    if is_builtin_dataclass(model_class):
-        model_class = pydantic_dataclass(model_class)
-
-    if is_builtin_dataclass(headers_model_class):
-        headers_model_class = pydantic_dataclass(headers_model_class)
+    model_class = _to_pydantic_model(model_class)
+    headers_model_class = _to_pydantic_model(headers_model_class)
 
     def decorator(
         func: Callable[..., ResponseReturnValue]
@@ -230,7 +223,7 @@ def validate_response(
                         model_value = model_class(**value)
                     elif type(value) == model_class:
                         model_value = value
-                    elif is_builtin_dataclass(value):
+                    elif is_dataclass(value):
                         model_value = model_class(**asdict(value))
                     else:
                         raise ResponseSchemaValidationError()
@@ -248,7 +241,7 @@ def validate_response(
                             headers_model_value = _convert_headers(headers, headers_model_class)
                         elif type(value) == headers_model_class:
                             headers_model_value = headers
-                        elif is_builtin_dataclass(headers):
+                        elif is_dataclass(headers):
                             headers_model_value = headers_model_class(**asdict(headers))
                         else:
                             raise ResponseHeadersValidationError()
@@ -273,11 +266,11 @@ def validate_response(
 
 def validate(
     *,
-    querystring: Optional[PydanticModel] = None,
-    request: Optional[PydanticModel] = None,
+    querystring: Optional[Model] = None,
+    request: Optional[Model] = None,
     request_source: DataSource = DataSource.JSON,
-    headers: Optional[PydanticModel] = None,
-    responses: Dict[int, Tuple[PydanticModel, Optional[PydanticModel]]],
+    headers: Optional[Model] = None,
+    responses: Dict[int, Tuple[Model, Optional[Model]]],
 ) -> Callable:
     """Validate the route.
 
@@ -313,3 +306,12 @@ def _convert_headers(headers: Union[dict, Headers], model_class: Type[T]) -> T:
             else:
                 result[key] = headers[raw_key]
     return model_class(**result)
+
+
+def _to_pydantic_model(model_class: Model) -> PydanticModel:
+    pydantic_model_class: PydanticModel
+    if is_dataclass(model_class):
+        pydantic_model_class = pydantic_dataclass(model_class)  # type: ignore
+    else:
+        pydantic_model_class = cast(PydanticModel, model_class)
+    return pydantic_model_class
