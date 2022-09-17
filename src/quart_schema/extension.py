@@ -445,8 +445,10 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
             components["schemas"].update(definitions)
             for name, type_ in schema["properties"].items():
                 param = {"name": name, "in": "query", "schema": type_}
-                if "description" in type_:
-                    param["description"] = type_.pop("description")
+
+                for attribute in ("description", "required", "deprecated"):
+                    if attribute in type_:
+                        param[attribute] = type_.pop(attribute)
 
                 operation_object["parameters"].append(param)  # type: ignore
 
@@ -457,8 +459,10 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
             components["schemas"].update(definitions)
             for name, type_ in schema["properties"].items():
                 param = {"name": name.replace("_", "-"), "in": "header", "schema": type_}
-                if "description" in type_:
-                    param["description"] = type_.pop("description")
+
+                for attribute in ("description", "required", "deprecated"):
+                    if attribute in type_:
+                        param[attribute] = type_.pop(attribute)
 
                 operation_object["parameters"].append(param)  # type: ignore
 
