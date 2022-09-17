@@ -57,6 +57,7 @@ SecuritySchemeInput = Union[
 QUART_SCHEMA_HIDDEN_ATTRIBUTE = "_quart_schema_hidden"
 QUART_SCHEMA_TAG_ATTRIBUTE = "_quart_schema_tag"
 QUART_SCHEMA_SECURITY_ATTRIBUTE = "_quart_schema_security_tag"
+QUART_SCHEMA_DEPRECATED = "_quart_schema_deprecated"
 REF_PREFIX = "#/components/schemas/"
 
 PATH_RE = re.compile("<(?:[^:]*:)?([^>]+)>")
@@ -385,6 +386,17 @@ def tag(tags: Iterable[str]) -> Callable:
     return decorator
 
 
+def deprecated() -> Callable:
+    """Mark endpoint as deprecated."""
+
+    def decorator(func: Callable) -> Callable:
+        setattr(func, QUART_SCHEMA_DEPRECATED, True)
+
+        return func
+
+    return decorator
+
+
 def security_scheme(schemes: Iterable[Dict[str, List[str]]]) -> Callable:
     """Add security schemes to the route.
 
@@ -416,7 +428,7 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
         if getattr(func, QUART_SCHEMA_HIDDEN_ATTRIBUTE, False):
             continue
 
-        operation_object = {  # type: ignore
+        operation_object: Dict[str, Any] = {
             "parameters": [],
             "responses": {},
         }
@@ -427,6 +439,9 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
 
         if getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE, None) is not None:
             operation_object["tags"] = list(getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE))
+
+        if getattr(func, QUART_SCHEMA_DEPRECATED, None):
+            operation_object["deprecated"] = True
 
         if getattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE, None) is not None:
             operation_object["security"] = list(getattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE))
@@ -458,7 +473,7 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
                     }
                     for name, type_ in schema["properties"].items()
                 }
-            operation_object["responses"][status_code] = response_object  # type: ignore
+            operation_object["responses"][status_code] = response_object
 
         request_data = getattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, None)
         if request_data is not None:
@@ -486,10 +501,12 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
             components["schemas"].update(definitions)
             for name, type_ in schema["properties"].items():
                 param = {"name": name, "in": "query", "schema": type_}
-                if "description" in type_:
-                    param["description"] = type_.pop("description")
 
-                operation_object["parameters"].append(param)  # type: ignore
+                for attribute in ("description", "required", "deprecated"):
+                    if attribute in type_:
+                        param[attribute] = type_.pop(attribute)
+
+                operation_object["parameters"].append(param)
 
         headers_model = getattr(func, QUART_SCHEMA_HEADERS_ATTRIBUTE, None)
         if headers_model is not None:
@@ -498,17 +515,19 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
             components["schemas"].update(definitions)
             for name, type_ in schema["properties"].items():
                 param = {"name": name.replace("_", "-"), "in": "header", "schema": type_}
-                if "description" in type_:
-                    param["description"] = type_.pop("description")
 
-                operation_object["parameters"].append(param)  # type: ignore
+                for attribute in ("description", "required", "deprecated"):
+                    if attribute in type_:
+                        param[attribute] = type_.pop(attribute)
+
+                operation_object["parameters"].append(param)
 
         for name, converter in rule._converters.items():
             type_ = "string"
             if isinstance(converter, NumberConverter):
                 type_ = "number"
 
-            operation_object["parameters"].append(  # type: ignore
+            operation_object["parameters"].append(
                 {
                     "name": name,
                     "in": "path",
