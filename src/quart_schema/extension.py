@@ -32,6 +32,7 @@ from .validation import (
 QUART_SCHEMA_HIDDEN_ATTRIBUTE = "_quart_schema_hidden"
 QUART_SCHEMA_TAG_ATTRIBUTE = "_quart_schema_tag"
 QUART_SCHEMA_SECURITY_ATTRIBUTE = "_quart_schema_security_tag"
+QUART_SCHEMA_DEPRECATED = "_quart_schema_deprecated"
 REF_PREFIX = "#/components/schemas/"
 
 PATH_RE = re.compile("<(?:[^:]*:)?([^>]+)>")
@@ -329,6 +330,17 @@ def tag(tags: Iterable[str]) -> Callable:
     return decorator
 
 
+def deprecated() -> Callable:
+    """Mark endpoint as deprecated."""
+
+    def decorator(func: Callable) -> Callable:
+        setattr(func, QUART_SCHEMA_DEPRECATED, True)
+
+        return func
+
+    return decorator
+
+
 def security_scheme(schemes: Iterable[Dict[str, List[str]]]) -> Callable:
     """Add security schemes to the route.
 
@@ -371,6 +383,9 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
 
         if getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE, None) is not None:
             operation_object["tags"] = list(getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE))
+
+        if getattr(func, QUART_SCHEMA_DEPRECATED, None):
+            operation_object["deprecated"] = True
 
         if getattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE, None) is not None:
             operation_object["security"] = list(getattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE))
