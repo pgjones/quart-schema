@@ -372,7 +372,7 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
         if getattr(func, QUART_SCHEMA_HIDDEN_ATTRIBUTE, False):
             continue
 
-        operation_object: Dict[str, Any] = {  # type: ignore
+        operation_object: Dict[str, Any] = {
             "parameters": [],
             "responses": {},
         }
@@ -417,7 +417,7 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
                     }
                     for name, type_ in schema["properties"].items()
                 }
-            operation_object["responses"][status_code] = response_object  # type: ignore
+            operation_object["responses"][status_code] = response_object
 
         request_data = getattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, None)
         if request_data is not None:
@@ -450,7 +450,7 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
                     if attribute in type_:
                         param[attribute] = type_.pop(attribute)
 
-                operation_object["parameters"].append(param)  # type: ignore
+                operation_object["parameters"].append(param)
 
         headers_model = getattr(func, QUART_SCHEMA_HEADERS_ATTRIBUTE, None)
         if headers_model is not None:
@@ -464,14 +464,14 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
                     if attribute in type_:
                         param[attribute] = type_.pop(attribute)
 
-                operation_object["parameters"].append(param)  # type: ignore
+                operation_object["parameters"].append(param)
 
         for name, converter in rule._converters.items():
             type_ = "string"
             if isinstance(converter, NumberConverter):
                 type_ = "number"
 
-            operation_object["parameters"].append(  # type: ignore
+            operation_object["parameters"].append(
                 {
                     "name": name,
                     "in": "path",
