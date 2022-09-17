@@ -86,7 +86,7 @@ async def test_openapi() -> None:
                             "in": "header",
                             "name": "x-name",
                             "description": "x-name description",
-                            "deprecated": True
+                            "deprecated": True,
                             "schema": {"title": "X Name", "type": "string"},
                         },
                     ],
