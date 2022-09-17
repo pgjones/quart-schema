@@ -12,6 +12,7 @@ from quart_schema import (
     validate_request,
     validate_response,
 )
+from quart_schema.extension import deprecated
 
 
 @dataclass
@@ -32,7 +33,7 @@ class Result:
 
 @dataclass
 class Headers:
-    x_name: str = Field(..., description="x-name description")
+    x_name: str = Field(..., description="x-name description", deprecated=True)
 
 
 async def test_openapi() -> None:
@@ -44,6 +45,7 @@ async def test_openapi() -> None:
     @validate_request(Details)
     @validate_headers(Headers)
     @validate_response(Result, 200, Headers)
+    @deprecated()
     async def index() -> Tuple[Result, int, Headers]:
         """Summary
         Multi-line
@@ -72,6 +74,7 @@ async def test_openapi() -> None:
                     "summary": "Summary",
                     "description": "Multi-line\ndescription.\n\nThis is a new paragraph\n\n    "
                     "And this is an indented codeblock.\n\nAnd another paragraph.",
+                    "deprecated": True,
                     "parameters": [
                         {
                             "in": "query",
@@ -83,6 +86,7 @@ async def test_openapi() -> None:
                             "in": "header",
                             "name": "x-name",
                             "description": "x-name description",
+                            "deprecated": True
                             "schema": {"title": "X Name", "type": "string"},
                         },
                     ],
