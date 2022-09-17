@@ -122,7 +122,7 @@ async def test_openapi() -> None:
                                             "title": "X Name",
                                             "type": "string",
                                             "description": "x-name description",
-                                            "deprecated": True
+                                            "deprecated": True,
                                         }
                                     }
                                 },
