@@ -372,7 +372,7 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
         if getattr(func, QUART_SCHEMA_HIDDEN_ATTRIBUTE, False):
             continue
 
-        operation_object = {  # type: ignore
+        operation_object: Dict[str, Any] = {  # type: ignore
             "parameters": [],
             "responses": {},
         }
