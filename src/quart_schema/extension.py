@@ -186,6 +186,9 @@ class QuartSchema:
         swagger_ui_path: The path used to serve the documentation UI using
             swagger or None to disable swagger documentation.
         info: A OpenAPI Info object describing the API.
+        tags: Specify the possible tags.
+        convert_casing: If true casing will be converted in JSON.
+        servers: Specify the server information.
         security_schemes: The security schemes to be configured for this app.
         security: The security schemes to apply globally (to all routes).
         external_docs: External documentation information.
