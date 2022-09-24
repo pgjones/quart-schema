@@ -7,7 +7,7 @@ from collections.abc import Mapping
 from dataclasses import asdict, is_dataclass
 from functools import wraps
 from types import new_class
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import click
 from humps import camelize, decamelize  # type: ignore[attr-defined]
@@ -20,6 +20,7 @@ from quart.json.provider import DefaultJSONProvider
 from werkzeug.routing.converters import NumberConverter
 
 from .mixins import create_test_client_mixin, RequestMixin, WebsocketMixin
+from .openapi import Info
 from .typing import SecuritySchemeObject, ServerObject, TagObject
 from .validation import (
     DataSource,
@@ -158,8 +159,7 @@ class QuartSchema:
             redoc or None to disable redoc documentation.
         swagger_ui_path: The path used to serve the documentation UI using
             swagger or None to disable swagger documentation.
-        title: The publishable title for the app.
-        version: The publishable version for the app.
+        info: A OpenAPI Info object describing the API.
         security_schemes: The security schemes to be configured for this app.
         security: The security schemes to apply globally (to all routes).
 
@@ -172,8 +172,7 @@ class QuartSchema:
         openapi_path: Optional[str] = "/openapi.json",
         redoc_ui_path: Optional[str] = "/redocs",
         swagger_ui_path: Optional[str] = "/docs",
-        title: Optional[str] = None,
-        version: str = "0.1.0",
+        info: Optional[Union[Info, dict]] = None,
         tags: Optional[List[TagObject]] = None,
         convert_casing: bool = False,
         servers: Optional[List[ServerObject]] = None,
@@ -183,8 +182,11 @@ class QuartSchema:
         self.openapi_path = openapi_path
         self.redoc_ui_path = redoc_ui_path
         self.swagger_ui_path = swagger_ui_path
-        self.title = title
-        self.version = version
+
+        self.info: Optional[Info] = None
+        if info is not None:
+            self.info = info if isinstance(info, Info) else Info(**info)
+
         self.tags: List[TagObject] = tags
         self.convert_casing = convert_casing
         self.servers = servers
@@ -195,7 +197,10 @@ class QuartSchema:
 
     def init_app(self, app: Quart) -> None:
         app.extensions["QUART_SCHEMA"] = self
-        self.title = app.name if self.title is None else self.title
+
+        if self.info is None:
+            self.info = Info(title=app.name, version="0.1.0")
+
         app.test_client_class = new_class(
             "TestClient", (create_test_client_mixin(self.convert_casing), app.test_client_class)
         )
@@ -240,7 +245,7 @@ class QuartSchema:
     async def swagger_ui(self) -> str:
         return await render_template_string(
             SWAGGER_TEMPLATE,
-            title=self.title,
+            title=self.info.title,
             openapi_path=self.openapi_path,
             swagger_js_url=current_app.config["QUART_SCHEMA_SWAGGER_JS_URL"],
             swagger_css_url=current_app.config["QUART_SCHEMA_SWAGGER_CSS_URL"],
@@ -250,7 +255,7 @@ class QuartSchema:
     async def redoc_ui(self) -> str:
         return await render_template_string(
             REDOC_TEMPLATE,
-            title=self.title,
+            title=self.info.title,
             openapi_path=self.openapi_path,
             redoc_js_url=current_app.config["QUART_SCHEMA_REDOC_JS_URL"],
         )
@@ -474,10 +479,7 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
 
     openapi_schema: dict = {
         "openapi": "3.0.3",
-        "info": {
-            "title": extension.title,
-            "version": extension.version,
-        },
+        "info": camelize(extension.info.dict(exclude_none=True)),
         "components": components,
         "paths": paths,
     }

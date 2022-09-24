@@ -1,5 +1,6 @@
 from .extension import hide_route, QuartSchema, security_scheme, tag
 from .mixins import SchemaValidationError
+from .openapi import Contact, Info, License
 from .typing import ResponseReturnValue
 from .validation import (
     DataSource,
@@ -12,8 +13,11 @@ from .validation import (
 )
 
 __all__ = (
+    "Contact",
     "DataSource",
     "hide_route",
+    "Info",
+    "License",
     "QuartSchema",
     "RequestSchemaValidationError",
     "ResponseReturnValue",

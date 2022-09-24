@@ -1,5 +1,22 @@
-Controlling the documentation
-=============================
+Document the API
+================
+
+To describe the API via an OpenAPI Info object pass the values
+for the info argument in the extension constructor e.g.
+
+.. code-block:: python
+
+    from quart_schema import Info, QuartSchema
+
+    quart_schema(app, info=Info(title="My Great API", version="0.1.0"))
+    # Or alternatively
+    quart_schema(app, info={"title": "My Great API", "version": "0.1.0"})
+
+All the OpenAPI Info fields are allowed and will be validated by a
+Pydantic model.
+
+Hiding routes
+-------------
 
 To hide routes from the documentation use the
 :func:`~quart_schema.extensions.hide_route` decorator, e.g.
