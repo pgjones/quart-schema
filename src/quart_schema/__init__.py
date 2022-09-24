@@ -1,4 +1,4 @@
-from .extension import hide_route, QuartSchema, security_scheme, tag
+from .extension import deprecate, hide_route, QuartSchema, security_scheme, tag
 from .mixins import SchemaValidationError
 from .openapi import (
     APIKeySecurityScheme,
@@ -28,6 +28,7 @@ __all__ = (
     "APIKeySecurityScheme",
     "Contact",
     "DataSource",
+    "deprecate",
     "ExternalDocumentation",
     "hide_route",
     "HttpSecurityScheme",

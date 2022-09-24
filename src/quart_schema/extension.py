@@ -386,7 +386,7 @@ def tag(tags: Iterable[str]) -> Callable:
     return decorator
 
 
-def deprecated() -> Callable:
+def deprecate() -> Callable:
     """Mark endpoint as deprecated."""
 
     def decorator(func: Callable) -> Callable:

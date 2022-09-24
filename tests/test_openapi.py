@@ -5,6 +5,7 @@ from pydantic import Field
 from quart import Quart
 
 from quart_schema import (
+    deprecate,
     QuartSchema,
     security_scheme,
     validate_headers,
@@ -12,7 +13,6 @@ from quart_schema import (
     validate_request,
     validate_response,
 )
-from quart_schema.extension import deprecated
 
 
 @dataclass
@@ -45,7 +45,7 @@ async def test_openapi() -> None:
     @validate_request(Details)
     @validate_headers(Headers)
     @validate_response(Result, 200, Headers)
-    @deprecated()
+    @deprecate()
     async def index() -> Tuple[Result, int, Headers]:
         """Summary
         Multi-line

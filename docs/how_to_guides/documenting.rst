@@ -29,3 +29,18 @@ To hide routes from the documentation use the
      @hide_route
      async def index():
          ...
+
+Deprecating routes
+------------------
+
+To mark a route as deprecated use the
+:func:`~quart_schema.extensions.deprecate` decorator, e.g.
+
+.. code-block:: python
+
+     from quart_schema import deprecate
+
+     @app.route("/")
+     @deprecate
+     async def index():
+         ...
