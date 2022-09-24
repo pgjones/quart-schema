@@ -138,6 +138,7 @@ async def test_security_schemes() -> None:
         security_schemes={
             "MyBearer": {"type": "http", "scheme": "bearer"},
             "MyBasicAuth": {"type": "http", "scheme": "basic"},
+            "MyAPI": {"type": "apiKey", "in": "cookie", "name": "Bob"},
         },
         security=[{"MyBearer": []}, {"MyBasicAuth": ["foo", "bar"]}],
     )
@@ -153,6 +154,7 @@ async def test_security_schemes() -> None:
     assert response["components"]["securitySchemes"] == {
         "MyBearer": {"type": "http", "scheme": "bearer"},
         "MyBasicAuth": {"type": "http", "scheme": "basic"},
+        "MyAPI": {"type": "apiKey", "in": "cookie", "name": "Bob"},
     }
     assert response["paths"]["/"]["get"]["security"] == [{"MyBearer": []}]
 

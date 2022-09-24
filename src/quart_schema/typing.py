@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, AnyStr, Dict, List, Optional, Tuple, Type, TYPE_CHECKING, TypeVar, Union
+from typing import Any, AnyStr, Dict, Optional, Tuple, Type, TYPE_CHECKING, TypeVar, Union
 
 from pydantic import BaseModel
 from quart.datastructures import FileStorage
@@ -17,9 +17,9 @@ if TYPE_CHECKING:
     from pydantic.dataclasses import Dataclass
 
 try:
-    from typing import Literal, Protocol, TypedDict
+    from typing import Protocol
 except ImportError:
-    from typing_extensions import Literal, Protocol, TypedDict  # type: ignore
+    from typing_extensions import Protocol  # type: ignore
 
 
 Model = Union[Type[BaseModel], Type["Dataclass"], Type]
@@ -66,42 +66,3 @@ class TestClientProtocol(Protocol):
 
 BM = TypeVar("BM", bound=BaseModel)
 DC = TypeVar("DC", bound="Dataclass")
-
-
-class ExternalDocumentationObject(TypedDict, total=False):
-    description: str
-    url: str
-
-
-class TagObject(TypedDict, total=False):
-    name: str
-    description: str
-    externalDocs: ExternalDocumentationObject  # noqa: N815
-
-
-class VariableObject(TypedDict, total=False):
-    enum: List[str]
-    default: str
-    description: str
-
-
-class ServerObject(TypedDict, total=False):
-    url: str
-    description: str
-    variables: Dict[str, VariableObject]
-
-
-SecuritySchemeObject = TypedDict(
-    "SecuritySchemeObject",
-    {
-        "type": Literal["apiKey", "http", "mutualTLS", "oauth2", "openIdConnect"],
-        "description": str,
-        "name": str,
-        "in": Literal["query", "header", "cookie"],
-        "scheme": str,
-        "bearerFormat": str,
-        "openIdConnectUrl": str,
-        "flows": dict,
-    },
-    total=False,
-)

@@ -20,8 +20,16 @@ from quart.json.provider import DefaultJSONProvider
 from werkzeug.routing.converters import NumberConverter
 
 from .mixins import create_test_client_mixin, RequestMixin, WebsocketMixin
-from .openapi import Info
-from .typing import SecuritySchemeObject, ServerObject, TagObject
+from .openapi import (
+    APIKeySecurityScheme,
+    HttpSecurityScheme,
+    Info,
+    OAuth2SecurityScheme,
+    OpenIdSecurityScheme,
+    SecuritySchemeBase,
+    Server,
+    Tag,
+)
 from .validation import (
     DataSource,
     QUART_SCHEMA_HEADERS_ATTRIBUTE,
@@ -29,6 +37,22 @@ from .validation import (
     QUART_SCHEMA_REQUEST_ATTRIBUTE,
     QUART_SCHEMA_RESPONSE_ATTRIBUTE,
 )
+
+SecurityScheme = Union[
+    APIKeySecurityScheme,
+    HttpSecurityScheme,
+    OAuth2SecurityScheme,
+    OpenIdSecurityScheme,
+    SecuritySchemeBase,
+]
+SecuritySchemeInput = Union[
+    APIKeySecurityScheme,
+    HttpSecurityScheme,
+    OAuth2SecurityScheme,
+    OpenIdSecurityScheme,
+    SecuritySchemeBase,
+    dict,
+]
 
 QUART_SCHEMA_HIDDEN_ATTRIBUTE = "_quart_schema_hidden"
 QUART_SCHEMA_TAG_ATTRIBUTE = "_quart_schema_tag"
@@ -173,25 +197,52 @@ class QuartSchema:
         redoc_ui_path: Optional[str] = "/redocs",
         swagger_ui_path: Optional[str] = "/docs",
         info: Optional[Union[Info, dict]] = None,
-        tags: Optional[List[TagObject]] = None,
+        tags: Optional[List[Union[Tag, dict]]] = None,
         convert_casing: bool = False,
-        servers: Optional[List[ServerObject]] = None,
-        security_schemes: Optional[Dict[str, SecuritySchemeObject]] = None,
+        servers: Optional[List[Union[Server, dict]]] = None,
+        security_schemes: Optional[Dict[str, SecuritySchemeInput]] = None,
         security: Optional[List[Dict[str, List[str]]]] = None,
     ) -> None:
         self.openapi_path = openapi_path
         self.redoc_ui_path = redoc_ui_path
         self.swagger_ui_path = swagger_ui_path
 
+        self.convert_casing = convert_casing
+
         self.info: Optional[Info] = None
         if info is not None:
             self.info = info if isinstance(info, Info) else Info(**info)
 
-        self.tags: List[TagObject] = tags
-        self.convert_casing = convert_casing
-        self.servers = servers
-        self.security_schemes = security_schemes
+        self.tags: Optional[List[Tag]] = None
+        if tags is not None:
+            self.tags = [tag if isinstance(tag, Tag) else Tag(**tag) for tag in tags]
+
+        self.servers: Optional[List[Server]] = None
+        if servers is not None:
+            self.servers = [
+                server if isinstance(server, Server) else Server(**server) for server in servers
+            ]
+
+        self.security_schemes: Optional[Dict[str, SecurityScheme]] = None
+        if security_schemes is not None:
+            self.security_schemes = {}
+            for key, value in security_schemes.items():
+                if isinstance(value, dict):
+                    if value["type"] == "apiKey":
+                        self.security_schemes[key] = APIKeySecurityScheme(**value)
+                    elif value["type"] == "http":
+                        self.security_schemes[key] = HttpSecurityScheme(**value)
+                    elif value["type"] == "oauth2":
+                        self.security_schemes[key] = OAuth2SecurityScheme(**value)
+                    elif value["type"] == "openIdConnect":
+                        self.security_schemes[key] = OpenIdSecurityScheme(**value)
+                    else:
+                        self.security_schemes[key] = SecuritySchemeBase(**value)
+                else:
+                    self.security_schemes[key] = value
+
         self.security = security
+
         if app is not None:
             self.init_app(app)
 
@@ -475,7 +526,10 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
             paths[path][method.lower()] = operation_object
 
     if extension.security_schemes is not None:
-        components["securitySchemes"] = extension.security_schemes
+        components["securitySchemes"] = {
+            key: camelize(value.dict(exclude_none=True, by_alias=True))
+            for key, value in extension.security_schemes.items()
+        }
 
     openapi_schema: dict = {
         "openapi": "3.0.3",
@@ -484,9 +538,11 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
         "paths": paths,
     }
     if extension.tags is not None:
-        openapi_schema["tags"] = extension.tags
+        openapi_schema["tags"] = [camelize(tag.dict(exclude_none=True)) for tag in extension.tags]
     if extension.security is not None:
         openapi_schema["security"] = extension.security
     if extension.servers is not None:
-        openapi_schema["servers"] = extension.servers
+        openapi_schema["servers"] = [
+            camelize(server.dict(exclude_none=True)) for server in extension.servers
+        ]
     return openapi_schema
