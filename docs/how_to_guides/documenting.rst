@@ -19,14 +19,14 @@ Hiding routes
 -------------
 
 To hide routes from the documentation use the
-:func:`~quart_schema.extensions.hide_route` decorator, e.g.
+:func:`~quart_schema.extensions.hide` decorator, e.g.
 
 .. code-block:: python
 
-     from quart_schema import hide_route
+     from quart_schema import hide
 
      @app.route("/")
-     @hide_route
+     @hide
      async def index():
          ...
 

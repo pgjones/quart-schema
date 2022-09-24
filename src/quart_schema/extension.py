@@ -105,7 +105,7 @@ SWAGGER_TEMPLATE = """
 """
 
 
-def hide_route(func: Callable) -> Callable:
+def hide(func: Callable) -> Callable:
     """Mark the func as hidden.
 
     This will prevent the route from being included in the
@@ -279,7 +279,7 @@ class QuartSchema:
             "https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js",
         )
         if self.openapi_path is not None:
-            hide_route(app.send_static_file.__func__)  # type: ignore
+            hide(app.send_static_file.__func__)  # type: ignore
             app.add_url_rule(self.openapi_path, "openapi", self.openapi)
             if self.redoc_ui_path is not None:
                 app.add_url_rule(self.redoc_ui_path, "redoc_ui", self.redoc_ui)
@@ -288,12 +288,12 @@ class QuartSchema:
 
         app.cli.add_command(_schema_command)
 
-    @hide_route
+    @hide
     async def openapi(self) -> Response:
         openapi_schema = _build_openapi_schema(current_app, self)
         return DefaultJSONProvider(current_app._get_current_object()).response(openapi_schema)  # type: ignore # noqa: E501
 
-    @hide_route
+    @hide
     async def swagger_ui(self) -> str:
         return await render_template_string(
             SWAGGER_TEMPLATE,
@@ -303,7 +303,7 @@ class QuartSchema:
             swagger_css_url=current_app.config["QUART_SCHEMA_SWAGGER_CSS_URL"],
         )
 
-    @hide_route
+    @hide
     async def redoc_ui(self) -> str:
         return await render_template_string(
             REDOC_TEMPLATE,
