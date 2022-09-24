@@ -22,6 +22,7 @@ from werkzeug.routing.converters import NumberConverter
 from .mixins import create_test_client_mixin, RequestMixin, WebsocketMixin
 from .openapi import (
     APIKeySecurityScheme,
+    ExternalDocumentation,
     HttpSecurityScheme,
     Info,
     OAuth2SecurityScheme,
@@ -187,7 +188,7 @@ class QuartSchema:
         info: A OpenAPI Info object describing the API.
         security_schemes: The security schemes to be configured for this app.
         security: The security schemes to apply globally (to all routes).
-
+        external_docs: External documentation information.
     """
 
     def __init__(
@@ -203,6 +204,7 @@ class QuartSchema:
         servers: Optional[List[Union[Server, dict]]] = None,
         security_schemes: Optional[Dict[str, SecuritySchemeInput]] = None,
         security: Optional[List[Dict[str, List[str]]]] = None,
+        external_docs: Optional[Union[ExternalDocumentation, dict]] = None,
     ) -> None:
         self.openapi_path = openapi_path
         self.redoc_ui_path = redoc_ui_path
@@ -243,6 +245,14 @@ class QuartSchema:
                     self.security_schemes[key] = value
 
         self.security = security
+
+        self.external_docs: Optional[ExternalDocumentation] = None
+        if external_docs is not None:
+            self.external_docs = (
+                external_docs
+                if isinstance(external_docs, ExternalDocumentation)
+                else ExternalDocumentation(**external_docs)
+            )
 
         if app is not None:
             self.init_app(app)
@@ -564,4 +574,6 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
         openapi_schema["servers"] = [
             camelize(server.dict(exclude_none=True)) for server in extension.servers
         ]
+    if extension.external_docs is not None:
+        openapi_schema["externalDocs"] = camelize(extension.external_docs.dict(exclude_none=True))
     return openapi_schema
