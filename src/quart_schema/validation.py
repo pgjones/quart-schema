@@ -188,7 +188,7 @@ def validate_response(
             BaseModel.
         status_code: The status code this validation applies
             to. Defaults to 200.
-         headers_model_class: The model to use to validate response
+        headers_model_class: The model to use to validate response
             headers, either a dataclass, pydantic dataclass or a class
             that inherits from pydantic's BaseModel. Is optional.
     """
@@ -233,7 +233,9 @@ def validate_response(
                 if is_dataclass(model_value):
                     return_value = asdict(model_value)
                 else:
-                    return_value = cast(BaseModel, model_value).dict()
+                    return_value = cast(BaseModel, model_value).dict(
+                        by_alias=current_app.config["QUART_SCHEMA_BY_ALIAS"]
+                    )
 
                 if headers_model_class is not None:
                     try:

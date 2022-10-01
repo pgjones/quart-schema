@@ -291,6 +291,7 @@ class QuartSchema:
             "QUART_SCHEMA_REDOC_JS_URL",
             "https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js",
         )
+        app.config.setdefault("QUART_SCHEMA_BY_ALIAS", False)
         if self.openapi_path is not None:
             hide(app.send_static_file.__func__)  # type: ignore
             app.add_url_rule(self.openapi_path, "openapi", self.openapi)
@@ -372,7 +373,7 @@ def convert_model_result(func: Callable) -> Callable:
         if is_dataclass(value):
             dict_or_value = asdict(value)
         elif isinstance(value, BaseModel):
-            dict_or_value = value.dict()
+            dict_or_value = value.dict(by_alias=current_app.config["QUART_SCHEMA_BY_ALIAS"])
         else:
             dict_or_value = value
         return await func((dict_or_value, status_or_headers, headers))
