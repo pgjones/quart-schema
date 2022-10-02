@@ -149,7 +149,8 @@ class JSONProvider(DefaultJSONProvider):
         return super().dumps(object_, **kwargs)
 
     def loads(self, object_: str | bytes, **kwargs: Any) -> Any:
-        kwargs["cls"] = CasingJSONDecoder
+        if self._convert_casing:
+            kwargs["cls"] = CasingJSONDecoder
         return super().loads(object_, **kwargs)
 
 
