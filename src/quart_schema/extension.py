@@ -18,6 +18,7 @@ from quart import current_app, Quart, render_template_string, Response, Response
 from quart.cli import pass_script_info, ScriptInfo
 from quart.json.provider import DefaultJSONProvider
 from werkzeug.routing.converters import NumberConverter
+from werkzeug.routing.rules import Rule
 
 from .mixins import create_test_client_mixin, RequestMixin, WebsocketMixin
 from .openapi import (
@@ -432,133 +433,128 @@ def security_scheme(schemes: Iterable[Dict[str, List[str]]]) -> Callable:
     return decorator
 
 
-def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
-    paths: Dict[str, dict] = {}
-    components = {"schemas": {}}  # type: ignore
-    for rule in app.url_map.iter_rules():
-        if rule.websocket:
-            continue
+def _build_path(func: Callable, rule: Rule, extension: QuartSchema) -> Tuple[dict, dict]:
+    components = {}
+    operation_object: Dict[str, Any] = {
+        "parameters": [],
+        "responses": {},
+    }
+    if func.__doc__ is not None:
+        summary, *description = inspect.getdoc(func).splitlines()
+        operation_object["description"] = "\n".join(description)
+        operation_object["summary"] = summary
 
-        func = app.view_functions[rule.endpoint]
-        if getattr(func, QUART_SCHEMA_HIDDEN_ATTRIBUTE, False):
-            continue
+    if getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE, None) is not None:
+        operation_object["tags"] = list(getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE))
 
-        operation_object: Dict[str, Any] = {
-            "parameters": [],
-            "responses": {},
+    if getattr(func, QUART_SCHEMA_DEPRECATED, None):
+        operation_object["deprecated"] = True
+
+    if getattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE, None) is not None:
+        operation_object["security"] = list(getattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE))
+
+    response_models = getattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, {})
+    for status_code in response_models.keys():
+        model_class, headers_model_class = response_models[status_code]
+        schema = model_schema(model_class, ref_prefix=REF_PREFIX)
+        definitions, schema = _split_convert_definitions(schema, extension.convert_casing)
+        components.update(definitions)
+        response_object = {
+            "content": {
+                "application/json": {
+                    "schema": schema,
+                },
+            },
+            "description": "",
         }
-        if func.__doc__ is not None:
-            summary, *description = inspect.getdoc(func).splitlines()
-            operation_object["description"] = "\n".join(description)
-            operation_object["summary"] = summary
+        if model_class.__doc__ is not None:
+            response_object["description"] = inspect.getdoc(model_class)
 
-        if getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE, None) is not None:
-            operation_object["tags"] = list(getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE))
-
-        if getattr(func, QUART_SCHEMA_DEPRECATED, None):
-            operation_object["deprecated"] = True
-
-        if getattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE, None) is not None:
-            operation_object["security"] = list(getattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE))
-
-        response_models = getattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, {})
-        for status_code in response_models.keys():
-            model_class, headers_model_class = response_models[status_code]
-            schema = model_schema(model_class, ref_prefix=REF_PREFIX)
-            definitions, schema = _split_convert_definitions(schema, extension.convert_casing)
-            components["schemas"].update(definitions)
-            response_object = {
-                "content": {
-                    "application/json": {
-                        "schema": schema,
-                    },
-                },
-                "description": "",
-            }
-            if model_class.__doc__ is not None:
-                response_object["description"] = inspect.getdoc(model_class)
-
-            if headers_model_class is not None:
-                schema = model_schema(headers_model_class, ref_prefix=REF_PREFIX)
-                definitions, schema = _split_definitions(schema)
-                components["schemas"].update(definitions)
-                response_object["content"]["headers"] = {  # type: ignore
-                    name.replace("_", "-"): {
-                        "schema": type_,
-                    }
-                    for name, type_ in schema["properties"].items()
-                }
-            operation_object["responses"][status_code] = response_object
-
-        request_data = getattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, None)
-        if request_data is not None:
-            schema = model_schema(request_data[0], ref_prefix=REF_PREFIX)
-            definitions, schema = _split_convert_definitions(schema, extension.convert_casing)
-            components["schemas"].update(definitions)
-
-            if request_data[1] == DataSource.JSON:
-                encoding = "application/json"
-            else:
-                encoding = "application/x-www-form-urlencoded"
-
-            operation_object["requestBody"] = {
-                "content": {
-                    encoding: {
-                        "schema": schema,
-                    },
-                },
-            }
-
-        querystring_model = getattr(func, QUART_SCHEMA_QUERYSTRING_ATTRIBUTE, None)
-        if querystring_model is not None:
-            schema = model_schema(querystring_model, ref_prefix=REF_PREFIX)
-            definitions, schema = _split_convert_definitions(schema, extension.convert_casing)
-            components["schemas"].update(definitions)
-            for name, type_ in schema["properties"].items():
-                param = {"name": name, "in": "query", "schema": type_}
-
-                for attribute in ("description", "required", "deprecated"):
-                    if attribute in type_:
-                        param[attribute] = type_.pop(attribute)
-
-                operation_object["parameters"].append(param)
-
-        headers_model = getattr(func, QUART_SCHEMA_HEADERS_ATTRIBUTE, None)
-        if headers_model is not None:
-            schema = model_schema(headers_model, ref_prefix=REF_PREFIX)
+        if headers_model_class is not None:
+            schema = model_schema(headers_model_class, ref_prefix=REF_PREFIX)
             definitions, schema = _split_definitions(schema)
-            components["schemas"].update(definitions)
-            for name, type_ in schema["properties"].items():
-                param = {"name": name.replace("_", "-"), "in": "header", "schema": type_}
-
-                for attribute in ("description", "required", "deprecated"):
-                    if attribute in type_:
-                        param[attribute] = type_.pop(attribute)
-
-                operation_object["parameters"].append(param)
-
-        for name, converter in rule._converters.items():
-            type_ = "string"
-            if isinstance(converter, NumberConverter):
-                type_ = "number"
-
-            operation_object["parameters"].append(
-                {
-                    "name": name,
-                    "in": "path",
-                    "required": True,
-                    "schema": {"type": type_},
+            components.update(definitions)
+            response_object["content"]["headers"] = {  # type: ignore
+                name.replace("_", "-"): {
+                    "schema": type_,
                 }
-            )
+                for name, type_ in schema["properties"].items()
+            }
+        operation_object["responses"][status_code] = response_object
 
-        path = re.sub(PATH_RE, r"{\1}", rule.rule)
-        paths.setdefault(path, {})
+    request_data = getattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, None)
+    if request_data is not None:
+        schema = model_schema(request_data[0], ref_prefix=REF_PREFIX)
+        definitions, schema = _split_convert_definitions(schema, extension.convert_casing)
+        components.update(definitions)
 
-        for method in rule.methods:
-            if method == "HEAD" or (method == "OPTIONS" and rule.provide_automatic_options):  # type: ignore  # noqa: E501
-                continue
-            paths[path][method.lower()] = operation_object
+        if request_data[1] == DataSource.JSON:
+            encoding = "application/json"
+        else:
+            encoding = "application/x-www-form-urlencoded"
 
+        operation_object["requestBody"] = {
+            "content": {
+                encoding: {
+                    "schema": schema,
+                },
+            },
+        }
+
+    querystring_model = getattr(func, QUART_SCHEMA_QUERYSTRING_ATTRIBUTE, None)
+    if querystring_model is not None:
+        schema = model_schema(querystring_model, ref_prefix=REF_PREFIX)
+        definitions, schema = _split_convert_definitions(schema, extension.convert_casing)
+        components.update(definitions)
+        for name, type_ in schema["properties"].items():
+            param = {"name": name, "in": "query", "schema": type_}
+
+            for attribute in ("description", "required", "deprecated"):
+                if attribute in type_:
+                    param[attribute] = type_.pop(attribute)
+
+            operation_object["parameters"].append(param)
+
+    headers_model = getattr(func, QUART_SCHEMA_HEADERS_ATTRIBUTE, None)
+    if headers_model is not None:
+        schema = model_schema(headers_model, ref_prefix=REF_PREFIX)
+        definitions, schema = _split_definitions(schema)
+        components.update(definitions)
+        for name, type_ in schema["properties"].items():
+            param = {"name": name.replace("_", "-"), "in": "header", "schema": type_}
+
+            for attribute in ("description", "required", "deprecated"):
+                if attribute in type_:
+                    param[attribute] = type_.pop(attribute)
+
+            operation_object["parameters"].append(param)
+
+    for name, converter in rule._converters.items():
+        type_ = "string"
+        if isinstance(converter, NumberConverter):
+            type_ = "number"
+
+        operation_object["parameters"].append(
+            {
+                "name": name,
+                "in": "path",
+                "required": True,
+                "schema": {"type": type_},
+            }
+        )
+
+    path = re.sub(PATH_RE, r"{\1}", rule.rule)
+    paths = {path: {}}  # type: ignore
+
+    for method in rule.methods:
+        if method == "HEAD" or (method == "OPTIONS" and rule.provide_automatic_options):  # type: ignore # noqa: E501
+            continue
+        paths[path][method.lower()] = operation_object
+    return paths, components
+
+
+def _build_full_schema(extension: QuartSchema, paths: dict, component_schemas: dict) -> dict:
+    components = {"schemas": component_schemas}
     if extension.security_schemes is not None:
         components["securitySchemes"] = {
             key: camelize(value.dict(exclude_none=True, by_alias=True))
@@ -581,4 +577,24 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
         ]
     if extension.external_docs is not None:
         openapi_schema["externalDocs"] = camelize(extension.external_docs.dict(exclude_none=True))
+
     return openapi_schema
+
+
+def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
+    paths: Dict[str, dict] = {}
+    component_schemas = {}
+    for rule in app.url_map.iter_rules():
+        if rule.websocket:
+            continue
+
+        func = app.view_functions[rule.endpoint]
+        if getattr(func, QUART_SCHEMA_HIDDEN_ATTRIBUTE, False):
+            continue
+
+        path, components = _build_path(func, rule, extension)
+
+        paths.update(path)
+        component_schemas.update(components)
+
+    return _build_full_schema(extension, paths, component_schemas)
