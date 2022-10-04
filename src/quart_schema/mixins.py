@@ -74,6 +74,7 @@ def create_test_client_mixin(convert_casing: bool) -> Type:
             http_version: str,
             scope_base: Optional[dict],
             auth: Optional[Union[Authorization, Tuple[str, str]]] = None,
+            subdomain: Optional[str] = None,
         ) -> Response:
             if json is not sentinel:
                 if is_dataclass(json):
@@ -106,6 +107,7 @@ def create_test_client_mixin(convert_casing: bool) -> Type:
                 http_version,
                 scope_base,
                 auth,
+                subdomain,
             )
 
     return TestClientMixin
