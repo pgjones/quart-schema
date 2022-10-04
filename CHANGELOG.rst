@@ -1,3 +1,22 @@
+0.14.0 2022-10-04
+-----------------
+
+* Add an info argument and model for OpenAPI info. This is backwards
+  incompatible as the title and version arguments are removed.
+* Switch from hide_route to hide. This is backwards incompatible as
+  the decorator name has changed.
+* Clarify how the OpenAPI schema is camelized when converting case
+  (fix issues with incorrect casing in the openapi JSON).
+* Convert the remaining input objects to Pydantic models, with
+  dictionaries still accepted.
+* Add deprecation decorator to mark routes as deprecated.
+* Add the ability to specify external docs.
+* Add QUART_SCHEMA_BY_ALIAS to the config to specify by_alias usage
+  for response models.
+* Bugfix JSONProvider loads convert casing usage.
+* Bugfix compatibility with Quart 0.18.1, which is now the minimum
+  required.
+
 0.13.0 2022-09-04
 -----------------
 
