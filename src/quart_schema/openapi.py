@@ -168,6 +168,9 @@ class APIKeySecurityScheme(SecuritySchemeBase):
     in_: Literal["query", "header", "cookie"] = Field(alias="in")
     name: str
 
+    class Config:
+        allow_population_by_field_name = True
+
 
 class HttpSecurityScheme(SecuritySchemeBase):
     type: Literal["http"] = "http"
