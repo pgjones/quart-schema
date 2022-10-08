@@ -28,6 +28,8 @@ class Details:
 
 @dataclass
 class Result:
+    """Result"""
+
     name: str
 
 
@@ -40,13 +42,11 @@ async def test_openapi() -> None:
     app = Quart(__name__)
     QuartSchema(app)
 
-    @app.route("/")
+    @app.get("/")
     @validate_querystring(QueryItem)
-    @validate_request(Details)
     @validate_headers(Headers)
     @validate_response(Result, 200, Headers)
-    @deprecate()
-    async def index() -> Tuple[Result, int, Headers]:
+    async def read_item() -> Tuple[Result, int, Headers]:
         """Summary
         Multi-line
         description.
@@ -57,6 +57,13 @@ async def test_openapi() -> None:
 
         And another paragraph."""
         return Result(name="bob"), 200, Headers(x_name="jeff")
+
+    @app.post("/")
+    @validate_request(Details)
+    @validate_response(Result, 201, Headers)
+    @deprecate()
+    async def create_item() -> Tuple[Result, int, Headers]:
+        return Result(name="bob"), 201, Headers(x_name="jeff")
 
     @app.websocket("/ws")
     async def ws() -> None:
@@ -74,7 +81,6 @@ async def test_openapi() -> None:
                     "summary": "Summary",
                     "description": "Multi-line\ndescription.\n\nThis is a new paragraph\n\n    "
                     "And this is an indented codeblock.\n\nAnd another paragraph.",
-                    "deprecated": True,
                     "parameters": [
                         {
                             "in": "query",
@@ -90,26 +96,12 @@ async def test_openapi() -> None:
                             "schema": {"title": "X Name", "type": "string"},
                         },
                     ],
-                    "requestBody": {
-                        "content": {
-                            "application/json": {
-                                "schema": {
-                                    "properties": {
-                                        "age": {"title": "Age", "type": "integer"},
-                                        "name": {"title": "Name", "type": "string"},
-                                    },
-                                    "required": ["name"],
-                                    "title": "Details",
-                                    "type": "object",
-                                }
-                            }
-                        }
-                    },
                     "responses": {
                         "200": {
                             "content": {
                                 "application/json": {
                                     "schema": {
+                                        "description": "Result",
                                         "properties": {"name": {"title": "Name", "type": "string"}},
                                         "required": ["name"],
                                         "title": "Result",
@@ -130,7 +122,52 @@ async def test_openapi() -> None:
                             "description": "",
                         }
                     },
-                }
+                },
+                "post": {
+                    "deprecated": True,
+                    "parameters": [],
+                    "requestBody": {
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "properties": {
+                                        "age": {"title": "Age", "type": "integer"},
+                                        "name": {"title": "Name", "type": "string"},
+                                    },
+                                    "required": ["name"],
+                                    "title": "Details",
+                                    "type": "object",
+                                }
+                            }
+                        }
+                    },
+                    "responses": {
+                        "201": {
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "description": "Result",
+                                        "properties": {"name": {"title": "Name", "type": "string"}},
+                                        "required": ["name"],
+                                        "title": "Result",
+                                        "type": "object",
+                                    }
+                                },
+                                "headers": {
+                                    "x-name": {
+                                        "schema": {
+                                            "title": "X Name",
+                                            "type": "string",
+                                            "description": "x-name description",
+                                            "deprecated": True,
+                                        }
+                                    }
+                                },
+                            },
+                            "description": "Result",
+                        }
+                    },
+                },
             }
         },
     }

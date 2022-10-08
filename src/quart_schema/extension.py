@@ -3,6 +3,7 @@ from __future__ import annotations
 import inspect
 import json
 import re
+from collections import defaultdict
 from collections.abc import Mapping
 from dataclasses import asdict, is_dataclass
 from functools import wraps
@@ -582,7 +583,7 @@ def _build_full_schema(extension: QuartSchema, paths: dict, component_schemas: d
 
 
 def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
-    paths: Dict[str, dict] = {}
+    paths: Dict[str, dict] = defaultdict(dict)
     component_schemas = {}
     for rule in app.url_map.iter_rules():
         if rule.websocket:
@@ -592,9 +593,10 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
         if getattr(func, QUART_SCHEMA_HIDDEN_ATTRIBUTE, False):
             continue
 
-        path, components = _build_path(func, rule, extension)
+        built_paths, components = _build_path(func, rule, extension)
 
-        paths.update(path)
+        for path in built_paths:
+            paths[path].update(built_paths[path])
         component_schemas.update(components)
 
     return _build_full_schema(extension, paths, component_schemas)
