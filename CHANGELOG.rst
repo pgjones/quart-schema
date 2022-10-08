@@ -1,3 +1,9 @@
+0.14.2 2022-10-08
+-----------------
+
+* Bugfix ensure paths are correctly merged in the generated OpenAPI
+  schema.
+
 0.14.1 2022-10-04
 -----------------
 
