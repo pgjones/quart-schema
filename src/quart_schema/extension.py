@@ -17,7 +17,7 @@ from pydantic.json import pydantic_encoder
 from pydantic.schema import model_schema
 from quart import current_app, Quart, render_template_string, Response, ResponseReturnValue
 from quart.cli import pass_script_info, ScriptInfo
-from quart.json.provider import DefaultJSONProvider
+from quart.json.provider import DefaultJSONProvider, JSONProvider as BaseJSONProvider
 from werkzeug.routing.converters import NumberConverter
 from werkzeug.routing.rules import Rule
 
@@ -138,8 +138,8 @@ class CasingJSONDecoder(json.JSONDecoder):
         return decamelize(object_)
 
 
-class JSONProvider(DefaultJSONProvider):
-    def __init__(self, app: Quart, convert_casing: bool) -> None:
+class JSONProvider(BaseJSONProvider):
+    def __init__(self, app: Quart, *, convert_casing: bool) -> None:
         super().__init__(app)
         self._convert_casing = convert_casing
 
@@ -148,12 +148,14 @@ class JSONProvider(DefaultJSONProvider):
             kwargs["cls"] = CasingJSONEncoder
         else:
             kwargs["cls"] = PydanticJSONEncoder
-        return super().dumps(object_, **kwargs)
+
+        kwargs.setdefault("separators", (",", ":"))
+        return json.dumps(object_, **kwargs)
 
     def loads(self, object_: str | bytes, **kwargs: Any) -> Any:
         if self._convert_casing:
             kwargs["cls"] = CasingJSONDecoder
-        return super().loads(object_, **kwargs)
+        return json.loads(object_, **kwargs)
 
 
 class QuartSchema:
@@ -275,7 +277,7 @@ class QuartSchema:
         app.websocket_class = new_class(  # type: ignore
             "Websocket", (WebsocketMixin, app.websocket_class)
         )
-        app.json = JSONProvider(app, self.convert_casing)
+        app.json = JSONProvider(app, convert_casing=self.convert_casing)
         app.make_response = convert_model_result(app.make_response)  # type: ignore
         if self.convert_casing:
             app.request_class = new_class(  # type: ignore
