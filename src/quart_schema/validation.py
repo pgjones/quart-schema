@@ -5,6 +5,7 @@ from enum import auto, Enum
 from functools import wraps
 from typing import Any, Callable, cast, Dict, Optional, Tuple, Type, TypeVar, Union
 
+from humps import decamelize
 from pydantic import BaseModel, ValidationError
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 from pydantic.schema import model_schema
@@ -75,8 +76,12 @@ def validate_querystring(model_class: Model) -> Callable:
 
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
+            if current_app.config["QUART_SCHEMA_CONVERT_CASING"]:
+                request_args = decamelize(request.args)
+            else:
+                request_args = request.args
             try:
-                model = model_class(**request.args)
+                model = model_class(**request_args)
             except (TypeError, ValidationError) as error:
                 raise QuerystringValidationError(error)
             else:
@@ -155,7 +160,8 @@ def validate_request(
                 data = await request.get_json()
             else:
                 data = await request.form
-
+            if current_app.config["QUART_SCHEMA_CONVERT_CASING"]:
+                data = decamelize(data)
             try:
                 model = model_class(**data)
             except (TypeError, ValidationError) as error:
@@ -230,13 +236,6 @@ def validate_response(
                 except ValidationError as error:
                     raise ResponseSchemaValidationError(error)
 
-                if is_dataclass(model_value):
-                    return_value = asdict(model_value)
-                else:
-                    return_value = cast(BaseModel, model_value).dict(
-                        by_alias=current_app.config["QUART_SCHEMA_BY_ALIAS"]
-                    )
-
                 if headers_model_class is not None:
                     try:
                         if isinstance(headers, dict):
@@ -257,7 +256,7 @@ def validate_response(
                 else:
                     headers_value = headers
 
-                return return_value, status, headers_value
+                return model_value, status, headers_value
             else:
                 return result
 

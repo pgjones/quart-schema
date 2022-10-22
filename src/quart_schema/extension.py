@@ -4,24 +4,21 @@ import inspect
 import json
 import re
 from collections import defaultdict
-from collections.abc import Mapping
 from dataclasses import asdict, is_dataclass
 from functools import wraps
 from types import new_class
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import click
-from humps import camelize, decamelize  # type: ignore[attr-defined]
+from humps import camelize
 from pydantic import BaseModel
-from pydantic.json import pydantic_encoder
 from pydantic.schema import model_schema
 from quart import current_app, Quart, render_template_string, Response, ResponseReturnValue
 from quart.cli import pass_script_info, ScriptInfo
-from quart.json.provider import DefaultJSONProvider, JSONProvider as BaseJSONProvider
 from werkzeug.routing.converters import NumberConverter
 from werkzeug.routing.rules import Rule
 
-from .mixins import create_test_client_mixin, RequestMixin, WebsocketMixin
+from .mixins import TestClientMixin, WebsocketMixin
 from .openapi import (
     APIKeySecurityScheme,
     ExternalDocumentation,
@@ -116,46 +113,6 @@ def hide(func: Callable) -> Callable:
     """
     setattr(func, QUART_SCHEMA_HIDDEN_ATTRIBUTE, True)
     return func
-
-
-class PydanticJSONEncoder(json.JSONEncoder):
-    def default(self, object_: Any) -> Any:
-        return pydantic_encoder(object_)
-
-
-class CasingJSONEncoder(PydanticJSONEncoder):
-    def encode(self, object_: Any) -> Any:
-        if isinstance(object_, (list, Mapping)):
-            object_ = camelize(object_)
-        return super().encode(camelize(object_))
-
-
-class CasingJSONDecoder(json.JSONDecoder):
-    def __init__(self, *args: Any, **kwargs: Any) -> None:
-        super().__init__(*args, object_hook=self.object_hook, **kwargs)
-
-    def object_hook(self, object_: dict) -> Any:
-        return decamelize(object_)
-
-
-class JSONProvider(BaseJSONProvider):
-    def __init__(self, app: Quart, *, convert_casing: bool) -> None:
-        super().__init__(app)
-        self._convert_casing = convert_casing
-
-    def dumps(self, object_: Any, **kwargs: Any) -> str:
-        if self._convert_casing:
-            kwargs["cls"] = CasingJSONEncoder
-        else:
-            kwargs["cls"] = PydanticJSONEncoder
-
-        kwargs.setdefault("separators", (",", ":"))
-        return json.dumps(object_, **kwargs)
-
-    def loads(self, object_: str | bytes, **kwargs: Any) -> Any:
-        if self._convert_casing:
-            kwargs["cls"] = CasingJSONDecoder
-        return json.loads(object_, **kwargs)
 
 
 class QuartSchema:
@@ -271,18 +228,11 @@ class QuartSchema:
         if self.info is None:
             self.info = Info(title=app.name, version="0.1.0")
 
-        app.test_client_class = new_class(
-            "TestClient", (create_test_client_mixin(self.convert_casing), app.test_client_class)
-        )
+        app.test_client_class = new_class("TestClient", (TestClientMixin, app.test_client_class))
         app.websocket_class = new_class(  # type: ignore
             "Websocket", (WebsocketMixin, app.websocket_class)
         )
-        app.json = JSONProvider(app, convert_casing=self.convert_casing)
         app.make_response = convert_model_result(app.make_response)  # type: ignore
-        if self.convert_casing:
-            app.request_class = new_class(  # type: ignore
-                "Request", (RequestMixin, app.request_class)
-            )
 
         app.config.setdefault(
             "QUART_SCHEMA_SWAGGER_JS_URL",
@@ -297,6 +247,7 @@ class QuartSchema:
             "https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js",
         )
         app.config.setdefault("QUART_SCHEMA_BY_ALIAS", False)
+        app.config.setdefault("QUART_SCHEMA_CONVERT_CASING", self.convert_casing)
         if self.openapi_path is not None:
             hide(app.send_static_file.__func__)  # type: ignore
             app.add_url_rule(self.openapi_path, "openapi", self.openapi)
@@ -308,9 +259,8 @@ class QuartSchema:
         app.cli.add_command(_schema_command)
 
     @hide
-    async def openapi(self) -> Response:
-        openapi_schema = _build_openapi_schema(current_app, self)
-        return DefaultJSONProvider(current_app._get_current_object()).response(openapi_schema)  # type: ignore # noqa: E501
+    async def openapi(self) -> ResponseReturnValue:
+        return _build_openapi_schema(current_app, self)
 
     @hide
     async def swagger_ui(self) -> str:
@@ -375,12 +325,19 @@ def convert_model_result(func: Callable) -> Callable:
         else:
             value = result
 
+        was_model = False
         if is_dataclass(value):
             dict_or_value = asdict(value)
+            was_model = True
         elif isinstance(value, BaseModel):
             dict_or_value = value.dict(by_alias=current_app.config["QUART_SCHEMA_BY_ALIAS"])
+            was_model = True
         else:
             dict_or_value = value
+
+        if was_model and current_app.config["QUART_SCHEMA_CONVERT_CASING"]:
+            dict_or_value = camelize(dict_or_value)
+
         return await func((dict_or_value, status_or_headers, headers))
 
     return decorator

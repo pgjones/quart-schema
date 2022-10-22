@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Any, AnyStr, Dict, Optional, Tuple, Type, TYPE_CHECKING, TypeVar, Union
 
 from pydantic import BaseModel
+from quart import Quart
 from quart.datastructures import FileStorage
 from quart.typing import (
     HeadersValue as QuartHeadersValue,
@@ -46,6 +47,8 @@ class WebsocketProtocol(Protocol):
 
 
 class TestClientProtocol(Protocol):
+    app: Quart
+
     async def _make_request(
         self,
         path: str,

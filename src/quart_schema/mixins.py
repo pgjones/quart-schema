@@ -3,12 +3,12 @@ from __future__ import annotations
 from dataclasses import asdict, is_dataclass
 from typing import Any, AnyStr, cast, Dict, Optional, overload, Tuple, Type, Union
 
-from humps import camelize, decamelize  # type: ignore[attr-defined]
+from humps import camelize, decamelize
 from pydantic import BaseModel, ValidationError
-from quart import Response
+from quart import current_app, Response
 from quart.datastructures import FileStorage
 from quart.testing.utils import sentinel
-from werkzeug.datastructures import Authorization, Headers, MultiDict
+from werkzeug.datastructures import Authorization, Headers
 
 from .typing import BM, DC, TestClientProtocol, WebsocketProtocol
 
@@ -32,6 +32,8 @@ class WebsocketMixin:
         self: WebsocketProtocol, model_class: Union[Type[BM], Type[DC]]
     ) -> Union[BM, DC]:
         data = await self.receive_json()
+        if current_app.config["CONVERT_CASING"]:
+            data = decamelize(data)
         try:
             return model_class(**data)
         except ValidationError as error:
@@ -54,66 +56,78 @@ class WebsocketMixin:
         else:
             model_value = cast(BM, model_value)
             data = model_value.dict()
+        if current_app.config["CONVERT_CASING"]:
+            data = camelize(data)
         await self.send_json(data)
 
 
-def create_test_client_mixin(convert_casing: bool) -> Type:
-    class TestClientMixin:
-        async def _make_request(
-            self: TestClientProtocol,
-            path: str,
-            method: str,
-            headers: Optional[Union[dict, Headers]],
-            data: Optional[AnyStr],
-            form: Optional[dict],
-            files: Optional[Dict[str, FileStorage]],
-            query_string: Optional[dict],
-            json: Any,
-            scheme: str,
-            root_path: str,
-            http_version: str,
-            scope_base: Optional[dict],
-            auth: Optional[Union[Authorization, Tuple[str, str]]] = None,
-            subdomain: Optional[str] = None,
-        ) -> Response:
-            if json is not sentinel:
-                if is_dataclass(json):
-                    json = asdict(json)
-                elif isinstance(json, BaseModel):
-                    json = json.dict()
-            if form is not None:
-                if is_dataclass(form):
-                    form = asdict(form)
-                elif isinstance(form, BaseModel):
-                    form = form.dict()
-            if query_string is not None:
-                if is_dataclass(query_string):
-                    query_string = asdict(query_string)
-                elif isinstance(query_string, BaseModel):
-                    query_string = query_string.dict()
-                if convert_casing:
-                    query_string = camelize(query_string)
-            return await super()._make_request(  # type: ignore
-                path,
-                method,
-                headers,
-                data,
-                form,
-                files,
-                query_string,
-                json,
-                scheme,
-                root_path,
-                http_version,
-                scope_base,
-                auth,
-                subdomain,
-            )
+class TestClientMixin:
+    async def _make_request(
+        self: TestClientProtocol,
+        path: str,
+        method: str,
+        headers: Optional[Union[dict, Headers]],
+        data: Optional[AnyStr],
+        form: Optional[dict],
+        files: Optional[Dict[str, FileStorage]],
+        query_string: Optional[dict],
+        json: Any,
+        scheme: str,
+        root_path: str,
+        http_version: str,
+        scope_base: Optional[dict],
+        auth: Optional[Union[Authorization, Tuple[str, str]]] = None,
+        subdomain: Optional[str] = None,
+    ) -> Response:
+        if json is not sentinel:
+            was_model = False
+            if is_dataclass(json):
+                json = asdict(json)
+                was_model = True
+            elif isinstance(json, BaseModel):
+                json = json.dict()
+                was_model = True
 
-    return TestClientMixin
+            if was_model and self.app.config["QUART_SCHEMA_CONVERT_CASING"]:
+                json = camelize(json)
 
+        if form is not None:
+            was_model = False
+            if is_dataclass(form):
+                form = asdict(form)
+                was_model = True
+            elif isinstance(form, BaseModel):
+                form = form.dict()
+                was_model = True
 
-class RequestMixin:
-    @property
-    def args(self) -> MultiDict[str, str]:
-        return decamelize(super().args)  # type: ignore
+            if was_model and self.app.config["QUART_SCHEMA_CONVERT_CASING"]:
+                form = camelize(form)
+
+        if query_string is not None:
+            was_model = False
+            if is_dataclass(query_string):
+                query_string = asdict(query_string)
+                was_model = True
+            elif isinstance(query_string, BaseModel):
+                query_string = query_string.dict()
+                was_model = True
+
+            if was_model and self.app.config["QUART_SCHEMA_CONVERT_CASING"]:
+                query_string = camelize(query_string)
+
+        return await super()._make_request(  # type: ignore
+            path,
+            method,
+            headers,
+            data,
+            form,
+            files,
+            query_string,
+            json,
+            scheme,
+            root_path,
+            http_version,
+            scope_base,
+            auth,
+            subdomain,
+        )
