@@ -393,7 +393,7 @@ def security_scheme(schemes: Iterable[Dict[str, List[str]]]) -> Callable:
     return decorator
 
 
-def _build_path(func: Callable, rule: Rule, extension: QuartSchema) -> Tuple[dict, dict]:
+def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
     components = {}
     operation_object: Dict[str, Any] = {
         "parameters": [],
@@ -417,7 +417,9 @@ def _build_path(func: Callable, rule: Rule, extension: QuartSchema) -> Tuple[dic
     for status_code in response_models.keys():
         model_class, headers_model_class = response_models[status_code]
         schema = model_schema(model_class, ref_prefix=REF_PREFIX)
-        definitions, schema = _split_convert_definitions(schema, extension.convert_casing)
+        definitions, schema = _split_convert_definitions(
+            schema, app.config["QUART_SCHEMA_CONVERT_CASING"]
+        )
         components.update(definitions)
         response_object = {
             "content": {
@@ -445,7 +447,9 @@ def _build_path(func: Callable, rule: Rule, extension: QuartSchema) -> Tuple[dic
     request_data = getattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, None)
     if request_data is not None:
         schema = model_schema(request_data[0], ref_prefix=REF_PREFIX)
-        definitions, schema = _split_convert_definitions(schema, extension.convert_casing)
+        definitions, schema = _split_convert_definitions(
+            schema, app.config["QUART_SCHEMA_CONVERT_CASING"]
+        )
         components.update(definitions)
 
         if request_data[1] == DataSource.JSON:
@@ -464,7 +468,9 @@ def _build_path(func: Callable, rule: Rule, extension: QuartSchema) -> Tuple[dic
     querystring_model = getattr(func, QUART_SCHEMA_QUERYSTRING_ATTRIBUTE, None)
     if querystring_model is not None:
         schema = model_schema(querystring_model, ref_prefix=REF_PREFIX)
-        definitions, schema = _split_convert_definitions(schema, extension.convert_casing)
+        definitions, schema = _split_convert_definitions(
+            schema, app.config["QUART_SCHEMA_CONVERT_CASING"]
+        )
         components.update(definitions)
         for name, type_ in schema["properties"].items():
             param = {"name": name, "in": "query", "schema": type_}
@@ -552,7 +558,7 @@ def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
         if getattr(func, QUART_SCHEMA_HIDDEN_ATTRIBUTE, False):
             continue
 
-        built_paths, components = _build_path(func, rule, extension)
+        built_paths, components = _build_path(func, rule, app)
 
         for path in built_paths:
             paths[path].update(built_paths[path])
