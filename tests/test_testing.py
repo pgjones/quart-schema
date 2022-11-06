@@ -18,7 +18,7 @@ class DCDetails:
 
 class Details(BaseModel):
     name: str
-    age: Optional[int]
+    age: Optional[int] = None
 
 
 @pytest.mark.parametrize("type_", [DCDetails, Details])

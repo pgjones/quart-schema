@@ -18,7 +18,7 @@ class DCDetails:
 
 class Details(BaseModel):
     name: str
-    age: Optional[int]
+    age: Optional[int] = None
 
 
 @pydantic_dataclass

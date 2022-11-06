@@ -15,7 +15,7 @@ QuartSchema(app)
 class Todo:
     "A TODO!"
     task: str
-    due: Optional[datetime]
+    due: Optional[datetime] = None
 
 
 @dataclass
@@ -34,7 +34,7 @@ async def create_todo(data: Todo, query_args: Options) -> Todo:
 
 class TodoBM(BaseModel):
     task: str
-    due: Optional[datetime]
+    due: Optional[datetime] = None
 
 
 @app.get("/<int:id>/")

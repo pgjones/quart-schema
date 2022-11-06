@@ -39,7 +39,7 @@ class QueryItem:
 
 class Details(BaseModel):
     name: str
-    age: Optional[int]
+    age: Optional[int] = None
 
 
 class Item(BaseModel):
