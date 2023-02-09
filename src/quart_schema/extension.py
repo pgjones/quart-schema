@@ -311,7 +311,12 @@ def _split_convert_definitions(schema: dict, convert_casing: bool) -> Tuple[dict
     definitions, new_schema = _split_definitions(schema)
     if convert_casing:
         new_schema = camelize(new_schema)
+        if "required" in new_schema:
+            new_schema["required"] = [camelize(field) for field in new_schema["required"]]
         definitions = {key: camelize(definition) for key, definition in definitions.items()}
+        for key, definition in definitions.items():
+            if "required" in definition:
+                definition["required"] = [camelize(field) for field in definition["required"]]
     return definitions, new_schema
 
 
