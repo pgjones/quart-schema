@@ -22,7 +22,7 @@ object to be validated,
     @dataclass
     class Todo:
         task: str
-        due: Optional[datetime]
+        due: Optional[datetime] = None
 
     @app.route("/", methods=["POST"])
     @validate_request(Todo)
