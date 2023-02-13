@@ -31,7 +31,7 @@ methods.
     @dataclass
     class Todo:
         task: str
-        due: Optional[datetime]
+        due: Optional[datetime] = None
 
     @app.post("/")
     @validate_request(Todo)
