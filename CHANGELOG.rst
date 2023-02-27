@@ -1,3 +1,15 @@
+0.15.0 2023-02-27
+-----------------
+
+* Consistently apply casing conversion. This ensures that Quart-Schema
+  does not affect the general JSONProvider and hence other usages of
+  JSON conversions. This could introduce bugs if you were expecting
+  this, if so please write a JSONProvider directly.
+* Ensure the config convert casing setting is the authoritive source
+  (not the extension attribute).
+* Officially support Python 3.11.
+* Bugfix casing of required fields.
+
 0.14.3 2022-10-11
 -----------------
 
