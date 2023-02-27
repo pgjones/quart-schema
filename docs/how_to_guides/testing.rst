@@ -11,7 +11,7 @@ test client as ``json`` or ``form`` data, for example,
     @dataclass
     class DCDetails:
         name: str
-        age: Optional[int] = None
+        age: int | None = None
 
     @pytest.mark.asyncio
     async def test_send_dataclass() -> None:
@@ -42,7 +42,7 @@ example,
     @dataclass
     class DCDetails:
         name: str
-        age: Optional[int] = None
+        age: int | None = None
 
     @given(st.builds(DCDetails))
     @pytest.mark.asyncio

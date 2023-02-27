@@ -15,8 +15,8 @@ route handler, as so,
 
     @dataclass
     class Query:
-        count_le: Optional[int] = None
-        count_gt: Optional[int] = None
+        count_le: int | None = None
+        count_gt: int | None = None
 
     @app.route("/")
     @validate_querystring(Query)

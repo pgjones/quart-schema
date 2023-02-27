@@ -21,7 +21,7 @@ decorating the route handler, as so,
     @dataclass
     class Headers:
         x_required: str
-        x_optional: Optional[int] = None
+        x_optional: int | None = None
 
     @app.route("/")
     @validate_headers(Headers)
@@ -74,7 +74,7 @@ decorating the route handler with a relevant schema, as so,
     @dataclass
     class Headers:
         x_required: str
-        x_optional: Optional[int] = None
+        x_optional: int | None = None
 
     @app.route("/")
     @validate_response(Body, 200, Headers)

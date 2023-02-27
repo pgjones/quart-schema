@@ -11,7 +11,6 @@ object to be validated,
 
     from dataclasses import dataclass
     from datetime import datetime
-    from typing import Optional
 
     from quart import Quart
     from quart_schema import QuartSchema, validate_request, validate_response
@@ -22,7 +21,7 @@ object to be validated,
     @dataclass
     class Todo:
         task: str
-        due: Optional[datetime]
+        due: datetime | None
 
     @app.route("/", methods=["POST"])
     @validate_request(Todo)

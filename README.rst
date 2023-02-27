@@ -20,7 +20,6 @@ methods.
 
     from dataclasses import dataclass
     from datetime import datetime
-    from typing import Optional
 
     from quart import Quart, websocket
     from quart_schema import QuartSchema, validate_request, validate_response
@@ -31,7 +30,7 @@ methods.
     @dataclass
     class Todo:
         task: str
-        due: Optional[datetime]
+        due: datetime | None
 
     @app.post("/")
     @validate_request(Todo)
