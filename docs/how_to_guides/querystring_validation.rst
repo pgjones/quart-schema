@@ -28,7 +28,7 @@ both parameters to the URL e,g. ``/?count_le=2&count_gt=0``.
 
 If the client doesn't supply correctly structured data they will
 receive a 400 (bad request) response without your route handler
-running. If the client does supploy correctly structured data it will
+running. If the client does supply correctly structured data it will
 be passed into your route handler as the ``query_args`` argument.
 
 .. note::
