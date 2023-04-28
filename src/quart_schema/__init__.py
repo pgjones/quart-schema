@@ -1,3 +1,4 @@
+from .documentation import document_response
 from .extension import deprecate, hide, QuartSchema, security_scheme, tag
 from .mixins import SchemaValidationError
 from .openapi import (
@@ -29,6 +30,7 @@ __all__ = (
     "Contact",
     "DataSource",
     "deprecate",
+    "document_response",
     "ExternalDocumentation",
     "hide",
     "HttpSecurityScheme",
