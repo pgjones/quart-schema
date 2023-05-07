@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import inspect
-import json
 import re
 from collections import defaultdict
 from dataclasses import asdict, is_dataclass
@@ -293,7 +292,7 @@ class QuartSchema:
 def _schema_command(info: ScriptInfo, output: Optional[str]) -> None:
     app = info.load_app()
     schema = _build_openapi_schema(app, app.extensions["QUART_SCHEMA"])
-    formatted_spec = json.dumps(schema, indent=2)
+    formatted_spec = app.json.dumps(schema, indent=2)
     if output is not None:
         with open(output, "w") as file_:
             click.echo(formatted_spec, file=file_)
