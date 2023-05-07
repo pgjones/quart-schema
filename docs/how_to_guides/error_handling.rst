@@ -15,7 +15,7 @@ an error handler, for example for a JSON error response,
 
 or if you prefer to let the requestor know exactly why the validation
 failed you can utilise the ``validation_error`` attribute which is a
-Pydantic ``ValidationError``,
+either Pydantic ``ValidationError`` or a ``TypeError``,
 
 .. code-block:: python
 
@@ -23,4 +23,11 @@ Pydantic ``ValidationError``,
 
     @app.errorhandler(RequestSchemaValidationError)
     async def handle_request_validation_error(error):
-        return {"errors": error.validation_error.json()}, 400
+        if isinstance(error.validation_error, TypeError):
+            return {
+              "errors": str(error.validation_error),
+            }, 400
+        else:
+            return {
+              "errors": error.validation_error.json(),
+            }, 400
