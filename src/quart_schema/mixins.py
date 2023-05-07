@@ -52,7 +52,7 @@ class WebsocketMixin:
         else:
             raise SchemaValidationError()
         if is_dataclass(model_value):
-            data = asdict(model_value)
+            data = asdict(model_value)  # type: ignore[arg-type]
         else:
             model_value = cast(BM, model_value)
             data = model_value.dict()
@@ -94,7 +94,7 @@ class TestClientMixin:
         if form is not None:
             was_model = False
             if is_dataclass(form):
-                form = asdict(form)
+                form = asdict(form)  # type: ignore[arg-type]
                 was_model = True
             elif isinstance(form, BaseModel):
                 form = form.dict()
@@ -106,7 +106,7 @@ class TestClientMixin:
         if query_string is not None:
             was_model = False
             if is_dataclass(query_string):
-                query_string = asdict(query_string)
+                query_string = asdict(query_string)  # type: ignore[arg-type]
                 was_model = True
             elif isinstance(query_string, BaseModel):
                 query_string = query_string.dict()
