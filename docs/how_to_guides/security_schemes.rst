@@ -13,7 +13,7 @@ passed as a querry arg called ``appID``:
 
     QuartSchema(
         app,
-        security={"app_id": []},
+        security=[{"app_id": []}],
         security_schemes={
             "app_id": {"type": "apiKey", "name": "appID", "in": "query"}
         },
