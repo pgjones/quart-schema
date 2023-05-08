@@ -1,3 +1,12 @@
+0.16.0 2023-05-08
+-----------------
+
+* Switch to app.json.dumps rather than json.dumps in schema cmd, so as
+  to use any specific JSON encoding.
+* Restore usage of the pydantic encoder by default, to match the
+  pydantic decoding.
+* Add documentation only decorators matching the validation versions.
+
 0.15.0 2023-02-27
 -----------------
 
