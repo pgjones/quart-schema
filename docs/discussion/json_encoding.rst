@@ -1,9 +1,10 @@
 JSON Encoding & Decoding
 ========================
 
-By default Quart-Schema uses the pydantic JSON encoder (by changing
-the encoder on the app). This can be altered by overriding this change
-after initialising the Quart-Schema extension i.e.
+By default Quart-Schema extends the DefaultJSONProvider to use the
+pydantic encoder if the value cannot be encoded. This can be altered
+by overriding this change after initialising the Quart-Schema
+extension i.e.
 
 .. code-block:: python
 
@@ -12,7 +13,3 @@ after initialising the Quart-Schema extension i.e.
 
 This is best as the pydantic decoder must be used (to create pydantic
 models) and hence this ensures consistency.
-
-If you are using the casing conversion feature the
-``app.json_decoder`` will also be set to a specific Quart-Schema
-version.

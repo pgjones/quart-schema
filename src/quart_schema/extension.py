@@ -11,9 +11,11 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 import click
 from humps import camelize
 from pydantic import BaseModel
+from pydantic.json import pydantic_encoder
 from pydantic.schema import model_schema
 from quart import current_app, Quart, render_template_string, Response, ResponseReturnValue
 from quart.cli import pass_script_info, ScriptInfo
+from quart.json.provider import DefaultJSONProvider
 from werkzeug.routing.converters import NumberConverter
 from werkzeug.routing.rules import Rule
 
@@ -102,6 +104,15 @@ SWAGGER_TEMPLATE = """
   </script>
 </body>
 """
+
+
+class JSONProvider(DefaultJSONProvider):
+    @staticmethod
+    def default(object_: Any) -> Any:
+        try:
+            return super().default(object_)
+        except TypeError:
+            return pydantic_encoder(object_)
 
 
 def hide(func: Callable) -> Callable:
@@ -227,6 +238,7 @@ class QuartSchema:
         if self.info is None:
             self.info = Info(title=app.name, version="0.1.0")
 
+        app.json = JSONProvider(app)
         app.test_client_class = new_class("TestClient", (TestClientMixin, app.test_client_class))
         app.websocket_class = new_class(  # type: ignore
             "Websocket", (WebsocketMixin, app.websocket_class)

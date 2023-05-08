@@ -1,5 +1,7 @@
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Optional
+from uuid import UUID
 
 import pytest
 from pydantic import BaseModel
@@ -39,3 +41,21 @@ async def test_make_response(type_: PydanticModel) -> None:
     test_client = app.test_client()
     response = await test_client.get("/")
     assert (await response.get_json()) == {"name": "bob", "age": 2}
+
+
+class PydanticEncoded(BaseModel):
+    a: UUID
+    b: Path
+
+
+async def test_make_pydantic_encoder_response() -> None:
+    app = Quart(__name__)
+    QuartSchema(app)
+
+    @app.route("/")
+    async def index() -> PydanticEncoded:
+        return PydanticEncoded(a=UUID("23ef2e02-1c20-49de-b05e-e9fe2431c474"), b=Path("/"))
+
+    test_client = app.test_client()
+    response = await test_client.get("/")
+    assert (await response.get_json()) == {"a": "23ef2e02-1c20-49de-b05e-e9fe2431c474", "b": "/"}
