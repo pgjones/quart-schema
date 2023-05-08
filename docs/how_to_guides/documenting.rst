@@ -44,3 +44,14 @@ To mark a route as deprecated use the
      @deprecate
      async def index():
          ...
+
+Documenting without validation
+------------------------------
+
+The decorators
+:func:`~quart_schema.documentation.document_querystring`,
+:func:`~quart_schema.documentation.document_headers`,
+:func:`~quart_schema.documentation.document_request`, and
+:func:`~quart_schema.documentation.document_response` have the same
+signatures and arguments as the validating equivalents but do no
+validation. These can be used to simply document routes.

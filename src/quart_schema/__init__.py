@@ -1,4 +1,10 @@
-from .documentation import document_response
+from .documentation import (
+    document,
+    document_headers,
+    document_querystring,
+    document_request,
+    document_response,
+)
 from .extension import deprecate, hide, QuartSchema, security_scheme, tag
 from .mixins import SchemaValidationError
 from .openapi import (
@@ -19,6 +25,7 @@ from .validation import (
     DataSource,
     RequestSchemaValidationError,
     ResponseSchemaValidationError,
+    validate,
     validate_headers,
     validate_querystring,
     validate_request,
@@ -30,6 +37,10 @@ __all__ = (
     "Contact",
     "DataSource",
     "deprecate",
+    "document",
+    "document_headers",
+    "document_querystring",
+    "document_request",
     "document_response",
     "ExternalDocumentation",
     "hide",
@@ -48,6 +59,7 @@ __all__ = (
     "ServerVariable",
     "Tag",
     "tag",
+    "validate",
     "validate_headers",
     "validate_querystring",
     "validate_request",

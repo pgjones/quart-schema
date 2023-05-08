@@ -54,7 +54,7 @@ class DataSource(Enum):
 
 
 def validate_querystring(model_class: Model) -> Callable:
-    """Validate the querystring arguments.
+    """Validate the request querystring arguments.
 
     This ensures that the query string arguments can be converted to
     the *model_class*. If they cannot a `RequestSchemaValidationError`
@@ -93,7 +93,7 @@ def validate_querystring(model_class: Model) -> Callable:
 
 
 def validate_headers(model_class: Model) -> Callable:
-    """Validate the headers.
+    """Validate the request headers.
 
     This ensures that the headers can be converted to the
     *model_class*. If they cannot a `RequestSchemaValidationError` is
@@ -139,7 +139,7 @@ def validate_request(
     Arguments:
         model_class: The model to use, either a dataclass, pydantic
             dataclass or a class that inherits from pydantic's
-            BaseModel. All the fields must be optional.
+            BaseModel.
         source: The source of the data to validate (json or form
             encoded).
     """
