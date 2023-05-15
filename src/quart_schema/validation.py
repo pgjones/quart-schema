@@ -288,7 +288,7 @@ def validate(
         if headers is not None:
             func = validate_headers(headers)(func)
         for status, models in responses.items():
-            func = validate_response(models[0], status, models[1])
+            func = validate_response(models[0], status, models[1])(func)
         return func
 
     return decorator
