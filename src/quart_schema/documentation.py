@@ -156,7 +156,7 @@ def document(
         if headers is not None:
             func = document_headers(headers)(func)
         for status, models in responses.items():
-            func = document_response(models[0], status, models[1])
+            func = document_response(models[0], status, models[1])(func)
         return func
 
     return decorator
