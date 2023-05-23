@@ -5,7 +5,7 @@ from .documentation import (
     document_request,
     document_response,
 )
-from .extension import deprecate, hide, QuartSchema, security_scheme, tag
+from .extension import deprecate, hide, QuartSchema, operation_id, security_scheme, tag
 from .mixins import SchemaValidationError
 from .openapi import (
     APIKeySecurityScheme,
@@ -49,6 +49,7 @@ __all__ = (
     "License",
     "OAuth2SecurityScheme",
     "OpenIdSecurityScheme",
+    "operation_id",
     "QuartSchema",
     "RequestSchemaValidationError",
     "ResponseReturnValue",
