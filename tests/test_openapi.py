@@ -7,13 +7,13 @@ from quart import Quart
 from quart_schema import (
     deprecate,
     QuartSchema,
+    operation_id,
     security_scheme,
     validate_headers,
     validate_querystring,
     validate_request,
     validate_response,
 )
-
 
 @dataclass
 class QueryItem:
@@ -61,6 +61,7 @@ async def test_openapi() -> None:
     @app.post("/")
     @validate_request(Details)
     @validate_response(Result, 201, Headers)
+    @operation_id("make_item")
     @deprecate()
     async def create_item() -> Tuple[Result, int, Headers]:
         return Result(name="bob"), 201, Headers(x_name="jeff")
@@ -81,6 +82,7 @@ async def test_openapi() -> None:
                     "summary": "Summary",
                     "description": "Multi-line\ndescription.\n\nThis is a new paragraph\n\n    "
                     "And this is an indented codeblock.\n\nAnd another paragraph.",
+                    "operationId": "get_read_item",
                     "parameters": [
                         {
                             "in": "query",
@@ -127,6 +129,7 @@ async def test_openapi() -> None:
                 },
                 "post": {
                     "deprecated": True,
+                    "operationId": "post_make_item",
                     "parameters": [],
                     "requestBody": {
                         "content": {

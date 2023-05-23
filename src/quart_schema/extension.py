@@ -57,6 +57,7 @@ SecuritySchemeInput = Union[
 
 QUART_SCHEMA_HIDDEN_ATTRIBUTE = "_quart_schema_hidden"
 QUART_SCHEMA_TAG_ATTRIBUTE = "_quart_schema_tag"
+QUART_SCHEMA_OPERATION_ID_ATTRIBUTE = "_quart_schema_operation_id"
 QUART_SCHEMA_SECURITY_ATTRIBUTE = "_quart_schema_security_tag"
 QUART_SCHEMA_DEPRECATED = "_quart_schema_deprecated"
 REF_TEMPLATE = "#/components/schemas/{model}"
@@ -359,6 +360,25 @@ def convert_model_result(func: Callable) -> Callable:
     return decorator
 
 
+def operation_id(operationid: str) -> Callable:
+    """Override the operationId of the route.
+
+    This allows for overriding the operationId, which is normally calculated from the
+    function name. The HTTP method will still be prepended to the overridden name.
+
+    Arguments:
+        operationid: The operation ID to associate.
+
+    """
+
+    def decorator(func: Callable) -> Callable:
+        setattr(func, QUART_SCHEMA_OPERATION_ID_ATTRIBUTE, str(operationid))
+
+        return func
+
+    return decorator
+
+
 def tag(tags: Iterable[str]) -> Callable:
     """Add tag names to the route.
 
@@ -542,7 +562,15 @@ def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
     for method in rule.methods:
         if method == "HEAD" or (method == "OPTIONS" and rule.provide_automatic_options):  # type: ignore # noqa: E501
             continue
-        paths[path][method.lower()] = operation_object
+
+        per_method_operation_object = operation_object.copy()
+
+        if getattr(func, QUART_SCHEMA_OPERATION_ID_ATTRIBUTE, None) is not None:
+            per_method_operation_object["operationId"] = f"{method.lower()}_{getattr(func, QUART_SCHEMA_OPERATION_ID_ATTRIBUTE)}"
+        else:
+            per_method_operation_object["operationId"] = f"{method.lower()}_{func.__name__}"
+
+        paths[path][method.lower()] = per_method_operation_object
     return paths, components
 
 
