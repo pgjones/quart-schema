@@ -83,7 +83,12 @@ def validate_querystring(model_class: Model) -> Callable:
             else:
                 request_args = request.args
             try:
-                model = model_class(**request_args)
+                props = schema.get("properties", {})
+                model_values = {
+                    key: (values if props.get(key, {}).get("type", "") == "array" else values[0])
+                    for key, values in request_args.lists()
+                }
+                model = model_class(**model_values)
             except (TypeError, ValidationError) as error:
                 raise QuerystringValidationError(error)
             else:
