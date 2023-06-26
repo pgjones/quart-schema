@@ -66,6 +66,9 @@ typing_extensions = { version = "*", python = "<3.8" }
 
 [tool.poetry.dev-dependencies]
 tox = "*"
+anyio = "^3.7.0"
+pytest-asyncio = "^0.21.0"
+pytest-cov = "^4.1.0"
 
 [tool.poetry.extras]
 docs = ["pydata_sphinx_theme"]
