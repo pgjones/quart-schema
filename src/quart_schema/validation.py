@@ -7,7 +7,9 @@ from typing import Any, Callable, cast, Dict, Optional, Tuple, Type, TypeVar, Un
 
 from humps import decamelize
 from pydantic import BaseModel, ValidationError
-from pydantic.dataclasses import dataclass as pydantic_dataclass
+from pydantic.dataclasses import (
+    create_pydantic_model_from_dataclass,
+)
 from pydantic.schema import model_schema
 from quart import current_app, request, ResponseReturnValue as QuartResponseReturnValue
 from werkzeug.datastructures import Headers
@@ -312,7 +314,7 @@ def _convert_headers(headers: Union[dict, Headers], model_class: Type[T]) -> T:
 def _to_pydantic_model(model_class: Model) -> PydanticModel:
     pydantic_model_class: PydanticModel
     if is_dataclass(model_class):
-        pydantic_model_class = pydantic_dataclass(model_class)  # type: ignore
+        pydantic_model_class = create_pydantic_model_from_dataclass(model_class)
     else:
         pydantic_model_class = cast(PydanticModel, model_class)
     return pydantic_model_class
