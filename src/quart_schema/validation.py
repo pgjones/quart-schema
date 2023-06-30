@@ -13,7 +13,7 @@ from quart import current_app, request, ResponseReturnValue as QuartResponseRetu
 from werkzeug.datastructures import Headers
 from werkzeug.exceptions import BadRequest
 
-from .typing import Model, PydanticModel, ResponseReturnValue
+from .typing import has_files, Model, PydanticModel, ResponseReturnValue
 
 QUART_SCHEMA_HEADERS_ATTRIBUTE = "_quart_schema_headers_schema"
 QUART_SCHEMA_REQUEST_ATTRIBUTE = "_quart_schema_request_schema"
@@ -151,6 +151,12 @@ def validate_request(
     ):
         raise SchemaInvalidError("Form must not have nested objects")
 
+    schema_has_files, file_lists = has_files(schema)
+    if source == DataSource.JSON and schema_has_files:
+        raise SchemaInvalidError(
+            "JSON datasource does not support Files, use DataSource.FORM instead"
+        )
+
     def decorator(func: Callable) -> Callable:
         setattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, (model_class, source))
 
@@ -160,10 +166,25 @@ def validate_request(
                 data = await request.get_json()
             else:
                 data = await request.form
+                if schema_has_files:
+                    files = await request.files
+                    files_lists = dict()
+                    for key in files:
+                        schema_key = key
+                        if current_app.config["QUART_SCHEMA_CONVERT_CASING"]:
+                            schema_key = decamelize(key)
+                        if schema_key in file_lists:
+                            files_lists[schema_key] = files.getlist(key)
+                        else:
+                            files_lists[schema_key] = files[key]
+
             if current_app.config["QUART_SCHEMA_CONVERT_CASING"]:
                 data = decamelize(data)
             try:
-                model = model_class(**data)
+                if schema_has_files:
+                    model = model_class(**data, **files_lists)
+                else:
+                    model = model_class(**data)
             except (TypeError, ValidationError) as error:
                 raise RequestSchemaValidationError(error)
             else:

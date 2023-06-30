@@ -31,6 +31,7 @@ from .openapi import (
     Server,
     Tag,
 )
+from .typing import has_files
 from .validation import (
     DataSource,
     QUART_SCHEMA_HEADERS_ATTRIBUTE,
@@ -471,7 +472,11 @@ def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
         if request_data[1] == DataSource.JSON:
             encoding = "application/json"
         else:
-            encoding = "application/x-www-form-urlencoded"
+            schema_has_files, _ = has_files(schema)
+            if schema_has_files:
+                encoding = "multipart/form-data"
+            else:
+                encoding = "application/x-www-form-urlencoded"
 
         operation_object["requestBody"] = {
             "content": {

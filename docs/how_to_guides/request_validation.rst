@@ -69,3 +69,41 @@ with everything working as in the JSON example above.
    Form encoded data is a flat structure, therefore Quart-Schema will
    raise a ``SchemaInvalidError`` if the model proposed has nested
    structures.
+
+Files
+---------
+
+If your route receives files through a (multipart/form-data) encoded body, 
+use the ``File`` class to check the request.
+
+For a HTML form which accepts one or several files
+
+.. code-block:: HTML
+
+    <form action="/post" method="POST" enctype="multipart/form-data">
+        <input type="file" "name="images" multiple>
+        <input type="file" name="video">
+        <input type="text" name="text">
+        <input type="submit" value="Submit">
+    </form>
+
+use a ``File`` or ``list[File]`` type hint to validate the request
+
+.. code-block:: python
+
+    from dataclasses import dataclass
+
+    from quart_schema import DataSource, File, validate_request
+
+    @dataclass
+    class RichPost:
+        images: list[File]
+        video: File
+        text: str
+
+    @app.route("/rich_post", methods=["POST'])
+    @validate_request(RichPost, source=DataSource.FORM)
+    async def post(data: RichPost):
+        video = data.video.save(...)
+        image = data.images[0].save(...)
+        ...

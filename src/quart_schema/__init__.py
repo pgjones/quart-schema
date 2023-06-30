@@ -20,7 +20,7 @@ from .openapi import (
     ServerVariable,
     Tag,
 )
-from .typing import ResponseReturnValue
+from .typing import File, ResponseReturnValue
 from .validation import (
     DataSource,
     RequestSchemaValidationError,
@@ -43,6 +43,7 @@ __all__ = (
     "document_request",
     "document_response",
     "ExternalDocumentation",
+    "File",
     "hide",
     "HttpSecurityScheme",
     "Info",

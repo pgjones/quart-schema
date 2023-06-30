@@ -1,6 +1,18 @@
 from __future__ import annotations
 
-from typing import Any, AnyStr, Dict, Optional, Tuple, Type, TYPE_CHECKING, TypeVar, Union
+from typing import (
+    Any,
+    AnyStr,
+    Callable,
+    Dict,
+    Iterable,
+    Optional,
+    Tuple,
+    Type,
+    TYPE_CHECKING,
+    TypeVar,
+    Union,
+)
 
 from pydantic import BaseModel
 from quart import Quart
@@ -65,6 +77,46 @@ class TestClientProtocol(Protocol):
         scope_base: Optional[dict],
     ) -> Response:
         ...
+
+
+class File(FileStorage):
+    @classmethod
+    def __get_validators__(self: Type["File"]) -> Iterable[Callable[..., Any]]:
+        yield self.validate
+
+    @classmethod
+    def validate(self: Type["File"], v: Any) -> Any:
+        if not isinstance(v, FileStorage):
+            raise ValueError(f"Expected FileStorage, received: {type(v)}")
+        return v
+
+    @classmethod
+    def __modify_schema__(self, field_schema: dict[str, Any]) -> None:
+        field_schema.update({"type": "string", "format": "binary"})
+
+
+def has_files(schema: Dict[str, Any]) -> tuple[bool, list[str]]:
+    """Checks if the JSON schema has any File or list[File] fields
+
+    Returns true/false and the names of the list[File] fields
+
+    Arguments:
+        schema: JSON schema dict, as returned by model_schema()
+    """
+    any_files = False
+    file_lists = []
+    for field, props in schema["properties"].items():
+        is_list = False
+        if props.get("type", "") == "array":
+            props = props.get("items", {})
+            is_list = True
+
+        if props.get("type", "") == "string" and props.get("format", "") == "binary":
+            any_files = True
+            if is_list:
+                file_lists.append(field)
+
+    return (any_files, file_lists)
 
 
 BM = TypeVar("BM", bound=BaseModel)
