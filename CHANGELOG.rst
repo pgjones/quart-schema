@@ -1,3 +1,8 @@
+0.16.1 2023-07-10
+-----------------
+
+* Force Pydantic V1 to be used, as V2 is not yet supported.
+
 0.16.0 2023-05-08
 -----------------
 
