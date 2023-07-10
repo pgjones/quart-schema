@@ -1,6 +1,6 @@
 from typing import Any, Dict, Optional
 
-from pydantic import AnyHttpUrl, BaseModel, conlist, Extra, Field, root_validator
+from pydantic import ConfigDict, AnyHttpUrl, BaseModel, conlist, Field, root_validator
 
 try:
     from typing import Literal
@@ -22,9 +22,7 @@ class Contact(BaseModel):
     email: Optional[str] = None
     name: Optional[str] = None
     url: Optional[AnyHttpUrl] = None
-
-    class Config:
-        extra = Extra.allow
+    model_config = ConfigDict(extra="allow")
 
 
 class License(BaseModel):
@@ -41,9 +39,7 @@ class License(BaseModel):
     name: str
     identifier: Optional[str] = None
     url: Optional[AnyHttpUrl] = None
-
-    class Config:
-        extra = Extra.allow
+    model_config = ConfigDict(extra="allow")
 
     @root_validator
     def check_only_identifier_or_url(cls, values: Dict[str, Any]) -> Dict[str, Any]:  # noqa: N805
@@ -73,9 +69,7 @@ class Info(BaseModel):
     license: Optional[License] = None
     summary: Optional[str] = None
     terms_of_service: Optional[AnyHttpUrl] = None
-
-    class Config:
-        extra = Extra.allow
+    model_config = ConfigDict(extra="allow")
 
 
 class ExternalDocumentation(BaseModel):
@@ -90,9 +84,7 @@ class ExternalDocumentation(BaseModel):
 
     url: AnyHttpUrl
     description: Optional[str] = None
-
-    class Config:
-        extra = Extra.allow
+    model_config = ConfigDict(extra="allow")
 
 
 class Tag(BaseModel):
@@ -108,9 +100,7 @@ class Tag(BaseModel):
     name: str
     description: Optional[str] = None
     external_docs: Optional[ExternalDocumentation] = None
-
-    class Config:
-        extra = Extra.allow
+    model_config = ConfigDict(extra="allow")
 
 
 class ServerVariable(BaseModel):
@@ -130,9 +120,7 @@ class ServerVariable(BaseModel):
     enum: conlist(str, min_items=1)  # type: ignore
     default: str
     description: Optional[str] = None
-
-    class Config:
-        extra = Extra.allow
+    model_config = ConfigDict(extra="allow")
 
 
 class Server(BaseModel):
@@ -150,26 +138,20 @@ class Server(BaseModel):
     url: AnyHttpUrl
     variables: Optional[Dict[str, ServerVariable]] = None
     description: Optional[str] = None
-
-    class Config:
-        extra = Extra.allow
+    model_config = ConfigDict(extra="allow")
 
 
 class SecuritySchemeBase(BaseModel):
     type: Literal["apiKey", "http", "mutualTLS", "oauth2", "openIdConnect"]
     description: Optional[str] = None
-
-    class Config:
-        extra = Extra.allow
+    model_config = ConfigDict(extra="allow")
 
 
 class APIKeySecurityScheme(SecuritySchemeBase):
     type: Literal["apiKey"] = "apiKey"
     in_: Literal["query", "header", "cookie"] = Field(alias="in")
     name: str
-
-    class Config:
-        allow_population_by_field_name = True
+    model_config = ConfigDict(populate_by_name=True)
 
 
 class HttpSecurityScheme(SecuritySchemeBase):
