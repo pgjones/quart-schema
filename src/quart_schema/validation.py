@@ -216,7 +216,7 @@ def validate_response(
                 try:
                     if isinstance(value, dict):
                         model_value = model_class(**value)
-                    elif type(value) == model_class:
+                    elif type(value) == model_class:  # noqa: E721
                         model_value = value
                     elif is_dataclass(value):
                         model_value = model_class(**asdict(value))
@@ -229,7 +229,7 @@ def validate_response(
                     try:
                         if isinstance(headers, dict):
                             headers_model_value = _convert_headers(headers, headers_model_class)
-                        elif type(value) == headers_model_class:
+                        elif type(value) == headers_model_class:  # noqa: E721
                             headers_model_value = headers
                         elif is_dataclass(headers):
                             headers_model_value = headers_model_class(**asdict(headers))

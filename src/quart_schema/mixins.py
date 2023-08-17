@@ -47,7 +47,7 @@ class WebsocketMixin:
                 model_value = model_class(**value)
             except ValidationError as error:
                 raise SchemaValidationError(error)
-        elif type(value) == model_class:
+        elif type(value) == model_class:  # noqa: E721
             model_value = value
         else:
             raise SchemaValidationError()
