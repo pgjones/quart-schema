@@ -8,7 +8,6 @@ from typing import Any, Callable, cast, Dict, Optional, Tuple, Type, TypeVar, Un
 from humps import decamelize
 from pydantic import BaseModel, ValidationError
 from pydantic.dataclasses import dataclass as pydantic_dataclass
-from pydantic.schema import model_schema
 from quart import current_app, request, ResponseReturnValue as QuartResponseReturnValue
 from werkzeug.datastructures import Headers
 from werkzeug.exceptions import BadRequest
@@ -66,10 +65,6 @@ def validate_querystring(model_class: Model) -> Callable:
             BaseModel. All the fields must be optional.
     """
     model_class = _to_pydantic_model(model_class)
-    schema = model_schema(model_class)
-
-    if len(schema.get("required", [])) != 0:
-        raise SchemaInvalidError("Fields must be optional")
 
     def decorator(func: Callable) -> Callable:
         setattr(func, QUART_SCHEMA_QUERYSTRING_ATTRIBUTE, model_class)
@@ -144,12 +139,6 @@ def validate_request(
             encoded).
     """
     model_class = _to_pydantic_model(model_class)
-    schema = model_schema(model_class)
-
-    if source == DataSource.FORM and any(
-        schema["properties"][field]["type"] == "object" for field in schema["properties"]
-    ):
-        raise SchemaInvalidError("Form must not have nested objects")
 
     def decorator(func: Callable) -> Callable:
         setattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, (model_class, source))
