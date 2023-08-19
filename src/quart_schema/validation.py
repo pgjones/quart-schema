@@ -241,7 +241,7 @@ def validate_response(
                     if is_dataclass(headers_model_value):
                         headers_value = asdict(headers_model_value)
                     else:
-                        headers_value = cast(BaseModel, headers_model_value).dict()
+                        headers_value = cast(BaseModel, headers_model_value).model_dump()
                 else:
                     headers_value = headers
 
@@ -288,9 +288,13 @@ T = TypeVar("T")
 
 def _convert_headers(headers: Union[dict, Headers], model_class: Type[T]) -> T:
     result = {}
+    if is_dataclass(model_class):
+        fields = model_class.__pydantic_fields__.keys()  # type: ignore
+    else:
+        fields = model_class.model_fields.keys()  # type: ignore
     for raw_key in headers.keys():
         key = raw_key.replace("-", "_").lower()
-        if key in model_class.__annotations__:
+        if key in fields:
             if isinstance(headers, Headers):
                 result[key] = ",".join(headers.get_all(raw_key))
             else:
@@ -301,7 +305,7 @@ def _convert_headers(headers: Union[dict, Headers], model_class: Type[T]) -> T:
 def _to_pydantic_model(model_class: Model) -> PydanticModel:
     pydantic_model_class: PydanticModel
     if is_dataclass(model_class):
-        pydantic_model_class = pydantic_dataclass(model_class)  # type: ignore
+        pydantic_model_class = pydantic_dataclass(model_class)
     else:
         pydantic_model_class = cast(PydanticModel, model_class)
     return pydantic_model_class

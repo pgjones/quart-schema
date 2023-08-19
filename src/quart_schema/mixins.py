@@ -28,7 +28,7 @@ class WebsocketMixin:
     async def receive_as(self: WebsocketProtocol, model_class: Type[DC]) -> DC:
         ...
 
-    async def receive_as(
+    async def receive_as(  # type: ignore[misc]
         self: WebsocketProtocol, model_class: Union[Type[BM], Type[DC]]
     ) -> Union[BM, DC]:
         data = await self.receive_json()
@@ -55,7 +55,7 @@ class WebsocketMixin:
             data = asdict(model_value)  # type: ignore[arg-type]
         else:
             model_value = cast(BM, model_value)
-            data = model_value.dict()
+            data = model_value.model_dump()
         if current_app.config["CONVERT_CASING"]:
             data = camelize(data)
         await self.send_json(data)
@@ -85,7 +85,7 @@ class TestClientMixin:
                 json = asdict(json)
                 was_model = True
             elif isinstance(json, BaseModel):
-                json = json.dict()
+                json = json.model_dump()
                 was_model = True
 
             if was_model and self.app.config["QUART_SCHEMA_CONVERT_CASING"]:
@@ -97,7 +97,7 @@ class TestClientMixin:
                 form = asdict(form)  # type: ignore[arg-type]
                 was_model = True
             elif isinstance(form, BaseModel):
-                form = form.dict()
+                form = form.model_dump()
                 was_model = True
 
             if was_model and self.app.config["QUART_SCHEMA_CONVERT_CASING"]:
@@ -109,7 +109,7 @@ class TestClientMixin:
                 query_string = asdict(query_string)  # type: ignore[arg-type]
                 was_model = True
             elif isinstance(query_string, BaseModel):
-                query_string = query_string.dict()
+                query_string = query_string.model_dump()
                 was_model = True
 
             if was_model and self.app.config["QUART_SCHEMA_CONVERT_CASING"]:

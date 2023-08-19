@@ -39,7 +39,7 @@ class QueryItem:
 
 class Details(BaseModel):
     name: str
-    age: Optional[int]
+    age: Optional[int] = None
 
 
 class Item(BaseModel):
@@ -222,11 +222,17 @@ async def test_querystring_validation(path: str, status: int) -> None:
 
 
 @dataclass
-class Headers:
+class DCHeaders:
     x_required: str
     x_optional: Optional[int] = None
 
 
+class Headers(BaseModel):
+    x_required: str
+    x_optional: Optional[int] = None
+
+
+@pytest.mark.parametrize("model", [DCHeaders, Headers])
 @pytest.mark.parametrize(
     "request_headers, status",
     [
@@ -237,13 +243,13 @@ class Headers:
         ({"X-Optional": "2"}, 400),
     ],
 )
-async def test_request_header_validation(request_headers: dict, status: int) -> None:
+async def test_request_header_validation(model: Any, request_headers: dict, status: int) -> None:
     app = Quart(__name__)
     QuartSchema(app)
 
     @app.route("/")
-    @validate_headers(Headers)
-    async def headers_item(headers: Headers) -> ResponseReturnValue:
+    @validate_headers(model)
+    async def headers_item(headers: Any) -> ResponseReturnValue:
         return ""
 
     test_client = app.test_client()

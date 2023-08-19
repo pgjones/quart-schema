@@ -86,7 +86,10 @@ async def test_openapi() -> None:
                             "in": "query",
                             "name": "count_le",
                             "description": "count_le description",
-                            "schema": {"title": "Count Le", "type": "integer"},
+                            "schema": {
+                                "title": "Count Le",
+                                "anyOf": [{"type": "integer"}, {"type": "null"}],
+                            },
                         },
                         {
                             "in": "header",
@@ -101,7 +104,6 @@ async def test_openapi() -> None:
                             "content": {
                                 "application/json": {
                                     "schema": {
-                                        "description": "Result",
                                         "properties": {"name": {"title": "Name", "type": "string"}},
                                         "required": ["name"],
                                         "title": "Result",
@@ -131,7 +133,11 @@ async def test_openapi() -> None:
                             "application/json": {
                                 "schema": {
                                     "properties": {
-                                        "age": {"title": "Age", "type": "integer"},
+                                        "age": {
+                                            "title": "Age",
+                                            "anyOf": [{"type": "integer"}, {"type": "null"}],
+                                            "default": None,
+                                        },
                                         "name": {"title": "Name", "type": "string"},
                                     },
                                     "required": ["name"],
@@ -146,7 +152,6 @@ async def test_openapi() -> None:
                             "content": {
                                 "application/json": {
                                     "schema": {
-                                        "description": "Result",
                                         "properties": {"name": {"title": "Name", "type": "string"}},
                                         "required": ["name"],
                                         "title": "Result",
@@ -164,7 +169,7 @@ async def test_openapi() -> None:
                                     }
                                 },
                             },
-                            "description": "Result",
+                            "description": "",
                         }
                     },
                 },
