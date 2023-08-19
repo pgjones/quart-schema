@@ -71,10 +71,15 @@ def validate_querystring(model_class: Model) -> Callable:
 
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
+            request_args = {
+                key: request.args.getlist(key)
+                if len(request.args.getlist(key)) > 1
+                else request.args[key]
+                for key in request.args
+            }
             if current_app.config["QUART_SCHEMA_CONVERT_CASING"]:
-                request_args = decamelize(request.args)
-            else:
-                request_args = request.args
+                request_args = decamelize(request_args)
+
             try:
                 model = model_class(**request_args)
             except (TypeError, ValidationError) as error:

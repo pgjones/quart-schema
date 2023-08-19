@@ -50,3 +50,37 @@ an error handler, for example for a JSON error response,
     @app.errorhandler(RequestSchemaValidationError)
     async def handle_request_validation_error():
         return {"error": "VALIDATION"}, 400
+
+List values
+-----------
+
+You may want to allow a repeated, multiple, or list query string
+parameter e.g. ``/?key=foo&key=bar``. Which can be done using
+``list[str]`` for example.
+
+Care must be taken for the case where only a single parameter is given
+(as this is not as list). In this situation you can either expand the
+type to ``list[str] | str`` for example, or to convert the single value
+to a list using a ``BeforeValidator``,
+
+.. code-block:: python
+
+    from typing import Annotated
+
+    from pydantic import BaseModel
+    from pydantic.functional_validators import BeforeValidator
+    from quart_schema import validate_querystring
+
+    def _to_list(value: str | list[str]) -> list[str]:
+    if isinstance(value, list):
+        return value
+    else:
+        return [value]
+
+    class Query(BaseModel):
+        keys: Annotated[Optional[List[str]], BeforeValidator(_to_list)] = Non
+
+    @app.route("/")
+    @validate_querystring(Query)
+    async def index(query_args: Query):
+        ...

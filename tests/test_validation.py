@@ -1,9 +1,10 @@
 from dataclasses import dataclass
-from typing import Any, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, TypeVar, Union
 
 import pytest
 from pydantic import BaseModel
 from pydantic.dataclasses import dataclass as pydantic_dataclass
+from pydantic.functional_validators import BeforeValidator
 from quart import Quart, websocket
 from quart.views import View
 
@@ -18,6 +19,11 @@ from quart_schema import (
     validate_response,
 )
 
+try:
+    from typing import Annotated
+except ImportError:
+    from typing_extensions import Annotated  # type: ignore
+
 
 @dataclass
 class DCDetails:
@@ -31,10 +37,20 @@ class DCItem:
     details: DCDetails
 
 
-@dataclass
-class QueryItem:
+T = TypeVar("T")
+
+
+def _to_list(value: Union[T, List[T]]) -> List[T]:
+    if isinstance(value, list):
+        return value
+    else:
+        return [value]
+
+
+class QueryItem(BaseModel):
     count_le: Optional[int] = None
     count_gt: Optional[int] = None
+    keys: Annotated[Optional[List[int]], BeforeValidator(_to_list)] = None
 
 
 class Details(BaseModel):
@@ -205,6 +221,8 @@ async def test_websocket_validation() -> None:
         ("/?count_le=2&count_gt=0", 200),
         ("/?count_le=a", 400),
         ("/?count=a", 200),
+        ("/?keys=1&keys=2", 200),
+        ("/?keys=1", 200),
     ],
 )
 async def test_querystring_validation(path: str, status: int) -> None:

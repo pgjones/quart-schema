@@ -62,7 +62,7 @@ pyhumps = ">=1.6.1"
 python = ">=3.7"
 pydantic=">=2"
 quart = ">=0.18.1"
-typing_extensions = { version = "*", python = "<3.8" }
+typing_extensions = { version = "*", python = "<3.9" }
 
 [tool.poetry.dev-dependencies]
 tox = "*"
