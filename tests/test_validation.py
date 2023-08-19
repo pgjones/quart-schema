@@ -5,7 +5,7 @@ import pytest
 from pydantic import BaseModel
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 from pydantic.functional_validators import BeforeValidator
-from quart import Quart, websocket
+from quart import Quart, redirect, websocket
 from quart.views import View
 
 from quart_schema import (
@@ -167,6 +167,20 @@ async def test_response_validation(model: Any, return_value: Any, status: int) -
     test_client = app.test_client()
     response = await test_client.get("/")
     assert response.status_code == status
+
+
+async def test_redirect_validation() -> None:
+    app = Quart(__name__)
+    QuartSchema(app)
+
+    @app.route("/")
+    @validate_response(Item)
+    async def item() -> ResponseReturnValue:
+        return redirect("/b")
+
+    test_client = app.test_client()
+    response = await test_client.get("/")
+    assert response.status_code == 302
 
 
 @pytest.mark.parametrize(

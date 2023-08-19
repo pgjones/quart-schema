@@ -8,9 +8,10 @@ from typing import Any, Callable, cast, Dict, Optional, Tuple, Type, TypeVar, Un
 from humps import decamelize
 from pydantic import BaseModel, ValidationError
 from pydantic.dataclasses import dataclass as pydantic_dataclass
-from quart import current_app, request, ResponseReturnValue as QuartResponseReturnValue
+from quart import current_app, request, Response, ResponseReturnValue as QuartResponseReturnValue
 from werkzeug.datastructures import Headers
 from werkzeug.exceptions import BadRequest
+from werkzeug.wrappers import Response as WerkzeugResponse
 
 from .typing import Model, PydanticModel, ResponseReturnValue
 
@@ -216,6 +217,12 @@ def validate_response(
             status = 200
             if isinstance(status_or_headers, int):
                 status = int(status_or_headers)
+
+            if isinstance(value, (Response, WerkzeugResponse)):
+                if value.status_code == status_code:
+                    raise ResponseHeadersValidationError()
+                else:
+                    return value
 
             if status == status_code:
                 try:
