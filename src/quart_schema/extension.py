@@ -555,7 +555,7 @@ def _build_full_schema(extension: QuartSchema, paths: dict, component_schemas: d
         }
 
     openapi_schema: dict = {
-        "openapi": "3.0.3",
+        "openapi": "3.1.0",
         "info": camelize(extension.info.model_dump(exclude_none=True)),
         "components": components,
         "paths": paths,
