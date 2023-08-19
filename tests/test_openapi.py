@@ -74,7 +74,7 @@ async def test_openapi() -> None:
     assert (await response.get_json()) == {
         "components": {"schemas": {}},
         "info": {"title": "test_openapi", "version": "0.1.0"},
-        "openapi": "3.0.3",
+        "openapi": "3.1.0",
         "paths": {
             "/": {
                 "get": {
