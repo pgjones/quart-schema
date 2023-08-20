@@ -157,7 +157,12 @@ def validate_request(
             else:
                 data = (await request.form).to_dict()
                 if source == DataSource.FORM_MULTIPART:
-                    data.update(await request.files)
+                    files = await request.files
+                    for key in files:
+                        if len(files.getlist(key)) > 1:
+                            data[key] = files.getlist(key)
+                        else:
+                            data[key] = files[key]
             if current_app.config["QUART_SCHEMA_CONVERT_CASING"]:
                 data = decamelize(data)
             try:
