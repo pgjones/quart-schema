@@ -50,6 +50,7 @@ class RequestHeadersValidationError(RequestSchemaValidationError):
 
 class DataSource(Enum):
     FORM = auto()
+    FORM_MULTIPART = auto()
     JSON = auto()
 
 
@@ -154,7 +155,9 @@ def validate_request(
             if source == DataSource.JSON:
                 data = await request.get_json()
             else:
-                data = await request.form
+                data = (await request.form).to_dict()
+                if source == DataSource.FORM_MULTIPART:
+                    data.update(await request.files)
             if current_app.config["QUART_SCHEMA_CONVERT_CASING"]:
                 data = decamelize(data)
             try:

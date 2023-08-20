@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from io import BytesIO
 from typing import Any, List, Optional, Tuple, TypeVar, Union
 
 import pytest
@@ -6,6 +7,7 @@ from pydantic import BaseModel
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 from pydantic.functional_validators import BeforeValidator
 from quart import Quart, redirect, websocket
+from quart.datastructures import FileStorage
 from quart.views import View
 
 from quart_schema import (
@@ -18,6 +20,7 @@ from quart_schema import (
     validate_request,
     validate_response,
 )
+from quart_schema.pydantic import File
 
 try:
     from typing import Annotated
@@ -35,6 +38,10 @@ class DCDetails:
 class DCItem:
     count: int
     details: DCDetails
+
+
+class FileInfo(BaseModel):
+    upload: File
 
 
 T = TypeVar("T")
@@ -136,6 +143,23 @@ async def test_request_form_validation(data: dict, status: int) -> None:
     test_client = app.test_client()
     response = await test_client.post("/", form=data)
     assert response.status_code == status
+
+
+async def test_request_file_validation() -> None:
+    app = Quart(__name__)
+    QuartSchema(app)
+
+    @app.route("/", methods=["POST"])
+    @validate_request(FileInfo, source=DataSource.FORM_MULTIPART)
+    async def item(data: FileInfo) -> ResponseReturnValue:
+        return data.upload.read()
+
+    test_client = app.test_client()
+    response = await test_client.post(
+        "/", files={"upload": FileStorage(stream=BytesIO(b"ABC"), filename="bob")}
+    )
+    assert response.status_code == 200
+    assert (await response.get_data()) == b"ABC"  # type: ignore
 
 
 @pytest.mark.parametrize(

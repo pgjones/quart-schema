@@ -497,6 +497,8 @@ def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
 
         if request_data[1] == DataSource.JSON:
             encoding = "application/json"
+        elif request_data[1] == DataSource.FORM_MULTIPART:
+            encoding = "multipart/form-data"
         else:
             encoding = "application/x-www-form-urlencoded"
 

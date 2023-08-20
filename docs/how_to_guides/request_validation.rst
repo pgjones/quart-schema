@@ -69,3 +69,27 @@ with everything working as in the JSON example above.
    Form encoded data is a flat structure, therefore Quart-Schema will
    raise a ``SchemaInvalidError`` if the model proposed has nested
    structures.
+
+File data
+---------
+
+By default the :func:`~quart_schema.validation.validate_request`
+decorator assumes the request body is JSON encoded. If the request
+body has files it must be multipart (multipart/form-data) encoded and
+the ``source`` argument must be changed to validate the form data,
+
+.. code-block:: python
+
+    from dataclasses import dataclass
+
+    from pydantic import BaseModel
+    from quart_schema import DataSource, validate_request
+    from quart_schema.pydantic import File
+
+    class Upload(BaseModel):
+        file: File
+
+    @app.route("/", methods=["POST'])
+    @validate_request(Upload, source=DataSource.FORM_MULTIPART)
+    async def index(data: Upload):
+        file_content = data.file.read()
