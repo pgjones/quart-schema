@@ -5,7 +5,7 @@ from .documentation import (
     document_request,
     document_response,
 )
-from .extension import deprecate, hide, QuartSchema, operation_id, security_scheme, tag
+from .extension import deprecate, hide, operation_id, QuartSchema, security_scheme, tag
 from .mixins import SchemaValidationError
 from .openapi import (
     APIKeySecurityScheme,

@@ -6,14 +6,15 @@ from quart import Quart
 
 from quart_schema import (
     deprecate,
-    QuartSchema,
     operation_id,
+    QuartSchema,
     security_scheme,
     validate_headers,
     validate_querystring,
     validate_request,
     validate_response,
 )
+
 
 @dataclass
 class QueryItem:
