@@ -36,7 +36,9 @@ class Result:
 
 @dataclass
 class Headers:
-    x_name: str = Field(..., description="x-name description", deprecated=True)
+    x_name: str = Field(
+        ..., description="x-name description", json_schema_extra={"deprecated": True}
+    )
 
 
 async def test_openapi() -> None:
