@@ -1,3 +1,15 @@
+0.17.0 2023-08-22
+-----------------
+
+* Support Pydantic 2 (dropping support for Pydantic 1).
+* Remove constraints on Querystring and Form models (can have
+  non-optional and nested structure respectively).
+* Add support for querystring list parameters.
+* Add support for operationID.
+* Add provision support for File types.
+* Bugfix check if the headers value not body type matches.
+* Bugfix cope with returned responses.
+
 0.16.0 2023-05-08
 -----------------
 
