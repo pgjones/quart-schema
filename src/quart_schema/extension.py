@@ -248,11 +248,11 @@ class QuartSchema:
 
         app.config.setdefault(
             "QUART_SCHEMA_SWAGGER_JS_URL",
-            "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.12.0/swagger-ui-bundle.js",
+            "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.4.2/swagger-ui-bundle.js",
         )
         app.config.setdefault(
             "QUART_SCHEMA_SWAGGER_CSS_URL",
-            "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/4.12.0/swagger-ui.min.css",
+            "https://cdnjs.cloudflare.com/ajax/libs/swagger-ui/5.4.2/swagger-ui.min.css",
         )
         app.config.setdefault(
             "QUART_SCHEMA_REDOC_JS_URL",
