@@ -32,7 +32,7 @@ class WebsocketMixin:
         self: WebsocketProtocol, model_class: Union[Type[BM], Type[DC]]
     ) -> Union[BM, DC]:
         data = await self.receive_json()
-        if current_app.config["CONVERT_CASING"]:
+        if current_app.config["QUART_SCHEMA_CONVERT_CASING"]:
             data = decamelize(data)
         try:
             return model_class(**data)
@@ -56,7 +56,7 @@ class WebsocketMixin:
         else:
             model_value = cast(BM, model_value)
             data = model_value.model_dump()
-        if current_app.config["CONVERT_CASING"]:
+        if current_app.config["QUART_SCHEMA_CONVERT_CASING"]:
             data = camelize(data)
         await self.send_json(data)
 
