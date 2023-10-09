@@ -11,8 +11,8 @@ from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Tuple, U
 import click
 from humps import camelize
 from pydantic import BaseModel
-from pydantic.json import pydantic_encoder
 from pydantic.json_schema import GenerateJsonSchema
+from pydantic_core import to_jsonable_python
 from quart import current_app, Quart, render_template_string, Response, ResponseReturnValue
 from quart.cli import pass_script_info, ScriptInfo
 from quart.json.provider import DefaultJSONProvider
@@ -114,7 +114,7 @@ class JSONProvider(DefaultJSONProvider):
         try:
             return super().default(object_)
         except TypeError:
-            return pydantic_encoder(object_)
+            return to_jsonable_python(object_)
 
 
 def hide(func: Callable) -> Callable:
