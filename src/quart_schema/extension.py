@@ -16,7 +16,7 @@ from pydantic.json_schema import GenerateJsonSchema
 from quart import current_app, Quart, render_template_string, Response, ResponseReturnValue
 from quart.cli import pass_script_info, ScriptInfo
 from quart.json.provider import DefaultJSONProvider
-from werkzeug.routing.converters import NumberConverter
+from werkzeug.routing.converters import NumberConverter, AnyConverter
 from werkzeug.routing.rules import Rule
 
 from .mixins import TestClientMixin, WebsocketMixin
@@ -549,12 +549,17 @@ def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
         if isinstance(converter, NumberConverter):
             type_ = "number"
 
+        schema = {"type": type_}
+
+        if isinstance(converter, AnyConverter):
+            schema["enum"] = list(converter.items)
+
         operation_object["parameters"].append(
             {
                 "name": name,
                 "in": "path",
                 "required": True,
-                "schema": {"type": type_},
+                "schema": schema,
             }
         )
 
