@@ -1,9 +1,30 @@
 from typing import Any, Callable
-
+from quart import request, jsonify
+from functools import wraps
 from pydantic import GetJsonSchemaHandler
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import core_schema
 from quart.datastructures import FileStorage
+
+
+
+
+
+# Create a decorator function for Pydantic Base model validation
+#Able to take in base model and all that's needed is the class
+#This is all without any changes to normal pydantice model
+def validate_pydantic_model(model, error_msg="", error_code=400):
+    def decorator(func):
+        @wraps(func)
+        async def wrapper(*args, **kwargs):
+            try:
+                # Parse and validate the request JSON using the provided Pydantic model
+                data = model(** await request.get_json())
+                return func(data, *args, **kwargs)
+            except Exception as e:
+                return jsonify({'error': e if error_msg == "" else error_msg}), error_code
+        return wrapper
+    return decorator
 
 try:
     from typing import Annotated
