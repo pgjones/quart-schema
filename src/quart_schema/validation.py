@@ -225,12 +225,14 @@ def validate_response(
             status = 200
             if isinstance(status_or_headers, int):
                 status = int(status_or_headers)
+            elif isinstance(value, (Response, WerkzeugResponse)):
+                status = value.status_code
 
             if isinstance(value, (Response, WerkzeugResponse)):
-                if value.status_code == status_code:
+                if status == status_code:
                     raise ResponseHeadersValidationError()
                 else:
-                    return value
+                    return result
 
             if status == status_code:
                 try:
