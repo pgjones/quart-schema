@@ -3,7 +3,7 @@ from io import BytesIO
 from typing import Any, List, Optional, Tuple, TypeVar, Union
 
 import pytest
-from pydantic import BaseModel
+from pydantic import BaseModel, RootModel
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 from pydantic.functional_validators import BeforeValidator
 from quart import Quart, redirect, websocket
@@ -70,6 +70,10 @@ class Item(BaseModel):
     details: Details
 
 
+class ItemCollection(RootModel):
+    root: list[Item]
+
+
 @pydantic_dataclass
 class PyDCDetails:
     name: str
@@ -86,6 +90,8 @@ VALID_DICT = {"count": 2, "details": {"name": "bob"}}
 INVALID_DICT = {"count": 2, "name": "bob"}
 VALID = Item(count=2, details=Details(name="bob"))
 INVALID = Details(name="bob")
+VALID_COLLECTION = [Item(count=2, details=Details(name="bob")), Item(count=3, details=Details(name="jane"))]
+INVALID_COLLECTION = ["list", "of", "strings", "not", "items"]
 VALID_DC = DCItem(count=2, details=DCDetails(name="bob"))
 INVALID_DC = DCDetails(name="bob")
 VALID_PyDC = PyDCItem(count=2, details=PyDCDetails(name="bob"))
@@ -169,6 +175,12 @@ async def test_request_file_validation() -> None:
         (Item, INVALID_DICT, 500),
         (Item, VALID, 200),
         (Item, INVALID, 500),
+        (ItemCollection, VALID_COLLECTION, 200),
+        (ItemCollection, INVALID_COLLECTION, 500),
+        (RootModel[list[Item]], VALID_COLLECTION, 200),
+        (RootModel[list[Item]], INVALID_COLLECTION, 500),
+        (list[Item], VALID_COLLECTION, 200),
+        (list[Item], INVALID_COLLECTION, 500),
         (DCItem, VALID_DICT, 200),
         (DCItem, INVALID_DICT, 500),
         (DCItem, VALID_DC, 200),
