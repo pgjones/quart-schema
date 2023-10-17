@@ -6,7 +6,7 @@ from functools import wraps
 from typing import Any, Callable, cast, Dict, Optional, Tuple, Type, TypeVar, Union
 
 from humps import decamelize
-from pydantic import BaseModel, ValidationError
+from pydantic import BaseModel, RootModel, TypeAdapter, ValidationError
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 from quart import current_app, request, Response, ResponseReturnValue as QuartResponseReturnValue
 from werkzeug.datastructures import Headers
@@ -201,6 +201,8 @@ def validate_response(
             headers, either a dataclass, pydantic dataclass or a class
             that inherits from pydantic's BaseModel. Is optional.
     """
+    model_validator = _to_pydantic_model_validator(model_class)
+
     model_class = _to_pydantic_model(model_class)
     headers_model_class = _to_pydantic_model(headers_model_class)
 
@@ -234,16 +236,9 @@ def validate_response(
 
             if status == status_code:
                 try:
-                    if isinstance(value, dict):
-                        model_value = model_class(**value)
-                    elif type(value) == model_class:  # noqa: E721
-                        model_value = value
-                    elif is_dataclass(value):
-                        model_value = model_class(**asdict(value))
-                    else:
-                        raise ResponseSchemaValidationError()
+                    model_value = model_validator(value)
                 except ValidationError as error:
-                    raise ResponseSchemaValidationError(error)
+                    raise ResponseSchemaValidationError(error) from error
 
                 if headers_model_class is not None:
                     try:
@@ -321,6 +316,18 @@ def _convert_headers(headers: Union[dict, Headers], model_class: Type[T]) -> T:
                 result[key] = headers[raw_key]
     return model_class(**result)
 
+def _to_pydantic_model_validator(model_class: Model) -> Callable[[Any], Model]:
+    if isinstance(model_class, (BaseModel, RootModel)):
+        def validate_pydantic_model(data: Any):
+            return model_class.model_validate(data)
+        return validate_pydantic_model
+
+    # Attempt to build a TypeAdapter with remaining types
+    adapter = TypeAdapter(model_class)
+    def validate_other(data: Any):
+        return adapter.validate_python(data)
+
+    return validate_other
 
 def _to_pydantic_model(model_class: Model) -> PydanticModel:
     pydantic_model_class: PydanticModel
