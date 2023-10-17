@@ -145,6 +145,7 @@ def validate_request(
         source: The source of the data to validate (json or form
             encoded).
     """
+    model_validator = _to_pydantic_model_validator(model_class)
     model_class = _to_pydantic_model(model_class)
 
     def decorator(func: Callable) -> Callable:
@@ -166,9 +167,9 @@ def validate_request(
             if current_app.config["QUART_SCHEMA_CONVERT_CASING"]:
                 data = decamelize(data)
             try:
-                model = model_class(**data)
+                model = model_validator(data)
             except (TypeError, ValidationError) as error:
-                raise RequestSchemaValidationError(error)
+                raise RequestSchemaValidationError(error) from error
             else:
                 return await current_app.ensure_async(func)(*args, data=model, **kwargs)
 
