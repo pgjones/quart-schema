@@ -88,6 +88,14 @@ class PyDCItem:
 
 VALID_DICT = {"count": 2, "details": {"name": "bob"}}
 INVALID_DICT = {"count": 2, "name": "bob"}
+VALID_COLLECTION_DICT = [
+    {"count": 2, "details": {"name": "bob"}},
+    {"count": 1, "details": {"name": "jane"}}
+]
+INVALID_COLLECTION_DICT = [
+    {"count": 2, "name": "bob"},
+    {"count": 1, "name": "jane"}
+]
 VALID = Item(count=2, details=Details(name="bob"))
 INVALID = Details(name="bob")
 VALID_COLLECTION = [Item(count=2, details=Details(name="bob")), Item(count=3, details=Details(name="jane"))]
@@ -98,35 +106,32 @@ VALID_PyDC = PyDCItem(count=2, details=PyDCDetails(name="bob"))
 INVALID_PyDC = PyDCDetails(name="bob")
 
 
-@pytest.mark.parametrize("path", ["/", "/dc", "/pydc"])
 @pytest.mark.parametrize(
-    "json, status",
+    "model, json, status",
     [
-        (VALID_DICT, 200),
-        (INVALID_DICT, 400),
+        (Item, VALID_DICT, 200),
+        (Item, INVALID_DICT, 400),
+        (DCItem, VALID_DICT, 200),
+        (DCItem, INVALID_DICT, 400),
+        (PyDCItem, VALID_DICT, 200),
+        (PyDCItem, INVALID_DICT, 400),
+        (ItemCollection, VALID_COLLECTION_DICT, 200),
+        (ItemCollection, INVALID_COLLECTION_DICT, 400),
+        (RootModel[list[Item]], VALID_COLLECTION_DICT, 200),
+        (RootModel[list[Item]], INVALID_COLLECTION_DICT, 400),
     ],
 )
-async def test_request_validation(path: str, json: dict, status: int) -> None:
+async def test_request_validation(model: Any, json: dict, status: int) -> None:
     app = Quart(__name__)
     QuartSchema(app)
 
     @app.route("/", methods=["POST"])
-    @validate_request(Item)
+    @validate_request(model)
     async def item(data: Item) -> ResponseReturnValue:
         return ""
 
-    @app.route("/dc", methods=["POST"])
-    @validate_request(DCItem)
-    async def dcitem(data: DCItem) -> ResponseReturnValue:
-        return ""
-
-    @app.route("/pydc", methods=["POST"])
-    @validate_request(PyDCItem)
-    async def pydcitem(data: PyDCItem) -> ResponseReturnValue:
-        return ""
-
     test_client = app.test_client()
-    response = await test_client.post(path, json=json)
+    response = await test_client.post("/", json=json)
     assert response.status_code == status
 
 
