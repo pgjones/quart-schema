@@ -11,10 +11,11 @@ classifiers = [
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.7",
     "Programming Language :: Python :: 3.8",
     "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
     "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
@@ -25,7 +26,7 @@ repository = "https://gitlab.com/pgjones/quart-schema/"
 
 [tool.black]
 line-length = 100
-target-version = ["py37"]
+target-version = ["py38"]
 
 [tool.isort]
 combine_as_imports = true
@@ -59,7 +60,7 @@ warn_unused_ignores = true
 [tool.poetry.dependencies]
 pydata_sphinx_theme = { version = "*", optional = true }
 pyhumps = ">=1.6.1"
-python = ">=3.7"
+python = ">=3.8"
 pydantic=">=2"
 quart = ">=0.18.1"
 typing_extensions = { version = "*", python = "<3.9" }
