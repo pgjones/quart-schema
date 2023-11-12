@@ -269,7 +269,7 @@ def validate_response(
             else:
                 return result
 
-        return wrapper
+        return wrapper  # type: ignore
 
     return decorator
 

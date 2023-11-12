@@ -6,7 +6,7 @@ from collections import defaultdict
 from dataclasses import asdict, is_dataclass
 from functools import wraps
 from types import new_class
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Tuple, Union
 
 import click
 from humps import camelize
@@ -16,6 +16,7 @@ from pydantic.json_schema import GenerateJsonSchema
 from quart import current_app, Quart, render_template_string, Response, ResponseReturnValue
 from quart.cli import pass_script_info, ScriptInfo
 from quart.json.provider import DefaultJSONProvider
+from quart.typing import ResponseValue
 from werkzeug.routing.converters import NumberConverter
 from werkzeug.routing.rules import Rule
 
@@ -335,16 +336,15 @@ def _split_convert_definitions(schema: dict, convert_casing: bool) -> Tuple[dict
 def convert_model_result(func: Callable) -> Callable:
     @wraps(func)
     async def decorator(result: ResponseReturnValue) -> Response:
-        status_or_headers = None
-        headers = None
         if isinstance(result, tuple):
-            value, status_or_headers, headers = result + (None,) * (3 - len(result))
+            value = result[0]
         else:
             value = result
 
         was_model = False
+        dict_or_value: ResponseValue
         if is_dataclass(value):
-            dict_or_value = asdict(value)
+            dict_or_value = asdict(value)  # type: ignore
             was_model = True
         elif isinstance(value, BaseModel):
             dict_or_value = value.model_dump(by_alias=current_app.config["QUART_SCHEMA_BY_ALIAS"])
@@ -353,9 +353,12 @@ def convert_model_result(func: Callable) -> Callable:
             dict_or_value = value
 
         if was_model and current_app.config["QUART_SCHEMA_CONVERT_CASING"]:
-            dict_or_value = camelize(dict_or_value)
+            dict_or_value = camelize(cast(Dict[str, Any], dict_or_value))
 
-        return await func((dict_or_value, status_or_headers, headers))
+        if isinstance(result, tuple):
+            return await func((dict_or_value, *result[1:]))
+        else:
+            return await func(dict_or_value)
 
     return decorator
 

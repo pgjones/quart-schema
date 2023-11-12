@@ -6,9 +6,9 @@ from uuid import UUID
 import pytest
 from pydantic import BaseModel
 from pydantic.dataclasses import dataclass as pydantic_dataclass
-from quart import Quart
+from quart import Quart, ResponseReturnValue
 
-from quart_schema import QuartSchema, ResponseReturnValue
+from quart_schema import QuartSchema
 from quart_schema.typing import PydanticModel
 
 
@@ -36,7 +36,20 @@ async def test_make_response(type_: PydanticModel) -> None:
 
     @app.route("/")
     async def index() -> ResponseReturnValue:
-        return type_(name="bob", age=2)
+        return type_(name="bob", age=2)  # type: ignore
+
+    test_client = app.test_client()
+    response = await test_client.get("/")
+    assert (await response.get_json()) == {"name": "bob", "age": 2}
+
+
+async def test_make_response_no_model() -> None:
+    app = Quart(__name__)
+    QuartSchema(app)
+
+    @app.route("/")
+    async def index() -> ResponseReturnValue:
+        return {"name": "bob", "age": 2}, {"Content-Type": "application/json"}
 
     test_client = app.test_client()
     response = await test_client.get("/")
@@ -52,7 +65,7 @@ async def test_make_pydantic_encoder_response() -> None:
     app = Quart(__name__)
     QuartSchema(app)
 
-    @app.route("/")
+    @app.route("/")  # type: ignore
     async def index() -> PydanticEncoded:
         return PydanticEncoded(a=UUID("23ef2e02-1c20-49de-b05e-e9fe2431c474"), b=Path("/"))
 

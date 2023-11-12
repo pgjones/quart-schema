@@ -37,12 +37,12 @@ async def test_response_casing() -> None:
 
     @app.route("/", methods=["GET"])
     @validate_response(Data)
-    async def index() -> ResponseReturnValue:
+    async def index() -> Data:
         return Data(snake_case="Hello")
 
     test_client = app.test_client()
     response = await test_client.get("/")
-    assert await response.get_data(as_text=True) == '{"snakeCase":"Hello"}'
+    assert await response.get_data(as_text=True) == '{"snakeCase":"Hello"}\n'
 
 
 @dataclass

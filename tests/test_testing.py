@@ -43,7 +43,7 @@ async def test_send_form(type_: PydanticModel) -> None:
 
     @app.route("/", methods=["POST"])
     @validate_request(type_, source=DataSource.FORM)
-    async def index(data: PydanticModel) -> ResponseReturnValue:
+    async def index(data: PydanticModel) -> PydanticModel:
         return data
 
     test_client = app.test_client()
@@ -58,7 +58,7 @@ async def test_hypothesis_dataclass(data: DCDetails) -> None:
 
     @app.route("/", methods=["POST"])
     @validate_request(DCDetails)
-    async def index(data: DCDetails) -> ResponseReturnValue:
+    async def index(data: DCDetails) -> DCDetails:
         return data
 
     test_client = app.test_client()
