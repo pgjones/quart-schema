@@ -1,3 +1,13 @@
+0.18.0 2023-11-12
+-----------------
+
+* Render Werkzeug's any() route parameters as enum in OpenAPI.
+* Support Quart 0.19 onwards.
+* Support Python 3.12 drop Python 3.7.
+* Bugfix WebSocket validation check for convert casing config param.
+* Bugfix handle status/headers when returning a Response.
+* Fix pydantic deprecation warnings.
+
 0.17.1 2023-08-29
 -----------------
 
