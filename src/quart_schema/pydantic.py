@@ -24,7 +24,7 @@ class _File:
         _source_type: Any,
         _handler: Callable[[Any], core_schema.CoreSchema],
     ) -> core_schema.CoreSchema:
-        return core_schema.general_plain_validator_function(cls._validate)
+        return core_schema.with_info_plain_validator_function(cls._validate)
 
     @classmethod
     def __get_pydantic_json_schema__(
