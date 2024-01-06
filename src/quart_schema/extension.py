@@ -10,7 +10,8 @@ from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Tuple, U
 
 import click
 from humps import camelize
-from pydantic import BaseModel
+from pydantic import BaseModel, RootModel
+from pydantic.dataclasses import is_pydantic_dataclass
 from pydantic.json_schema import GenerateJsonSchema
 from pydantic_core import to_jsonable_python
 from quart import current_app, Quart, render_template_string, Response, ResponseReturnValue
@@ -343,7 +344,10 @@ def convert_model_result(func: Callable) -> Callable:
 
         was_model = False
         dict_or_value: ResponseValue
-        if is_dataclass(value):
+        if is_pydantic_dataclass(value):
+            dict_or_value = RootModel[type(value)](value).model_dump()
+            was_model = True
+        elif is_dataclass(value):
             dict_or_value = asdict(value)  # type: ignore
             was_model = True
         elif isinstance(value, BaseModel):
