@@ -277,8 +277,8 @@ async def test_querystring_validation(path: str, status: int) -> None:
     assert response.status_code == status
 
 
-@dataclass
-class DCHeaders:
+@pydantic_dataclass
+class PyDCHeaders:
     x_required: str
     x_optional: Optional[int] = None
 
@@ -288,7 +288,7 @@ class Headers(BaseModel):
     x_optional: Optional[int] = None
 
 
-@pytest.mark.parametrize("model", [DCHeaders, Headers])
+@pytest.mark.parametrize("model", [PyDCHeaders, Headers])
 @pytest.mark.parametrize(
     "request_headers, status",
     [

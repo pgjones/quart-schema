@@ -4,7 +4,6 @@ from quart import ResponseReturnValue as QuartResponseReturnValue
 
 from .typing import Model
 from .validation import (
-    _to_pydantic_model,
     DataSource,
     QUART_SCHEMA_HEADERS_ATTRIBUTE,
     QUART_SCHEMA_QUERYSTRING_ATTRIBUTE,
@@ -25,7 +24,6 @@ def document_querystring(model_class: Model) -> Callable:
             BaseModel. All the fields must be optional.
 
     """
-    model_class = _to_pydantic_model(model_class)
 
     def decorator(func: Callable) -> Callable:
         setattr(func, QUART_SCHEMA_QUERYSTRING_ATTRIBUTE, model_class)
@@ -47,7 +45,6 @@ def document_headers(model_class: Model) -> Callable:
             BaseModel.
 
     """
-    model_class = _to_pydantic_model(model_class)
 
     def decorator(func: Callable) -> Callable:
         setattr(func, QUART_SCHEMA_HEADERS_ATTRIBUTE, model_class)
@@ -74,7 +71,6 @@ def document_request(
         source: The source of the data to validate (json or form
             encoded).
     """
-    model_class = _to_pydantic_model(model_class)
 
     def decorator(func: Callable) -> Callable:
         setattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, (model_class, source))
@@ -106,8 +102,6 @@ def document_response(
             that inherits from pydantic's BaseModel. Is optional.
 
     """
-    model_class = _to_pydantic_model(model_class)
-    headers_model_class = _to_pydantic_model(headers_model_class)
 
     def decorator(
         func: Callable[..., QuartResponseReturnValue]

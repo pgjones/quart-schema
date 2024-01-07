@@ -1,20 +1,18 @@
 from __future__ import annotations
 
-from dataclasses import asdict, is_dataclass
-from typing import Any, AnyStr, cast, Dict, Optional, overload, Tuple, Type, Union
+from typing import Any, AnyStr, Dict, Optional, overload, Tuple, Type, Union
 
-from humps import camelize, decamelize
-from pydantic import BaseModel, ValidationError
 from quart import current_app, Response
 from quart.datastructures import FileStorage
 from quart.testing.utils import sentinel
 from werkzeug.datastructures import Authorization, Headers
 
+from .conversion import model_dump, model_load
 from .typing import BM, DC, TestClientProtocol, WebsocketProtocol
 
 
 class SchemaValidationError(Exception):
-    def __init__(self, validation_error: Optional[ValidationError] = None) -> None:
+    def __init__(self, validation_error: Optional[Exception] = None) -> None:
         super().__init__()
         self.validation_error = validation_error
 
@@ -32,32 +30,23 @@ class WebsocketMixin:
         self: WebsocketProtocol, model_class: Union[Type[BM], Type[DC]]
     ) -> Union[BM, DC]:
         data = await self.receive_json()
-        if current_app.config["QUART_SCHEMA_CONVERT_CASING"]:
-            data = decamelize(data)
-        try:
-            return model_class(**data)
-        except ValidationError as error:
-            raise SchemaValidationError(error)
+        return model_load(
+            data,
+            model_class,
+            SchemaValidationError,
+            decamelize=current_app.config["QUART_SCHEMA_CONVERT_CASING"],
+        )
 
     async def send_as(
         self: WebsocketProtocol, value: Any, model_class: Union[Type[BM], Type[DC]]
     ) -> None:
-        if isinstance(value, dict):
-            try:
-                model_value = model_class(**value)
-            except ValidationError as error:
-                raise SchemaValidationError(error)
-        elif type(value) == model_class:  # noqa: E721
-            model_value = value
-        else:
-            raise SchemaValidationError()
-        if is_dataclass(model_value):
-            data = asdict(model_value)  # type: ignore[arg-type]
-        else:
-            model_value = cast(BM, model_value)
-            data = model_value.model_dump()
-        if current_app.config["QUART_SCHEMA_CONVERT_CASING"]:
-            data = camelize(data)
+        if type(value) != model_class:  # noqa: E721
+            value = model_load(value, model_class, SchemaValidationError)
+        data = model_dump(
+            value,
+            camelize=current_app.config["QUART_SCHEMA_CONVERT_CASING"],
+            by_alias=current_app.config["QUART_SCHEMA_BY_ALIAS"],
+        )
         await self.send_json(data)
 
 
@@ -80,40 +69,25 @@ class TestClientMixin:
         subdomain: Optional[str] = None,
     ) -> Response:
         if json is not sentinel:
-            was_model = False
-            if is_dataclass(json):
-                json = asdict(json)
-                was_model = True
-            elif isinstance(json, BaseModel):
-                json = json.model_dump()
-                was_model = True
-
-            if was_model and self.app.config["QUART_SCHEMA_CONVERT_CASING"]:
-                json = camelize(json)
+            json = model_dump(
+                json,
+                camelize=self.app.config["QUART_SCHEMA_CONVERT_CASING"],
+                by_alias=self.app.config["QUART_SCHEMA_BY_ALIAS"],
+            )
 
         if form is not None:
-            was_model = False
-            if is_dataclass(form):
-                form = asdict(form)  # type: ignore[arg-type]
-                was_model = True
-            elif isinstance(form, BaseModel):
-                form = form.model_dump()
-                was_model = True
-
-            if was_model and self.app.config["QUART_SCHEMA_CONVERT_CASING"]:
-                form = camelize(form)
+            form = model_dump(
+                form,
+                camelize=self.app.config["QUART_SCHEMA_CONVERT_CASING"],
+                by_alias=self.app.config["QUART_SCHEMA_BY_ALIAS"],
+            )
 
         if query_string is not None:
-            was_model = False
-            if is_dataclass(query_string):
-                query_string = asdict(query_string)  # type: ignore[arg-type]
-                was_model = True
-            elif isinstance(query_string, BaseModel):
-                query_string = query_string.model_dump()
-                was_model = True
-
-            if was_model and self.app.config["QUART_SCHEMA_CONVERT_CASING"]:
-                query_string = camelize(query_string)
+            query_string = model_dump(
+                query_string,
+                camelize=self.app.config["QUART_SCHEMA_CONVERT_CASING"],
+                by_alias=self.app.config["QUART_SCHEMA_BY_ALIAS"],
+            )
 
         return await super()._make_request(  # type: ignore
             path,

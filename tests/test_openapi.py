@@ -1,7 +1,7 @@
-from dataclasses import dataclass
 from typing import Dict, List, Optional, Tuple
 
 from pydantic import Field
+from pydantic.dataclasses import dataclass
 from quart import Quart
 
 from quart_schema import (
@@ -82,25 +82,31 @@ async def test_openapi() -> None:
         "paths": {
             "/": {
                 "get": {
-                    "summary": "Summary",
-                    "description": "Multi-line\ndescription.\n\nThis is a new paragraph\n\n    "
-                    "And this is an indented codeblock.\n\nAnd another paragraph.",
+                    "description": "Multi-line\n"
+                    "description.\n"
+                    "\n"
+                    "This is a new paragraph\n"
+                    "\n"
+                    "    And this is an indented "
+                    "codeblock.\n"
+                    "\n"
+                    "And another paragraph.",
                     "operationId": "get_read_item",
                     "parameters": [
                         {
+                            "description": "count_le description",
                             "in": "query",
                             "name": "count_le",
-                            "description": "count_le description",
                             "schema": {
-                                "title": "Count Le",
                                 "anyOf": [{"type": "integer"}, {"type": "null"}],
+                                "title": "Count Le",
                             },
                         },
                         {
+                            "deprecated": True,
+                            "description": "x-name description",
                             "in": "header",
                             "name": "x-name",
-                            "description": "x-name description",
-                            "deprecated": True,
                             "schema": {"title": "X Name", "type": "string"},
                         },
                     ],
@@ -109,6 +115,7 @@ async def test_openapi() -> None:
                             "content": {
                                 "application/json": {
                                     "schema": {
+                                        "description": "Result",
                                         "properties": {"name": {"title": "Name", "type": "string"}},
                                         "required": ["name"],
                                         "title": "Result",
@@ -118,17 +125,18 @@ async def test_openapi() -> None:
                                 "headers": {
                                     "x-name": {
                                         "schema": {
-                                            "title": "X Name",
-                                            "type": "string",
-                                            "description": "x-name description",
                                             "deprecated": True,
+                                            "description": "x-name " "description",
+                                            "title": "X " "Name",
+                                            "type": "string",
                                         }
                                     }
                                 },
                             },
-                            "description": "",
+                            "description": "Result",
                         }
                     },
+                    "summary": "Summary",
                 },
                 "post": {
                     "deprecated": True,
@@ -140,9 +148,9 @@ async def test_openapi() -> None:
                                 "schema": {
                                     "properties": {
                                         "age": {
-                                            "title": "Age",
                                             "anyOf": [{"type": "integer"}, {"type": "null"}],
                                             "default": None,
+                                            "title": "Age",
                                         },
                                         "name": {"title": "Name", "type": "string"},
                                     },
@@ -158,6 +166,7 @@ async def test_openapi() -> None:
                             "content": {
                                 "application/json": {
                                     "schema": {
+                                        "description": "Result",
                                         "properties": {"name": {"title": "Name", "type": "string"}},
                                         "required": ["name"],
                                         "title": "Result",
@@ -167,15 +176,15 @@ async def test_openapi() -> None:
                                 "headers": {
                                     "x-name": {
                                         "schema": {
-                                            "title": "X Name",
-                                            "type": "string",
-                                            "description": "x-name description",
                                             "deprecated": True,
+                                            "description": "x-name " "description",
+                                            "title": "X " "Name",
+                                            "type": "string",
                                         }
                                     }
                                 },
                             },
-                            "description": "",
+                            "description": "Result",
                         }
                     },
                 },

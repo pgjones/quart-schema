@@ -3,24 +3,21 @@ from __future__ import annotations
 import inspect
 import re
 from collections import defaultdict
-from dataclasses import asdict, is_dataclass
 from functools import wraps
 from types import new_class
-from typing import Any, Callable, cast, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
 
 import click
-from humps import camelize
-from pydantic import BaseModel, RootModel
-from pydantic.dataclasses import is_pydantic_dataclass
-from pydantic.json_schema import GenerateJsonSchema
+import humps
 from pydantic_core import to_jsonable_python
-from quart import current_app, Quart, render_template_string, Response, ResponseReturnValue
+from quart import current_app, Quart, render_template_string, ResponseReturnValue
 from quart.cli import pass_script_info, ScriptInfo
 from quart.json.provider import DefaultJSONProvider
-from quart.typing import ResponseValue
+from quart.typing import ResponseReturnValue as QuartResponseReturnValue
 from werkzeug.routing.converters import AnyConverter, NumberConverter
 from werkzeug.routing.rules import Rule
 
+from .conversion import convert_response_return_value, model_schema
 from .mixins import TestClientMixin, WebsocketMixin
 from .openapi import (
     APIKeySecurityScheme,
@@ -62,7 +59,6 @@ QUART_SCHEMA_TAG_ATTRIBUTE = "_quart_schema_tag"
 QUART_SCHEMA_OPERATION_ID_ATTRIBUTE = "_quart_schema_operation_id"
 QUART_SCHEMA_SECURITY_ATTRIBUTE = "_quart_schema_security_tag"
 QUART_SCHEMA_DEPRECATED = "_quart_schema_deprecated"
-REF_TEMPLATE = "#/components/schemas/{model}"
 
 PATH_RE = re.compile("<(?:[^:]*:)?([^>]+)>")
 
@@ -246,7 +242,7 @@ class QuartSchema:
         app.websocket_class = new_class(  # type: ignore
             "Websocket", (WebsocketMixin, app.websocket_class)
         )
-        app.make_response = convert_model_result(app.make_response)  # type: ignore
+        app.make_response = wrap_make_response(app.make_response)  # type: ignore
 
         app.config.setdefault(
             "QUART_SCHEMA_SWAGGER_JS_URL",
@@ -324,45 +320,20 @@ def _split_definitions(schema: dict) -> Tuple[dict, dict]:
 def _split_convert_definitions(schema: dict, convert_casing: bool) -> Tuple[dict, dict]:
     definitions, new_schema = _split_definitions(schema)
     if convert_casing:
-        new_schema = camelize(new_schema)
+        new_schema = humps.camelize(new_schema)
         if "required" in new_schema:
-            new_schema["required"] = [camelize(field) for field in new_schema["required"]]
-        definitions = {key: camelize(definition) for key, definition in definitions.items()}
+            new_schema["required"] = [humps.camelize(field) for field in new_schema["required"]]
+        definitions = {key: humps.camelize(definition) for key, definition in definitions.items()}
         for key, definition in definitions.items():
             if "required" in definition:
-                definition["required"] = [camelize(field) for field in definition["required"]]
+                definition["required"] = [humps.camelize(field) for field in definition["required"]]
     return definitions, new_schema
 
 
-def convert_model_result(func: Callable) -> Callable:
+def wrap_make_response(func: Callable) -> Callable:
     @wraps(func)
-    async def decorator(result: ResponseReturnValue) -> Response:
-        if isinstance(result, tuple):
-            value = result[0]
-        else:
-            value = result
-
-        was_model = False
-        dict_or_value: ResponseValue
-        if is_pydantic_dataclass(value):
-            dict_or_value = RootModel[type(value)](value).model_dump()
-            was_model = True
-        elif is_dataclass(value):
-            dict_or_value = asdict(value)  # type: ignore
-            was_model = True
-        elif isinstance(value, BaseModel):
-            dict_or_value = value.model_dump(by_alias=current_app.config["QUART_SCHEMA_BY_ALIAS"])
-            was_model = True
-        else:
-            dict_or_value = value
-
-        if was_model and current_app.config["QUART_SCHEMA_CONVERT_CASING"]:
-            dict_or_value = camelize(cast(Dict[str, Any], dict_or_value))
-
-        if isinstance(result, tuple):
-            return await func((dict_or_value, *result[1:]))
-        else:
-            return await func(dict_or_value)
+    async def decorator(result: ResponseReturnValue) -> QuartResponseReturnValue:
+        return await func(convert_response_return_value(result))
 
     return decorator
 
@@ -459,9 +430,7 @@ def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
     response_models = getattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, {})
     for status_code in response_models.keys():
         model_class, headers_model_class = response_models[status_code]
-        schema = GenerateJsonSchema(ref_template=REF_TEMPLATE).generate(
-            model_class.__pydantic_core_schema__
-        )
+        schema = model_schema(model_class)
         definitions, schema = _split_convert_definitions(
             schema, app.config["QUART_SCHEMA_CONVERT_CASING"]
         )
@@ -478,10 +447,7 @@ def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
             response_object["description"] = inspect.getdoc(model_class)
 
         if headers_model_class is not None:
-            schema = GenerateJsonSchema(ref_template=REF_TEMPLATE).generate(
-                headers_model_class.__pydantic_core_schema__
-            )
-
+            schema = model_schema(headers_model_class)
             definitions, schema = _split_definitions(schema)
             components.update(definitions)
             response_object["content"]["headers"] = {  # type: ignore
@@ -494,9 +460,7 @@ def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
 
     request_data = getattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, None)
     if request_data is not None:
-        schema = GenerateJsonSchema(ref_template=REF_TEMPLATE).generate(
-            request_data[0].__pydantic_core_schema__
-        )
+        schema = model_schema(request_data[0])
         definitions, schema = _split_convert_definitions(
             schema, app.config["QUART_SCHEMA_CONVERT_CASING"]
         )
@@ -519,9 +483,7 @@ def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
 
     querystring_model = getattr(func, QUART_SCHEMA_QUERYSTRING_ATTRIBUTE, None)
     if querystring_model is not None:
-        schema = GenerateJsonSchema(ref_template=REF_TEMPLATE).generate(
-            querystring_model.__pydantic_core_schema__
-        )
+        schema = model_schema(querystring_model)
         definitions, schema = _split_convert_definitions(
             schema, app.config["QUART_SCHEMA_CONVERT_CASING"]
         )
@@ -537,9 +499,7 @@ def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
 
     headers_model = getattr(func, QUART_SCHEMA_HEADERS_ATTRIBUTE, None)
     if headers_model is not None:
-        schema = GenerateJsonSchema(ref_template=REF_TEMPLATE).generate(
-            headers_model.__pydantic_core_schema__
-        )
+        schema = model_schema(headers_model)
         definitions, schema = _split_definitions(schema)
         components.update(definitions)
         for name, type_ in schema["properties"].items():
@@ -594,28 +554,28 @@ def _build_full_schema(extension: QuartSchema, paths: dict, component_schemas: d
     components = {"schemas": component_schemas}
     if extension.security_schemes is not None:
         components["securitySchemes"] = {
-            key: camelize(value.model_dump(exclude_none=True, by_alias=True))
+            key: humps.camelize(value.model_dump(exclude_none=True, by_alias=True))
             for key, value in extension.security_schemes.items()
         }
 
     openapi_schema: dict = {
         "openapi": "3.1.0",
-        "info": camelize(extension.info.model_dump(exclude_none=True)),
+        "info": humps.camelize(extension.info.model_dump(exclude_none=True)),
         "components": components,
         "paths": paths,
     }
     if extension.tags is not None:
         openapi_schema["tags"] = [
-            camelize(tag.model_dump(exclude_none=True)) for tag in extension.tags
+            humps.camelize(tag.model_dump(exclude_none=True)) for tag in extension.tags
         ]
     if extension.security is not None:
         openapi_schema["security"] = extension.security
     if extension.servers is not None:
         openapi_schema["servers"] = [
-            camelize(server.model_dump(exclude_none=True)) for server in extension.servers
+            humps.camelize(server.model_dump(exclude_none=True)) for server in extension.servers
         ]
     if extension.external_docs is not None:
-        openapi_schema["externalDocs"] = camelize(
+        openapi_schema["externalDocs"] = humps.camelize(
             extension.external_docs.model_dump(exclude_none=True)
         )
 
