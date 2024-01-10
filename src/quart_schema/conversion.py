@@ -4,9 +4,8 @@ from dataclasses import asdict, fields, is_dataclass
 from typing import Optional, Type, TypeVar, Union
 
 import humps
-from pydantic import BaseModel, RootModel, ValidationError
-from pydantic.dataclasses import dataclass as pydantic_dataclass, is_pydantic_dataclass
-from pydantic.json_schema import GenerateJsonSchema
+from pydantic import BaseModel, RootModel, TypeAdapter, ValidationError
+from pydantic.dataclasses import is_pydantic_dataclass
 from quart import current_app
 from quart.typing import HeadersValue, ResponseReturnValue as QuartResponseReturnValue, StatusCode
 from werkzeug.datastructures import Headers
@@ -84,26 +83,15 @@ def model_load(
 ) -> Union[BM, DC]:
     if decamelize:
         data = humps.decamelize(data)
+
     try:
-        return model_class(**data)  # type: ignore
+        return TypeAdapter(model_class).validate_python(data)
     except (TypeError, ValidationError, ValueError) as error:
         raise exception_class(error)
 
 
 def model_schema(model_class: Model) -> dict:
-    if is_pydantic_dataclass(model_class):
-        return GenerateJsonSchema(ref_template=REF_TEMPLATE).generate(
-            model_class.__pydantic_core_schema__
-        )
-    elif is_dataclass(model_class):
-        pydantic_model_class = pydantic_dataclass(model_class)
-        return GenerateJsonSchema(ref_template=REF_TEMPLATE).generate(
-            pydantic_model_class.__pydantic_core_schema__
-        )
-    elif issubclass(model_class, BaseModel):
-        return model_class.model_json_schema(ref_template=REF_TEMPLATE)
-    else:
-        raise TypeError(f"Cannot produce schema for {model_class}")
+    return TypeAdapter(model_class).json_schema(ref_template=REF_TEMPLATE)
 
 
 def convert_headers(
