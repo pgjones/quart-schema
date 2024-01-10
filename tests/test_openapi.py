@@ -75,6 +75,7 @@ async def test_openapi() -> None:
 
     test_client = app.test_client()
     response = await test_client.get("/openapi.json")
+
     assert (await response.get_json()) == {
         "components": {"schemas": {}},
         "info": {"title": "test_openapi", "version": "0.1.0"},
@@ -200,7 +201,7 @@ async def test_security_schemes() -> None:
         security_schemes={
             "MyBearer": {"type": "http", "scheme": "bearer"},
             "MyBasicAuth": {"type": "http", "scheme": "basic"},
-            "MyAPI": {"type": "apiKey", "in": "cookie", "name": "Bob"},
+            "MyAPI": {"type": "apiKey", "in_": "cookie", "name": "Bob"},
         },
         security=[{"MyBearer": []}, {"MyBasicAuth": ["foo", "bar"]}],
     )

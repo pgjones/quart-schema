@@ -554,30 +554,23 @@ def _build_full_schema(extension: QuartSchema, paths: dict, component_schemas: d
     components = {"schemas": component_schemas}
     if extension.security_schemes is not None:
         components["securitySchemes"] = {
-            key: humps.camelize(value.model_dump(exclude_none=True, by_alias=True))
-            for key, value in extension.security_schemes.items()
+            key: value.schema(camelize=True) for key, value in extension.security_schemes.items()
         }
 
     openapi_schema: dict = {
         "openapi": "3.1.0",
-        "info": humps.camelize(extension.info.model_dump(exclude_none=True)),
+        "info": extension.info.schema(camelize=True),
         "components": components,
         "paths": paths,
     }
     if extension.tags is not None:
-        openapi_schema["tags"] = [
-            humps.camelize(tag.model_dump(exclude_none=True)) for tag in extension.tags
-        ]
+        openapi_schema["tags"] = [tag.schema(camelize=True) for tag in extension.tags]
     if extension.security is not None:
         openapi_schema["security"] = extension.security
     if extension.servers is not None:
-        openapi_schema["servers"] = [
-            humps.camelize(server.model_dump(exclude_none=True)) for server in extension.servers
-        ]
+        openapi_schema["servers"] = [server.schema(camelize=True) for server in extension.servers]
     if extension.external_docs is not None:
-        openapi_schema["externalDocs"] = humps.camelize(
-            extension.external_docs.model_dump(exclude_none=True)
-        )
+        openapi_schema["externalDocs"] = extension.external_docs.schema(camelize=True)
 
     return openapi_schema
 

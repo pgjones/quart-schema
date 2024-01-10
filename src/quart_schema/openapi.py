@@ -1,6 +1,7 @@
+from dataclasses import dataclass, field, fields
 from typing import Any, Dict, Optional
 
-from pydantic import AnyHttpUrl, BaseModel, ConfigDict, conlist, Field, model_validator
+import humps
 
 try:
     from typing import Literal
@@ -8,7 +9,22 @@ except ImportError:
     from typing_extensions import Literal  # type: ignore
 
 
-class Contact(BaseModel):
+class _SchemaBase:
+    def schema(self, *, camelize: bool = False) -> Dict:
+        result: Dict[str, Any] = {}
+        for field_ in fields(self):  # type: ignore
+            value = getattr(self, field_.name, None)
+
+            if value is not None:
+                name = field_.metadata.get("alias", field_.name)
+                if camelize:
+                    humps.camelize(name)
+                result[name] = value
+        return result
+
+
+@dataclass
+class Contact(_SchemaBase):
     """This describes contact information for the API.
 
     It can be extended as desired.
@@ -21,12 +37,11 @@ class Contact(BaseModel):
 
     email: Optional[str] = None
     name: Optional[str] = None
-    url: Optional[AnyHttpUrl] = None
-
-    model_config = ConfigDict(extra="allow")
+    url: Optional[str] = None
 
 
-class License(BaseModel):
+@dataclass
+class License(_SchemaBase):
     """This describes license for the API.
 
     It can be extended as desired.
@@ -39,18 +54,15 @@ class License(BaseModel):
 
     name: str
     identifier: Optional[str] = None
-    url: Optional[AnyHttpUrl] = None
+    url: Optional[str] = None
 
-    model_config = ConfigDict(extra="allow")
-
-    @model_validator(mode="before")
-    def check_only_identifier_or_url(cls, values: Dict[str, Any]) -> Dict[str, Any]:  # noqa: N805
-        if values.get("identifier") is not None and values.get("url") is not None:
+    def __post_init__(self) -> None:
+        if self.identifier is not None and self.url is not None:
             raise ValueError("The *identifier* field is mutually exclusive of the *url* field.")
-        return values
 
 
-class Info(BaseModel):
+@dataclass
+class Info(_SchemaBase):
     """This provides meta data about the API.
 
     It can be extended as desired.
@@ -70,12 +82,11 @@ class Info(BaseModel):
     description: Optional[str] = None
     license: Optional[License] = None
     summary: Optional[str] = None
-    terms_of_service: Optional[AnyHttpUrl] = None
-
-    model_config = ConfigDict(extra="allow")
+    terms_of_service: Optional[str] = None
 
 
-class ExternalDocumentation(BaseModel):
+@dataclass
+class ExternalDocumentation(_SchemaBase):
     """A reference to external documentation.
 
     It can be extended as desired.
@@ -85,13 +96,12 @@ class ExternalDocumentation(BaseModel):
         url: The URL of the external docs.
     """
 
-    url: AnyHttpUrl
+    url: str
     description: Optional[str] = None
 
-    model_config = ConfigDict(extra="allow")
 
-
-class Tag(BaseModel):
+@dataclass
+class Tag(_SchemaBase):
     """A Metadata tag for a route or OpenAPI-operation.
 
     Attributes:
@@ -105,10 +115,9 @@ class Tag(BaseModel):
     description: Optional[str] = None
     external_docs: Optional[ExternalDocumentation] = None
 
-    model_config = ConfigDict(extra="allow")
 
-
-class ServerVariable(BaseModel):
+@dataclass
+class ServerVariable(_SchemaBase):
     """A description of a Server Variable for server URL template
     substitution.
 
@@ -122,14 +131,17 @@ class ServerVariable(BaseModel):
             allows CommonMark syntax.
     """
 
-    enum: conlist(str, min_length=1)  # type: ignore
+    enum: str
     default: str
     description: Optional[str] = None
 
-    model_config = ConfigDict(extra="allow")
+    def __post_init__(self) -> None:
+        if len(self.enum) < 1:
+            raise ValueError("Must be at least one enum value")
 
 
-class Server(BaseModel):
+@dataclass
+class Server(_SchemaBase):
     """A description of the server
 
     It can be extended as desired..
@@ -141,39 +153,37 @@ class Server(BaseModel):
         variables: A map between a variable name and its value.
     """
 
-    url: AnyHttpUrl
+    url: str
     variables: Optional[Dict[str, ServerVariable]] = None
     description: Optional[str] = None
 
-    model_config = ConfigDict(extra="allow")
 
-
-class SecuritySchemeBase(BaseModel):
-    type: Literal["apiKey", "http", "mutualTLS", "oauth2", "openIdConnect"]
+class SecuritySchemeBase(_SchemaBase):
     description: Optional[str] = None
+    type: Literal["apiKey", "http", "mutualTLS", "oauth2", "openIdConnect"]
 
-    model_config = ConfigDict(extra="allow")
 
-
+@dataclass
 class APIKeySecurityScheme(SecuritySchemeBase):
-    type: Literal["apiKey"] = "apiKey"
-    in_: Literal["query", "header", "cookie"] = Field(alias="in")
     name: str
+    in_: Literal["query", "header", "cookie"] = field(metadata={"alias": "in"})
+    type: Literal["apiKey"] = "apiKey"
 
-    model_config = ConfigDict(populate_by_name=True)
 
-
+@dataclass
 class HttpSecurityScheme(SecuritySchemeBase):
-    type: Literal["http"] = "http"
     scheme: str
     bearer_format: Optional[str] = None
+    type: Literal["http"] = "http"
 
 
+@dataclass
 class OAuth2SecurityScheme(SecuritySchemeBase):
-    type: Literal["oauth2"] = "oauth2"
     flows: dict
+    type: Literal["oauth2"] = "oauth2"
 
 
+@dataclass
 class OpenIdSecurityScheme(SecuritySchemeBase):
-    type: Literal["openIdConnect"] = "openIdConnect"
     open_id_connect_url: str
+    type: Literal["openIdConnect"] = "openIdConnect"
