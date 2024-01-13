@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, AnyStr, Dict, Optional, overload, Tuple, Type, Union
+from typing import Any, AnyStr, Dict, Optional, Tuple, Type, Union
 
 from quart import current_app, Response
 from quart.datastructures import FileStorage
@@ -8,7 +8,7 @@ from quart.testing.utils import sentinel
 from werkzeug.datastructures import Authorization, Headers
 
 from .conversion import model_dump, model_load
-from .typing import BM, DC, TestClientProtocol, WebsocketProtocol
+from .typing import Model, TestClientProtocol, WebsocketProtocol
 
 
 class SchemaValidationError(Exception):
@@ -18,36 +18,31 @@ class SchemaValidationError(Exception):
 
 
 class WebsocketMixin:
-    @overload
-    async def receive_as(self: WebsocketProtocol, model_class: Type[BM]) -> BM:
-        ...
-
-    @overload
-    async def receive_as(self: WebsocketProtocol, model_class: Type[DC]) -> DC:
-        ...
-
-    async def receive_as(  # type: ignore[misc]
-        self: WebsocketProtocol, model_class: Union[Type[BM], Type[DC]]
-    ) -> Union[BM, DC]:
+    async def receive_as(self: WebsocketProtocol, model_class: Type[Model]) -> Model:
         data = await self.receive_json()
         return model_load(
             data,
             model_class,
             SchemaValidationError,
             decamelize=current_app.config["QUART_SCHEMA_CONVERT_CASING"],
+            preference=current_app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"],
         )
 
-    async def send_as(
-        self: WebsocketProtocol, value: Any, model_class: Union[Type[BM], Type[DC]]
-    ) -> None:
+    async def send_as(self: WebsocketProtocol, value: Any, model_class: Type[Model]) -> None:
         if type(value) != model_class:  # noqa: E721
-            value = model_load(value, model_class, SchemaValidationError)
+            value = model_load(
+                value,
+                model_class,
+                SchemaValidationError,
+                preference=current_app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"],
+            )
         data = model_dump(
             value,
             camelize=current_app.config["QUART_SCHEMA_CONVERT_CASING"],
             by_alias=current_app.config["QUART_SCHEMA_BY_ALIAS"],
+            preference=current_app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"],
         )
-        await self.send_json(data)
+        await self.send_json(data)  # type: ignore
 
 
 class TestClientMixin:
@@ -73,20 +68,22 @@ class TestClientMixin:
                 json,
                 camelize=self.app.config["QUART_SCHEMA_CONVERT_CASING"],
                 by_alias=self.app.config["QUART_SCHEMA_BY_ALIAS"],
+                preference=self.app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"],
             )
 
         if form is not None:
-            form = model_dump(
+            form = model_dump(  # type: ignore
                 form,
                 camelize=self.app.config["QUART_SCHEMA_CONVERT_CASING"],
                 by_alias=self.app.config["QUART_SCHEMA_BY_ALIAS"],
+                preference=self.app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"],
             )
-
         if query_string is not None:
-            query_string = model_dump(
+            query_string = model_dump(  # type: ignore
                 query_string,
                 camelize=self.app.config["QUART_SCHEMA_CONVERT_CASING"],
                 by_alias=self.app.config["QUART_SCHEMA_BY_ALIAS"],
+                preference=self.app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"],
             )
 
         return await super()._make_request(  # type: ignore

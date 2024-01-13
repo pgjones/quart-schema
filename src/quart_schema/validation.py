@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from enum import auto, Enum
 from functools import wraps
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple, Type
 
 from quart import current_app, request, Response
 from werkzeug.exceptions import BadRequest
@@ -50,7 +50,7 @@ class DataSource(Enum):
     JSON = auto()
 
 
-def validate_querystring(model_class: Model) -> Callable:
+def validate_querystring(model_class: Type[Model]) -> Callable:
     """Validate the request querystring arguments.
 
     This ensures that the query string arguments can be converted to
@@ -74,11 +74,12 @@ def validate_querystring(model_class: Model) -> Callable:
                 else request.args[key]
                 for key in request.args
             }
-            model = model_load(  # type: ignore
+            model = model_load(
                 request_args,
                 model_class,
                 QuerystringValidationError,
                 decamelize=current_app.config["QUART_SCHEMA_CONVERT_CASING"],
+                preference=current_app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"],
             )
             return await current_app.ensure_async(func)(*args, query_args=model, **kwargs)
 
@@ -87,7 +88,7 @@ def validate_querystring(model_class: Model) -> Callable:
     return decorator
 
 
-def validate_headers(model_class: Model) -> Callable:
+def validate_headers(model_class: Type[Model]) -> Callable:
     """Validate the request headers.
 
     This ensures that the headers can be converted to the
@@ -115,7 +116,7 @@ def validate_headers(model_class: Model) -> Callable:
 
 
 def validate_request(
-    model_class: Model,
+    model_class: Type[Model],
     *,
     source: DataSource = DataSource.JSON,
 ) -> Callable:
@@ -151,11 +152,12 @@ def validate_request(
                         else:
                             data[key] = files[key]
 
-            model = model_load(  # type: ignore
+            model = model_load(
                 data,
                 model_class,
                 RequestSchemaValidationError,
                 decamelize=current_app.config["QUART_SCHEMA_CONVERT_CASING"],
+                preference=current_app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"],
             )
             return await current_app.ensure_async(func)(*args, data=model, **kwargs)
 
@@ -165,9 +167,9 @@ def validate_request(
 
 
 def validate_response(
-    model_class: Model,
+    model_class: Type[Model],
     status_code: int = 200,
-    headers_model_class: Optional[Model] = None,
+    headers_model_class: Optional[Type[Model]] = None,
 ) -> Callable:
     """Validate the response data.
 
@@ -225,6 +227,7 @@ def validate_response(
                         value,  # type: ignore
                         model_class,
                         ResponseSchemaValidationError,
+                        preference=current_app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"],
                     )
 
                 if headers_model_class is not None:
@@ -250,11 +253,11 @@ def validate_response(
 
 def validate(
     *,
-    querystring: Optional[Model] = None,
-    request: Optional[Model] = None,
+    querystring: Optional[Type[Model]] = None,
+    request: Optional[Type[Model]] = None,
     request_source: DataSource = DataSource.JSON,
-    headers: Optional[Model] = None,
-    responses: Dict[int, Tuple[Model, Optional[Model]]],
+    headers: Optional[Type[Model]] = None,
+    responses: Dict[int, Tuple[Type[Model], Optional[Type[Model]]]],
 ) -> Callable:
     """Validate the route.
 

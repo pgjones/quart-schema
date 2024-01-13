@@ -57,6 +57,6 @@ jobs:
           pip install -U setuptools
           python -m pip install -U pip
 
-      - run: pip install openapi-spec-validator .
+      - run: pip install openapi-spec-validator pydantic .
 
       - run: cd compliance && QUART_APP=todo:app quart schema | openapi-spec-validator -

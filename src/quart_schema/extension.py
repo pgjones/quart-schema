@@ -5,12 +5,11 @@ import re
 from collections import defaultdict
 from functools import wraps
 from types import new_class
-from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
 
 import click
 import humps
-from pydantic_core import to_jsonable_python
-from quart import current_app, Quart, render_template_string, ResponseReturnValue
+from quart import current_app, jsonify, Quart, render_template_string, ResponseReturnValue
 from quart.cli import pass_script_info, ScriptInfo
 from quart.json.provider import DefaultJSONProvider
 from quart.typing import ResponseReturnValue as QuartResponseReturnValue
@@ -37,6 +36,12 @@ from .validation import (
     QUART_SCHEMA_REQUEST_ATTRIBUTE,
     QUART_SCHEMA_RESPONSE_ATTRIBUTE,
 )
+
+try:
+    from pydantic_core import to_jsonable_python
+except ImportError:
+    from msgspec import to_builtins as to_jsonable_python  # type: ignore
+
 
 SecurityScheme = Union[
     APIKeySecurityScheme,
@@ -179,12 +184,14 @@ class QuartSchema:
         security_schemes: Optional[Dict[str, SecuritySchemeInput]] = None,
         security: Optional[List[Dict[str, List[str]]]] = None,
         external_docs: Optional[Union[ExternalDocumentation, dict]] = None,
+        conversion_preference: Literal["msgspec", "pydantic", None] = None,
     ) -> None:
         self.openapi_path = openapi_path
         self.redoc_ui_path = redoc_ui_path
         self.swagger_ui_path = swagger_ui_path
 
         self.convert_casing = convert_casing
+        self.conversion_preference = conversion_preference
 
         self.info: Optional[Info] = None
         if info is not None:
@@ -258,6 +265,7 @@ class QuartSchema:
         )
         app.config.setdefault("QUART_SCHEMA_BY_ALIAS", False)
         app.config.setdefault("QUART_SCHEMA_CONVERT_CASING", self.convert_casing)
+        app.config.setdefault("QUART_SCHEMA_CONVERSION_PREFERENCE", self.conversion_preference)
         if self.openapi_path is not None:
             hide(app.send_static_file.__func__)  # type: ignore
             app.add_url_rule(self.openapi_path, "openapi", self.openapi)
@@ -270,7 +278,7 @@ class QuartSchema:
 
     @hide
     async def openapi(self) -> ResponseReturnValue:
-        return _build_openapi_schema(current_app, self)
+        return jsonify(_build_openapi_schema(current_app, self))
 
     @hide
     async def swagger_ui(self) -> str:
@@ -430,7 +438,9 @@ def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
     response_models = getattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, {})
     for status_code in response_models.keys():
         model_class, headers_model_class = response_models[status_code]
-        schema = model_schema(model_class)
+        schema = model_schema(
+            model_class, preference=current_app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"]
+        )
         definitions, schema = _split_convert_definitions(
             schema, app.config["QUART_SCHEMA_CONVERT_CASING"]
         )
@@ -447,7 +457,10 @@ def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
             response_object["description"] = inspect.getdoc(model_class)
 
         if headers_model_class is not None:
-            schema = model_schema(headers_model_class)
+            schema = model_schema(
+                headers_model_class,
+                preference=current_app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"],
+            )
             definitions, schema = _split_definitions(schema)
             components.update(definitions)
             response_object["content"]["headers"] = {  # type: ignore
@@ -460,7 +473,9 @@ def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
 
     request_data = getattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, None)
     if request_data is not None:
-        schema = model_schema(request_data[0])
+        schema = model_schema(
+            request_data[0], preference=current_app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"]
+        )
         definitions, schema = _split_convert_definitions(
             schema, app.config["QUART_SCHEMA_CONVERT_CASING"]
         )
@@ -483,7 +498,9 @@ def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
 
     querystring_model = getattr(func, QUART_SCHEMA_QUERYSTRING_ATTRIBUTE, None)
     if querystring_model is not None:
-        schema = model_schema(querystring_model)
+        schema = model_schema(
+            querystring_model, preference=current_app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"]
+        )
         definitions, schema = _split_convert_definitions(
             schema, app.config["QUART_SCHEMA_CONVERT_CASING"]
         )
@@ -499,7 +516,9 @@ def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
 
     headers_model = getattr(func, QUART_SCHEMA_HEADERS_ATTRIBUTE, None)
     if headers_model is not None:
-        schema = model_schema(headers_model)
+        schema = model_schema(
+            headers_model, preference=current_app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"]
+        )
         definitions, schema = _split_definitions(schema)
         components.update(definitions)
         for name, type_ in schema["properties"].items():

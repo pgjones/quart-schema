@@ -7,6 +7,10 @@ Quart-Schema is a Quart extension that provides schema validation and
 auto-generated API documentation. This is particularly useful when
 writing RESTful APIs.
 
+Quart-Schema can use either `msgspec
+<https://jcristharif.com/msgspec>`_ or `pydantic
+<https://docs.pydantic.dev>`_ to validate.
+
 Quickstart
 ----------
 

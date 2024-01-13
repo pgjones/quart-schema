@@ -58,18 +58,22 @@ warn_unused_configs = true
 warn_unused_ignores = true
 
 [tool.poetry.dependencies]
+msgspec = { version = ">=0.18", optional = true }
 pydata_sphinx_theme = { version = "*", optional = true }
 pyhumps = ">=1.6.1"
 python = ">=3.8"
-pydantic=">=2"
+pydantic = { version = ">=2", optional = true }
 quart = ">=0.19.0"
+sphinx-tabs = { version = ">=3.4.4", optional = true }
 typing_extensions = { version = "*", python = "<3.9" }
 
 [tool.poetry.dev-dependencies]
 tox = "*"
 
 [tool.poetry.extras]
-docs = ["pydata_sphinx_theme"]
+docs = ["pydata_sphinx_theme", "sphinx-tabs"]
+msgspec = ["msgspec"]
+pydantic = ["pydantic"]
 
 [tool.pytest.ini_options]
 addopts = "--no-cov-on-fail --showlocals --strict-markers"

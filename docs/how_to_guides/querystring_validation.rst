@@ -7,21 +7,74 @@ it in a format you understand. This is done by validating them against
 a schema you define. Quart-Schema allows validation via decorating the
 route handler, as so,
 
-.. code-block:: python
+.. tabs::
 
-    from dataclasses import dataclass
+   .. tab:: attrs
 
-    from quart_schema import validate_querystring
+      .. code-block:: python
 
-    @dataclass
-    class Query:
-        count_le: int | None = None
-        count_gt: int | None = None
+         from attrs import define
+         from quart_schema import validate_querystring
 
-    @app.route("/")
-    @validate_querystring(Query)
-    async def index(query_args: Query):
-        ...
+         @define
+         class Query:
+             count_le: int | None = None
+             count_gt: int | None = None
+
+         @app.route("/")
+         @validate_querystring(Query)
+         async def index(query_args: Query):
+             ...
+
+   .. tab:: dataclasses
+
+      .. code-block:: python
+
+         from dataclasses import dataclass
+
+         from quart_schema import validate_querystring
+
+         @dataclass
+         class Query:
+             count_le: int | None = None
+             count_gt: int | None = None
+
+         @app.route("/")
+         @validate_querystring(Query)
+         async def index(query_args: Query):
+             ...
+
+   .. tab:: msgspec
+
+      .. code-block:: python
+
+         from msgspec import Struct
+         from quart_schema import validate_querystring
+
+         class Query(Struct):
+             count_le: int | None = None
+             count_gt: int | None = None
+
+         @app.route("/")
+         @validate_querystring(Query)
+         async def index(query_args: Query):
+             ...
+
+   .. tab:: pydantic
+
+      .. code-block:: python
+
+         from pydantic import BaseModel
+         from quart_schema import validate_querystring
+
+         class Query(BaseModel):
+             count_le: int | None = None
+             count_gt: int | None = None
+
+         @app.route("/")
+         @validate_querystring(Query)
+         async def index(query_args: Query):
+             ...
 
 this will allow the client to add a ``count_le``, ``count_gt``, or
 both parameters to the URL e,g. ``/?count_le=2&count_gt=0``.
@@ -72,10 +125,10 @@ to a list using a ``BeforeValidator``,
     from quart_schema import validate_querystring
 
     def _to_list(value: str | list[str]) -> list[str]:
-    if isinstance(value, list):
-        return value
-    else:
-        return [value]
+        if isinstance(value, list):
+            return value
+        else:
+            return [value]
 
     class Query(BaseModel):
         keys: Annotated[Optional[List[str]], BeforeValidator(_to_list)] = Non
@@ -84,3 +137,7 @@ to a list using a ``BeforeValidator``,
     @validate_querystring(Query)
     async def index(query_args: Query):
         ...
+
+.. warning::
+
+   This currently only works with Pydantic types and validation.

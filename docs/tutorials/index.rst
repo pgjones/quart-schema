@@ -7,3 +7,4 @@ Tutorials
 
    installation.rst
    quickstart.rst
+   validation_library.rst

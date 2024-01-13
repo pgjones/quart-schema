@@ -1,8 +1,10 @@
 from dataclasses import dataclass
 from io import BytesIO
-from typing import Any, List, Optional, Tuple, TypeVar, Union
+from typing import Any, List, Optional, Tuple, Type, TypeVar, Union
 
 import pytest
+from attrs import define
+from msgspec import Struct
 from pydantic import BaseModel
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 from pydantic.functional_validators import BeforeValidator
@@ -21,6 +23,7 @@ from quart_schema import (
     validate_response,
 )
 from quart_schema.pydantic import File
+from .helpers import ADetails, DCDetails, MDetails, PyDCDetails, PyDetails
 
 try:
     from typing import Annotated
@@ -28,16 +31,32 @@ except ImportError:
     from typing_extensions import Annotated  # type: ignore
 
 
-@dataclass
-class DCDetails:
-    name: str
-    age: Optional[int] = None
+@define
+class AItem:
+    count: int
+    details: ADetails
+
+
+class MItem(Struct):
+    count: int
+    details: MDetails
 
 
 @dataclass
 class DCItem:
     count: int
     details: DCDetails
+
+
+class PyItem(BaseModel):
+    count: int
+    details: PyDetails
+
+
+@pydantic_dataclass
+class PyDCItem:
+    count: int
+    details: PyDCDetails
 
 
 class FileInfo(BaseModel):
@@ -60,39 +79,11 @@ class QueryItem(BaseModel):
     keys: Annotated[Optional[List[int]], BeforeValidator(_to_list)] = None
 
 
-class Details(BaseModel):
-    name: str
-    age: Optional[int] = None
-
-
-class Item(BaseModel):
-    count: int
-    details: Details
-
-
-@pydantic_dataclass
-class PyDCDetails:
-    name: str
-    age: Optional[int] = None
-
-
-@pydantic_dataclass
-class PyDCItem:
-    count: int
-    details: PyDCDetails
-
-
 VALID_DICT = {"count": 2, "details": {"name": "bob"}}
 INVALID_DICT = {"count": 2, "name": "bob"}
-VALID = Item(count=2, details=Details(name="bob"))
-INVALID = Details(name="bob")
-VALID_DC = DCItem(count=2, details=DCDetails(name="bob"))
-INVALID_DC = DCDetails(name="bob")
-VALID_PyDC = PyDCItem(count=2, details=PyDCDetails(name="bob"))
-INVALID_PyDC = PyDCDetails(name="bob")
 
 
-@pytest.mark.parametrize("path", ["/", "/dc", "/pydc"])
+@pytest.mark.parametrize("type_", [AItem, DCItem, MItem, PyItem, PyDCItem])
 @pytest.mark.parametrize(
     "json, status",
     [
@@ -100,30 +91,25 @@ INVALID_PyDC = PyDCDetails(name="bob")
         (INVALID_DICT, 400),
     ],
 )
-async def test_request_validation(path: str, json: dict, status: int) -> None:
+async def test_request_validation(
+    type_: Type[Union[AItem, DCItem, MItem, PyItem, PyDCItem]],
+    json: dict,
+    status: int,
+) -> None:
     app = Quart(__name__)
     QuartSchema(app)
 
     @app.route("/", methods=["POST"])
-    @validate_request(Item)
-    async def item(data: Item) -> ResponseReturnValue:
-        return ""
-
-    @app.route("/dc", methods=["POST"])
-    @validate_request(DCItem)
-    async def dcitem(data: DCItem) -> ResponseReturnValue:
-        return ""
-
-    @app.route("/pydc", methods=["POST"])
-    @validate_request(PyDCItem)
-    async def pydcitem(data: PyDCItem) -> ResponseReturnValue:
+    @validate_request(type_)
+    async def item(data: Any) -> ResponseReturnValue:
         return ""
 
     test_client = app.test_client()
-    response = await test_client.post(path, json=json)
+    response = await test_client.post("/", json=json)
     assert response.status_code == status
 
 
+@pytest.mark.parametrize("type_", [ADetails, DCDetails, MDetails, PyDetails, PyDCDetails])
 @pytest.mark.parametrize(
     "data, status",
     [
@@ -131,13 +117,17 @@ async def test_request_validation(path: str, json: dict, status: int) -> None:
         ({"age": 2}, 400),
     ],
 )
-async def test_request_form_validation(data: dict, status: int) -> None:
+async def test_request_form_validation(
+    type_: Type[Union[ADetails, DCDetails, MDetails, PyDetails, PyDCDetails]],
+    data: dict,
+    status: int,
+) -> None:
     app = Quart(__name__)
     QuartSchema(app)
 
     @app.route("/", methods=["POST"])
-    @validate_request(Details, source=DataSource.FORM)
-    async def item(data: Details) -> ResponseReturnValue:
+    @validate_request(type_, source=DataSource.FORM)
+    async def item(data: Any) -> ResponseReturnValue:
         return ""
 
     test_client = app.test_client()
@@ -162,29 +152,24 @@ async def test_request_file_validation() -> None:
     assert (await response.get_data()) == b"ABC"  # type: ignore
 
 
+@pytest.mark.parametrize("type_", [AItem, DCItem, MItem, PyItem, PyDCItem])
 @pytest.mark.parametrize(
-    "model, return_value, status",
+    "return_value, status",
     [
-        (Item, VALID_DICT, 200),
-        (Item, INVALID_DICT, 500),
-        (Item, VALID, 200),
-        (Item, INVALID, 500),
-        (DCItem, VALID_DICT, 200),
-        (DCItem, INVALID_DICT, 500),
-        (DCItem, VALID_DC, 200),
-        (DCItem, INVALID_DC, 500),
-        (PyDCItem, VALID_DICT, 200),
-        (PyDCItem, INVALID_DICT, 500),
-        (PyDCItem, VALID_PyDC, 200),
-        (PyDCItem, INVALID_PyDC, 500),
+        (VALID_DICT, 200),
+        (INVALID_DICT, 500),
     ],
 )
-async def test_response_validation(model: Any, return_value: Any, status: int) -> None:
+async def test_response_validation(
+    type_: Type[Union[AItem, DCItem, MItem, PyItem, PyDCItem]],
+    return_value: Any,
+    status: int,
+) -> None:
     app = Quart(__name__)
     QuartSchema(app)
 
     @app.route("/")
-    @validate_response(model)
+    @validate_response(type_)
     async def item() -> ResponseReturnValue:
         return return_value
 
@@ -198,7 +183,7 @@ async def test_redirect_validation() -> None:
     QuartSchema(app)
 
     @app.route("/")
-    @validate_response(Item)
+    @validate_response(PyItem)
     async def item() -> ResponseReturnValue:
         return redirect("/b")
 
@@ -216,7 +201,7 @@ async def test_redirect_validation() -> None:
 )
 async def test_view_response_validation(return_value: Any, status: int) -> None:
     class ValidatedView(View):
-        decorators = [validate_response(Item)]
+        decorators = [validate_response(PyItem)]
         methods = ["GET"]
 
         def dispatch_request(self, **kwargs: Any) -> ResponseReturnValue:  # type: ignore
@@ -232,18 +217,21 @@ async def test_view_response_validation(return_value: Any, status: int) -> None:
     assert response.status_code == status
 
 
-async def test_websocket_validation() -> None:
+@pytest.mark.parametrize("type_", [AItem, DCItem, MItem, PyItem, PyDCItem])
+async def test_websocket_validation(
+    type_: Type[Union[AItem, DCItem, MItem, PyItem, PyDCItem]],
+) -> None:
     app = Quart(__name__)
     QuartSchema(app)
 
     @app.websocket("/ws")
     async def ws() -> None:
-        await websocket.receive_as(Item)  # type: ignore
+        await websocket.receive_as(type_)  # type: ignore
         with pytest.raises(SchemaValidationError):
-            await websocket.receive_as(Item)  # type: ignore
-        await websocket.send_as(VALID_DICT, Item)  # type: ignore
+            await websocket.receive_as(type_)  # type: ignore
+        await websocket.send_as(VALID_DICT, type_)  # type: ignore
         with pytest.raises(SchemaValidationError):
-            await websocket.send_as(VALID_DICT, Details)  # type: ignore
+            await websocket.send_as(INVALID_DICT, type_)  # type: ignore
 
     test_client = app.test_client()
     async with test_client.websocket("/ws") as test_websocket:

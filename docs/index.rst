@@ -15,7 +15,8 @@ documentation. Using Quart-Schema you can,
  * generate OpenAPI documentation from the validation,
  * on top of everything Quart can do.
 
-with Quart-Schema's validation based on the excellent `pydantic
+with Quart-Schema's validation based on either the `msgspec
+<https://github.com/jcrist/msgspec>`_ or `pydantic
 <https://github.com/samuelcolvin/pydantic/>`_ library.
 
 If you are,
@@ -23,8 +24,11 @@ If you are,
  * new to Quart-Schema then try the :ref:`quickstart`,
  * new to Quart then try the `Quart documentation
    <https://pgjones.gitlab.io/quart/>`_,
+ * new to msgspec then try the `msgspec documentation
+   <https://jcristharif.com/msgspec>`_,
  * new to Pydantic then try the `pydantic documentation
    <https://pydantic-docs.helpmanual.io/>`_,
+ * unsure which library to use, try the :ref:`validation_library`.
 
 Quart-Schema is developed on `GitHub
 <https://github.com/pgjones/quart-schema>`_. If you come across an

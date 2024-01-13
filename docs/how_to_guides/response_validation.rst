@@ -10,21 +10,74 @@ response data is correct against a schema you define. Quart-Schema
 allows validation of JSON data via decorating the route handler, as
 so,
 
-.. code-block:: python
+.. tabs::
 
-    from dataclasses import dataclass
+   .. tab:: attrs
 
-    from quart_schema import validate_response
+      .. code-block:: python
 
-    @dataclass
-    class Todo:
-        effort: int
-        task: str
+         from attrs import define
+         from quart_schema import validate_response
 
-    @app.route("/")
-    @validate_response(Todo)
-    async def index():
-        return data
+         @define
+         class Todo:
+             effort: int
+             task: str
+
+         @app.route("/")
+         @validate_response(Todo)
+         async def index():
+             return data
+
+   .. tab:: dataclasses
+
+      .. code-block:: python
+
+         from dataclasses import dataclass
+
+         from quart_schema import validate_response
+
+         @dataclass
+         class Todo:
+             effort: int
+             task: str
+
+         @app.route("/")
+         @validate_response(Todo)
+         async def index():
+             return data
+
+   .. tab:: attrs
+
+      .. code-block:: python
+
+         from msgspec import Struct
+         from quart_schema import validate_response
+
+         class Todo(Struct):
+             effort: int
+             task: str
+
+         @app.route("/")
+         @validate_response(Todo)
+         async def index():
+             return data
+
+   .. tab:: pydantic
+
+      .. code-block:: python
+
+         from pydantic import BaseModel
+         from quart_schema import validate_response
+
+         class Todo(BaseModel):
+             effort: int
+             task: str
+
+         @app.route("/")
+         @validate_response(Todo)
+         async def index():
+             return data
 
 will ensure that ``data`` represents or is a ``Todo`` object,
 e.g. these responses are allowed. Note that the typical Quart response

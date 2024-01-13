@@ -7,21 +7,74 @@ request data is correct against a schema you define. Quart-Schema
 allows validation of JSON data via decorating the route handler, as
 so,
 
-.. code-block:: python
+.. tabs::
 
-    from dataclasses import dataclass
+   .. tab:: attrs
 
-    from quart_schema import validate_request
+      .. code-block:: python
 
-    @dataclass
-    class Todo:
-        effort: int
-        task: str
+         from attrs import define
+         from quart_schema import validate_request
 
-    @app.route("/", methods=["POST'])
-    @validate_request(Todo)
-    async def index(data: Todo):
-        ...
+         @define
+         class Todo:
+             effort: int
+             task: str
+
+         @app.route("/", methods=["POST'])
+         @validate_request(Todo)
+         async def index(data: Todo):
+             ...
+
+   .. tab:: dataclasses
+
+      .. code-block:: python
+
+         from dataclasses import dataclass
+
+         from quart_schema import validate_request
+
+         @dataclass
+         class Todo:
+             effort: int
+             task: str
+
+         @app.route("/", methods=["POST'])
+         @validate_request(Todo)
+         async def index(data: Todo):
+             ...
+
+   .. tab:: msgspec
+
+      .. code-block:: python
+
+         from msgspec import Struct
+         from quart_schema import validate_request
+
+         class Todo(Struct):
+             effort: int
+             task: str
+
+         @app.route("/", methods=["POST'])
+         @validate_request(Todo)
+         async def index(data: Todo):
+             ...
+
+   .. tab:: pydantic
+
+      .. code-block:: python
+
+         from pydantic import BaseModel
+         from quart_schema import validate_request
+
+         class Todo(BaseModel):
+             effort: int
+             task: str
+
+         @app.route("/", methods=["POST'])
+         @validate_request(Todo)
+         async def index(data: Todo):
+             ...
 
 this will expect the client to send a body with JSON structured to
 match the Todo class, for example,
@@ -46,22 +99,74 @@ decorator assumes the request body is JSON encoded. If the request
 body is form (application/x-www-form-urlencoded) encoded the
 ``source`` argument can be changed to validate the form data,
 
-.. code-block:: python
+.. tabs::
 
-    from dataclasses import dataclass
+   .. tab:: attrs
 
-    from quart_schema import DataSource, validate_request
+      .. code-block:: python
 
-    @dataclass
-    class Todo:
-        effort: int
-        task: str
+         from attrs import define
+         from quart_schema import DataSource, validate_request
 
-    @app.route("/", methods=["POST'])
-    @validate_request(Todo, source=DataSource.FORM)
-    async def index(data: Todo):
-        ...
+         @define
+         class Todo:
+             effort: int
+             task: str
 
+         @app.route("/", methods=["POST'])
+         @validate_request(Todo, source=DataSource.FORM)
+         async def index(data: Todo):
+             ...
+
+   .. tab:: dataclasses
+
+      .. code-block:: python
+
+         from dataclasses import dataclass
+
+         from quart_schema import DataSource, validate_request
+
+         @dataclass
+         class Todo:
+             effort: int
+             task: str
+
+         @app.route("/", methods=["POST'])
+         @validate_request(Todo, source=DataSource.FORM)
+         async def index(data: Todo):
+             ...
+
+   .. tab:: msgspec
+
+      .. code-block:: python
+
+         from msgspec import Struct
+         from quart_schema import DataSource, validate_request
+
+         class Todo(Struct):
+             effort: int
+             task: str
+
+         @app.route("/", methods=["POST'])
+         @validate_request(Todo, source=DataSource.FORM)
+         async def index(data: Todo):
+             ...
+
+   .. tab:: pydantic
+
+      .. code-block:: python
+
+         from pydantic import BaseModel
+         from quart_schema import DataSource, validate_request
+
+         class Todo(BaseModel):
+             effort: int
+             task: str
+
+         @app.route("/", methods=["POST'])
+         @validate_request(Todo, source=DataSource.FORM)
+         async def index(data: Todo):
+             ...
 with everything working as in the JSON example above.
 
 .. note::
@@ -93,3 +198,8 @@ the ``source`` argument must be changed to validate the form data,
     @validate_request(Upload, source=DataSource.FORM_MULTIPART)
     async def index(data: Upload):
         file_content = data.file.read()
+
+
+.. warning::
+
+   This currently only works with Pydantic types and validation.

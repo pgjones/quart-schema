@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from typing import Any, AnyStr, Dict, Optional, Tuple, Type, TYPE_CHECKING, TypeVar, Union
+from typing import Any, AnyStr, Callable, Dict, List, Optional, Tuple, Type, TYPE_CHECKING, Union
 
-from pydantic import BaseModel
 from quart import Quart
 from quart.datastructures import FileStorage
 from quart.typing import (
@@ -14,20 +13,28 @@ from quart.typing import (
 from quart.wrappers import Response
 from werkzeug.datastructures import Headers
 
-if TYPE_CHECKING:
-    from pydantic.dataclasses import Dataclass
-
 try:
     from typing import Protocol
 except ImportError:
     from typing_extensions import Protocol  # type: ignore
 
+if TYPE_CHECKING:
+    from attrs import AttrsInstance
+    from msgspec import Struct
+    from pydantic import BaseModel
+    from pydantic.dataclasses import Dataclass
 
-Model = Union[Type[BaseModel], Type["Dataclass"], Type]
-PydanticModel = Union[Type[BaseModel], Type["Dataclass"]]
 
-ResponseValue = Union[QuartResponseValue, PydanticModel]
-HeadersValue = Union[QuartHeadersValue, PydanticModel]
+class DataclassProtocol(Protocol):
+    __dataclass_fields__: Dict
+    __dataclass_params__: Dict
+    __post_init__: Optional[Callable]
+
+
+ModelTypes = Union["AttrsInstance", "BaseModel", "Dataclass", "DataclassProtocol", "Struct"]
+Model = Union[ModelTypes, List[ModelTypes], Dict[str, ModelTypes]]
+ResponseValue = Union[QuartResponseValue, Type[Model]]
+HeadersValue = Union[QuartHeadersValue, Model]
 
 ResponseReturnValue = Union[
     QuartResponseReturnValue,
@@ -65,7 +72,3 @@ class TestClientProtocol(Protocol):
         scope_base: Optional[dict],
     ) -> Response:
         ...
-
-
-BM = TypeVar("BM", bound=BaseModel)
-DC = TypeVar("DC", bound="Dataclass")

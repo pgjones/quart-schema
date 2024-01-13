@@ -1,5 +1,6 @@
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Type
 
+import pytest
 from pydantic import Field
 from pydantic.dataclasses import dataclass
 from quart import Quart
@@ -14,17 +15,13 @@ from quart_schema import (
     validate_request,
     validate_response,
 )
+from quart_schema.typing import Model
+from .helpers import ADetails, DCDetails, MDetails, PyDCDetails, PyDetails
 
 
 @dataclass
 class QueryItem:
     count_le: Optional[int] = Field(description="count_le description")
-
-
-@dataclass
-class Details:
-    name: str
-    age: Optional[int] = None
 
 
 @dataclass
@@ -41,7 +38,17 @@ class Headers:
     )
 
 
-async def test_openapi() -> None:
+@pytest.mark.parametrize(
+    "type_, titles",
+    [
+        (ADetails, False),
+        (DCDetails, True),
+        (MDetails, False),
+        (PyDetails, True),
+        (PyDCDetails, True),
+    ],
+)
+async def test_openapi(type_: Type[Model], titles: bool) -> None:
     app = Quart(__name__)
     QuartSchema(app)
 
@@ -62,7 +69,7 @@ async def test_openapi() -> None:
         return Result(name="bob"), 200, Headers(x_name="jeff")
 
     @app.post("/")
-    @validate_request(Details)
+    @validate_request(type_)
     @validate_response(Result, 201, Headers)
     @operation_id("make_item")
     @deprecate()
@@ -76,9 +83,11 @@ async def test_openapi() -> None:
     test_client = app.test_client()
     response = await test_client.get("/openapi.json")
 
-    assert (await response.get_json()) == {
+    result = await response.get_json()
+
+    expected = {
         "components": {"schemas": {}},
-        "info": {"title": "test_openapi", "version": "0.1.0"},
+        "info": {"title": "tests.test_openapi", "version": "0.1.0"},
         "openapi": "3.1.0",
         "paths": {
             "/": {
@@ -156,7 +165,7 @@ async def test_openapi() -> None:
                                         "name": {"title": "Name", "type": "string"},
                                     },
                                     "required": ["name"],
-                                    "title": "Details",
+                                    "title": type_.__name__,
                                     "type": "object",
                                 }
                             }
@@ -192,6 +201,14 @@ async def test_openapi() -> None:
             }
         },
     }
+    if not titles:
+        del expected["paths"]["/"]["post"]["requestBody"]["content"][  # type: ignore
+            "application/json"
+        ]["schema"]["properties"]["name"]["title"]
+        del expected["paths"]["/"]["post"]["requestBody"]["content"][  # type: ignore
+            "application/json"
+        ]["schema"]["properties"]["age"]["title"]
+    assert result == expected
 
 
 async def test_security_schemes() -> None:

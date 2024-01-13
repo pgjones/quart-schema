@@ -1,34 +1,23 @@
-from typing import Optional
+from typing import Type, Union
 
 import pytest
 from hypothesis import given, strategies as st
-from pydantic import BaseModel
-from pydantic.dataclasses import dataclass
 from quart import Quart
 
-from quart_schema import DataSource, QuartSchema, ResponseReturnValue, validate_request
-from quart_schema.typing import PydanticModel
+from quart_schema import DataSource, QuartSchema, validate_request
+from .helpers import ADetails, DCDetails, MDetails, PyDCDetails, PyDetails
+
+Models = Union[ADetails, DCDetails, MDetails, PyDetails, PyDCDetails]
 
 
-@dataclass
-class DCDetails:
-    name: str
-    age: Optional[int] = None
-
-
-class Details(BaseModel):
-    name: str
-    age: Optional[int]
-
-
-@pytest.mark.parametrize("type_", [DCDetails, Details])
-async def test_send_json(type_: PydanticModel) -> None:
+@pytest.mark.parametrize("type_", [ADetails, DCDetails, MDetails, PyDetails, PyDCDetails])
+async def test_send_json(type_: Type[Models]) -> None:
     app = Quart(__name__)
     QuartSchema(app)
 
     @app.route("/", methods=["POST"])
     @validate_request(type_)
-    async def index(data: PydanticModel) -> ResponseReturnValue:
+    async def index(data: Models) -> Models:
         return data
 
     test_client = app.test_client()
@@ -36,14 +25,14 @@ async def test_send_json(type_: PydanticModel) -> None:
     assert (await response.get_json()) == {"name": "bob", "age": 2}
 
 
-@pytest.mark.parametrize("type_", [DCDetails, Details])
-async def test_send_form(type_: PydanticModel) -> None:
+@pytest.mark.parametrize("type_", [ADetails, DCDetails, MDetails, PyDetails, PyDCDetails])
+async def test_send_form(type_: Type[Models]) -> None:
     app = Quart(__name__)
     QuartSchema(app)
 
     @app.route("/", methods=["POST"])
     @validate_request(type_, source=DataSource.FORM)
-    async def index(data: PydanticModel) -> PydanticModel:
+    async def index(data: Models) -> Models:
         return data
 
     test_client = app.test_client()

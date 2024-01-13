@@ -12,21 +12,74 @@ Request headers
 Request headers can be validated against a schema you define by
 decorating the route handler, as so,
 
-.. code-block:: python
+.. tabs::
 
-    from dataclasses import dataclass
+   .. tab:: attrs
 
-    from quart_schema import validate_headers
+      .. code-block:: python
 
-    @dataclass
-    class Headers:
-        x_required: str
-        x_optional: int | None = None
+         from attrs import define
+         from quart_schema import validate_headers
 
-    @app.route("/")
-    @validate_headers(Headers)
-    async def index(headers: Headers):
-        ...
+         @define
+         class Headers:
+             x_required: str
+             x_optional: int | None = None
+
+         @app.route("/")
+         @validate_headers(Headers)
+         async def index(headers: Headers):
+             ...
+
+   .. tab:: dataclasses
+
+      .. code-block:: python
+
+         from dataclasses import dataclass
+
+         from quart_schema import validate_headers
+
+         @dataclass
+         class Headers:
+             x_required: str
+             x_optional: int | None = None
+
+         @app.route("/")
+         @validate_headers(Headers)
+         async def index(headers: Headers):
+             ...
+
+   .. tab:: msgspec
+
+      .. code-block:: python
+
+         from msgspec import Struct
+         from quart_schema import validate_headers
+
+         class Headers(Struct):
+             x_required: str
+             x_optional: int | None = None
+
+         @app.route("/")
+         @validate_headers(Headers)
+         async def index(headers: Headers):
+             ...
+
+   .. tab:: pydantic
+
+      .. code-block:: python
+
+         from pydantic import BaseModel
+         from quart_schema import validate_headers
+
+         class Headers(BaseModel):
+             x_required: str
+             x_optional: int | None = None
+
+         @app.route("/")
+         @validate_headers(Headers)
+         async def index(headers: Headers):
+             ...
 
 this will require the client adds a ``X-Required`` header to the
 request and optionally ``X-Optional`` of type int.
@@ -65,22 +118,78 @@ Response headers
 Request headers can be validated alongside the response body bt
 decorating the route handler with a relevant schema, as so,
 
-.. code-block:: python
+.. tabs::
 
-    from dataclasses import dataclass
+   .. tab:: attrs
 
-    from quart_schema import validate_response
+      .. code-block:: python
 
-    @dataclass
-    class Headers:
-        x_required: str
-        x_optional: int | None = None
+         from attrs import define
+         from quart_schema import validate_response
 
-    @app.route("/")
-    @validate_response(Body, 200, Headers)
-    async def index():
-        ...
-        return body, 200, headers
+         @define
+         class Headers:
+             x_required: str
+             x_optional: int | None = None
+
+         @app.route("/")
+         @validate_response(Body, 200, Headers)
+         async def index():
+             ...
+             return body, 200, headers
+
+   .. tab:: dataclasses
+
+      .. code-block:: python
+
+         from dataclasses import dataclass
+
+         from quart_schema import validate_response
+
+         @dataclass
+         class Headers:
+             x_required: str
+             x_optional: int | None = None
+
+         @app.route("/")
+         @validate_response(Body, 200, Headers)
+         async def index():
+             ...
+             return body, 200, headers
+
+   .. tab:: msgspec
+
+      .. code-block:: python
+
+         from msgspec import Struct
+         from quart_schema import validate_response
+
+         class Headers(Struct):
+             x_required: str
+             x_optional: int | None = None
+
+         @app.route("/")
+         @validate_response(Body, 200, Headers)
+         async def index():
+             ...
+             return body, 200, headers
+
+   .. tab:: pydantic
+
+      .. code-block:: python
+
+         from pydantic import BaseModel
+         from quart_schema import validate_response
+
+         class Headers(BaseModel):
+             x_required: str
+             x_optional: int | None = None
+
+         @app.route("/")
+         @validate_response(Body, 200, Headers)
+         async def index():
+             ...
+             return body, 200, headers
 
 this will require that the headers variable adds a ``X-Required``
 header to the response and optionally ``X-Optional`` of type int. The
