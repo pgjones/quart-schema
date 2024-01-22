@@ -473,7 +473,7 @@ def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
     for status_code in response_models.keys():
         model_class, headers_model_class = response_models[status_code]
         schema = model_schema(
-            model_class, preference=current_app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"]
+            model_class, preference=app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"]
         )
         definitions, schema = _split_convert_definitions(
             schema, app.config["QUART_SCHEMA_CONVERT_CASING"]
@@ -493,7 +493,7 @@ def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
         if headers_model_class is not None:
             schema = model_schema(
                 headers_model_class,
-                preference=current_app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"],
+                preference=app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"],
             )
             definitions, schema = _split_definitions(schema)
             components.update(definitions)
@@ -508,7 +508,7 @@ def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
     request_data = getattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, None)
     if request_data is not None:
         schema = model_schema(
-            request_data[0], preference=current_app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"]
+            request_data[0], preference=app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"]
         )
         definitions, schema = _split_convert_definitions(
             schema, app.config["QUART_SCHEMA_CONVERT_CASING"]
@@ -533,7 +533,7 @@ def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
     querystring_model = getattr(func, QUART_SCHEMA_QUERYSTRING_ATTRIBUTE, None)
     if querystring_model is not None:
         schema = model_schema(
-            querystring_model, preference=current_app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"]
+            querystring_model, preference=app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"]
         )
         definitions, schema = _split_convert_definitions(
             schema, app.config["QUART_SCHEMA_CONVERT_CASING"]
@@ -551,7 +551,7 @@ def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
     headers_model = getattr(func, QUART_SCHEMA_HEADERS_ATTRIBUTE, None)
     if headers_model is not None:
         schema = model_schema(
-            headers_model, preference=current_app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"]
+            headers_model, preference=app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"]
         )
         definitions, schema = _split_definitions(schema)
         components.update(definitions)
