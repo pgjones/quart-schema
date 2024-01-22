@@ -1,3 +1,15 @@
+0.19.0 2024-01-22
+-----------------
+
+* Support msgspec and attrs alongside Pydantic. This results in
+  pydantic being an optional extra (install quart-schema[pydantic] to
+  continue previous usage).
+* Add ScalaR documentation UI support.
+* Switch the openapi structure classes to stdlib dataclasses.
+* Improve the make_response performance for pydantic dataclasses.
+* Simplify the pydantic usage via the TypeAdapter thereby allowing for
+  list and dict top level models.
+
 0.18.0 2023-11-12
 -----------------
 
