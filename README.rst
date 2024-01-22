@@ -53,8 +53,10 @@ methods.
 The documentation is served by default at ``/openapi.json`` according
 to the OpenAPI standard, or at ``/docs`` for a `SwaggerUI
 <https://swagger.io/tools/swagger-ui/>`_ interface, or ``/redocs`` for
-a `redoc <https://github.com/Redocly/redoc>`_ interface. Note that
-there is currently no documentation standard for WebSockets.
+a `redoc <https://github.com/Redocly/redoc>`_ interface, or
+``/scalar`` for a `ScalaR <https://github.com/ScalaR/ScalaR>`_
+interface. Note that there is currently no documentation standard for
+WebSockets.
 
 Contributing
 ------------

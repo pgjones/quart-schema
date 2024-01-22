@@ -84,6 +84,21 @@ REDOC_TEMPLATE = """
 </body>
 """
 
+SCALAR_TEMPLATE = """
+<head>
+  <title>{{ title }}</title>
+  <style>
+    body {
+      margin: 0;
+    }
+  </style>
+</head>
+<body>
+  <script data-url="{{ openapi_path }}"></script>
+  <script src="{{ scalar_js_url }}"></script>
+</body>
+"""
+
 SWAGGER_TEMPLATE = """
 <head>
   <link type="text/css" rel="stylesheet" href="{{ swagger_css_url }}">
@@ -159,6 +174,8 @@ class QuartSchema:
             to disable documentation.
         redoc_ui_path: The path used to serve the documentation UI using
             redoc or None to disable redoc documentation.
+        scalar_ui_path: The path used to serve the documentation UI using
+            scalar or None to disable scalar documentation.
         swagger_ui_path: The path used to serve the documentation UI using
             swagger or None to disable swagger documentation.
         info: A OpenAPI Info object describing the API.
@@ -176,6 +193,7 @@ class QuartSchema:
         *,
         openapi_path: Optional[str] = "/openapi.json",
         redoc_ui_path: Optional[str] = "/redocs",
+        scalar_ui_path: Optional[str] = "/scalar",
         swagger_ui_path: Optional[str] = "/docs",
         info: Optional[Union[Info, dict]] = None,
         tags: Optional[List[Union[Tag, dict]]] = None,
@@ -188,6 +206,7 @@ class QuartSchema:
     ) -> None:
         self.openapi_path = openapi_path
         self.redoc_ui_path = redoc_ui_path
+        self.scalar_ui_path = scalar_ui_path
         self.swagger_ui_path = swagger_ui_path
 
         self.convert_casing = convert_casing
@@ -263,6 +282,10 @@ class QuartSchema:
             "QUART_SCHEMA_REDOC_JS_URL",
             "https://cdn.jsdelivr.net/npm/redoc@next/bundles/redoc.standalone.js",
         )
+        app.config.setdefault(
+            "QUART_SCHEMA_SCALAR_JS_URL",
+            "https://cdn.jsdelivr.net/npm/@scalar/api-reference",
+        )
         app.config.setdefault("QUART_SCHEMA_BY_ALIAS", False)
         app.config.setdefault("QUART_SCHEMA_CONVERT_CASING", self.convert_casing)
         app.config.setdefault("QUART_SCHEMA_CONVERSION_PREFERENCE", self.conversion_preference)
@@ -271,6 +294,8 @@ class QuartSchema:
             app.add_url_rule(self.openapi_path, "openapi", self.openapi)
             if self.redoc_ui_path is not None:
                 app.add_url_rule(self.redoc_ui_path, "redoc_ui", self.redoc_ui)
+            if self.scalar_ui_path is not None:
+                app.add_url_rule(self.scalar_ui_path, "scalar_ui", self.scalar_ui)
             if self.swagger_ui_path is not None:
                 app.add_url_rule(self.swagger_ui_path, "swagger_ui", self.swagger_ui)
 
@@ -297,6 +322,15 @@ class QuartSchema:
             title=self.info.title,
             openapi_path=self.openapi_path,
             redoc_js_url=current_app.config["QUART_SCHEMA_REDOC_JS_URL"],
+        )
+
+    @hide
+    async def scalar_ui(self) -> str:
+        return await render_template_string(
+            SCALAR_TEMPLATE,
+            title=self.info.title,
+            openapi_path=self.openapi_path,
+            scalar_js_url=current_app.config["QUART_SCHEMA_SCALAR_JS_URL"],
         )
 
 
