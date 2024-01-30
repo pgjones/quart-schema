@@ -94,7 +94,7 @@ SCALAR_TEMPLATE = """
   </style>
 </head>
 <body>
-  <script data-url="{{ openapi_path }}"></script>
+  <script id="api-reference" data-url="{{ openapi_path }}"></script>
   <script src="{{ scalar_js_url }}"></script>
 </body>
 """
