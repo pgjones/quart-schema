@@ -46,11 +46,9 @@ ResponseReturnValue = Union[
 
 
 class WebsocketProtocol(Protocol):
-    async def receive_json(self) -> dict:
-        ...
+    async def receive_json(self) -> dict: ...
 
-    async def send_json(self, data: dict) -> None:
-        ...
+    async def send_json(self, data: dict) -> None: ...
 
 
 class TestClientProtocol(Protocol):
@@ -70,5 +68,4 @@ class TestClientProtocol(Protocol):
         root_path: str,
         http_version: str,
         scope_base: Optional[dict],
-    ) -> Response:
-        ...
+    ) -> Response: ...

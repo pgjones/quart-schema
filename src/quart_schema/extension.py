@@ -145,7 +145,6 @@ def hide(func: Callable) -> Callable:
 
 
 class QuartSchema:
-
     """A Quart-Schema instance.
 
     This can be used to initialise Quart-Schema documentation a given
@@ -593,9 +592,9 @@ def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
         per_method_operation_object = operation_object.copy()
 
         if getattr(func, QUART_SCHEMA_OPERATION_ID_ATTRIBUTE, None) is not None:
-            per_method_operation_object[
-                "operationId"
-            ] = f"{method.lower()}_{getattr(func, QUART_SCHEMA_OPERATION_ID_ATTRIBUTE)}"
+            per_method_operation_object["operationId"] = (
+                f"{method.lower()}_{getattr(func, QUART_SCHEMA_OPERATION_ID_ATTRIBUTE)}"
+            )
         else:
             per_method_operation_object["operationId"] = f"{method.lower()}_{func.__name__}"
 

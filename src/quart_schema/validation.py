@@ -69,9 +69,11 @@ def validate_querystring(model_class: Type[Model]) -> Callable:
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             request_args = {
-                key: request.args.getlist(key)
-                if len(request.args.getlist(key)) > 1
-                else request.args[key]
+                key: (
+                    request.args.getlist(key)
+                    if len(request.args.getlist(key)) > 1
+                    else request.args[key]
+                )
                 for key in request.args
             }
             model = model_load(
