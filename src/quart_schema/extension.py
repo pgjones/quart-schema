@@ -40,7 +40,12 @@ from .validation import (
 try:
     from pydantic_core import to_jsonable_python
 except ImportError:
-    from msgspec import to_builtins as to_jsonable_python  # type: ignore
+    to_jsonable_python = None
+
+try:
+    from msgspec import to_builtins
+except ImportError:
+    to_builtins = None
 
 
 SecurityScheme = Union[
@@ -125,13 +130,23 @@ SWAGGER_TEMPLATE = """
 """
 
 
-class JSONProvider(DefaultJSONProvider):
-    @staticmethod
-    def default(object_: Any) -> Any:
-        try:
-            return super().default(object_)
-        except TypeError:
-            return to_jsonable_python(object_)
+def create_json_provider(app: Quart) -> DefaultJSONProvider:
+    preference = app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"]
+
+    class JSONProvider(DefaultJSONProvider):
+        @staticmethod
+        def default(object_: Any) -> Any:
+            try:
+                return super().default(object_)
+            except TypeError:
+                if to_jsonable_python is not None and preference != "msgspec":
+                    return to_jsonable_python(object_)
+                elif to_builtins is not None and preference != "pydantic":
+                    return to_builtins(object_)
+                else:
+                    raise
+
+    return JSONProvider(app)
 
 
 def hide(func: Callable) -> Callable:
@@ -262,7 +277,6 @@ class QuartSchema:
         if self.info is None:
             self.info = Info(title=app.name, version="0.1.0")
 
-        app.json = JSONProvider(app)
         app.test_client_class = new_class("TestClient", (TestClientMixin, app.test_client_class))
         app.websocket_class = new_class(  # type: ignore
             "Websocket", (WebsocketMixin, app.websocket_class)
@@ -288,6 +302,8 @@ class QuartSchema:
         app.config.setdefault("QUART_SCHEMA_BY_ALIAS", False)
         app.config.setdefault("QUART_SCHEMA_CONVERT_CASING", self.convert_casing)
         app.config.setdefault("QUART_SCHEMA_CONVERSION_PREFERENCE", self.conversion_preference)
+        app.json = create_json_provider(app)
+
         if self.openapi_path is not None:
             hide(app.send_static_file.__func__)  # type: ignore
             app.add_url_rule(self.openapi_path, "openapi", self.openapi)
