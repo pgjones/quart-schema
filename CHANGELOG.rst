@@ -1,3 +1,10 @@
+0.19.1 2024-02-13
+-----------------
+
+* Bugfix the Scalar template.
+* Improve the error message if neither msgpec nor pydantic installed.
+* Use msgpec JSON conversion if Pydantic isn't installed.
+
 0.19.0 2024-01-22
 -----------------
 
