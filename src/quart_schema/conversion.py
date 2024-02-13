@@ -191,6 +191,8 @@ def model_load(
             )
         ):
             return convert(data, model_class, strict=False)  # type: ignore
+        elif not PYDANTIC_INSTALLED and not MSGSPEC_INSTALLED:
+            raise TypeError(f"Cannot load {model_class} - try installing msgspec or pydantic")
         else:
             raise TypeError(f"Cannot load {model_class}")
     except (TypeError, MsgSpecValidationError, PydanticValidationError, ValueError) as error:
@@ -213,6 +215,10 @@ def model_schema(model_class: Type[Model], *, preference: Optional[str] = None) 
     ):
         _, schema = schema_components([model_class], ref_template=MSGSPEC_REF_TEMPLATE)
         return list(schema.values())[0]
+    elif not PYDANTIC_INSTALLED and not MSGSPEC_INSTALLED:
+        raise TypeError(
+            f"Cannot create schema for {model_class} - try installing msgspec or pydantic"
+        )
     else:
         raise TypeError(f"Cannot create schema for {model_class}")
 
