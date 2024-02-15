@@ -130,7 +130,7 @@ def model_dump(
     kebabize: bool = False,
     preference: Optional[str] = None,
 ) -> dict | list:
-    if is_pydantic_dataclass(raw):  # type: ignore
+    if is_pydantic_dataclass(type(raw)):
         value = RootModel[type(raw)](raw).model_dump()  # type: ignore
     elif isinstance(raw, BaseModel):
         value = raw.model_dump(by_alias=by_alias)
