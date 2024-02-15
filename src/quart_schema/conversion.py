@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from dataclasses import fields, is_dataclass
-from typing import Any, Optional, Type, TypeVar, Union
+from inspect import isclass
+from typing import Any, Dict, List, Optional, Type, TypeVar, Union
 
 import humps
 from quart import current_app
@@ -160,7 +161,7 @@ def model_dump(
 
 
 def model_load(
-    data: dict,
+    data: Union[dict, list],
     model_class: Type[T],
     exception_class: Type[Exception],
     *,
@@ -171,26 +172,10 @@ def model_load(
         data = humps.decamelize(data)
 
     try:
-        if (
-            is_pydantic_dataclass(model_class)
-            or issubclass(model_class, BaseModel)
-            or (
-                (isinstance(model_class, (list, dict)) or is_dataclass(model_class))
-                and PYDANTIC_INSTALLED
-                and preference != "msgspec"
-            )
-        ):
-            return TypeAdapter(model_class).validate_python(data)  # type: ignore
-        elif (
-            issubclass(model_class, Struct)
-            or is_attrs(model_class)
-            or (
-                (isinstance(model_class, (list, dict)) or is_dataclass(model_class))
-                and MSGSPEC_INSTALLED
-                and preference != "pydantic"
-            )
-        ):
-            return convert(data, model_class, strict=False)  # type: ignore
+        if _use_pydantic(model_class, preference):
+            return TypeAdapter(model_class).validate_python(data)
+        elif _use_msgspec(model_class, preference):
+            return convert(data, model_class, strict=False)
         elif not PYDANTIC_INSTALLED and not MSGSPEC_INSTALLED:
             raise TypeError(f"Cannot load {model_class} - try installing msgspec or pydantic")
         else:
@@ -200,19 +185,9 @@ def model_load(
 
 
 def model_schema(model_class: Type[Model], *, preference: Optional[str] = None) -> dict:
-    if (
-        is_pydantic_dataclass(model_class)
-        or issubclass(model_class, BaseModel)
-        or (isinstance(model_class, (list, dict)) and preference != "msgspec")
-        or (is_dataclass(model_class) and preference != "msgspec")
-    ):
+    if _use_pydantic(model_class, preference):
         return TypeAdapter(model_class).json_schema(ref_template=PYDANTIC_REF_TEMPLATE)
-    elif (
-        issubclass(model_class, Struct)
-        or is_attrs(model_class)
-        or (isinstance(model_class, (list, dict)) and preference != "pydantic")
-        or (is_dataclass(model_class) and preference != "pydantic")
-    ):
+    elif _use_msgspec(model_class, preference):
         _, schema = schema_components([model_class], ref_template=MSGSPEC_REF_TEMPLATE)
         return list(schema.values())[0]
     elif not PYDANTIC_INSTALLED and not MSGSPEC_INSTALLED:
@@ -230,12 +205,12 @@ def convert_headers(
         fields_ = set(model_class.__pydantic_fields__.keys())
     elif is_dataclass(model_class):
         fields_ = {field.name for field in fields(model_class)}
-    elif issubclass(model_class, BaseModel):
+    elif isclass(model_class) and issubclass(model_class, BaseModel):
         fields_ = set(model_class.model_fields.keys())
+    elif isclass(model_class) and issubclass(model_class, Struct):
+        fields_ = set(model_class.__struct_fields__)
     elif is_attrs(model_class):
         fields_ = {field.name for field in attrs_fields(model_class)}
-    elif issubclass(model_class, Struct):
-        fields_ = set(model_class.__struct_fields__)
     else:
         raise TypeError(f"Cannot convert to {model_class}")
 
@@ -252,3 +227,32 @@ def convert_headers(
         return model_class(**result)
     except (TypeError, MsgSpecValidationError, ValueError) as error:
         raise exception_class(error)
+
+
+def _is_list_or_dict(type_: Type) -> bool:
+    origin = getattr(type_, "__origin__", None)
+    return origin in (dict, Dict, list, List)
+
+
+def _use_pydantic(model_class: Type, preference: Optional[str]) -> bool:
+    return (
+        is_pydantic_dataclass(model_class)
+        or (isclass(model_class) and issubclass(model_class, BaseModel))
+        or (
+            (_is_list_or_dict(model_class) or is_dataclass(model_class))
+            and PYDANTIC_INSTALLED
+            and preference != "msgspec"
+        )
+    )
+
+
+def _use_msgspec(model_class: Type, preference: Optional[str]) -> bool:
+    return (
+        (isclass(model_class) and issubclass(model_class, Struct))
+        or is_attrs(model_class)
+        or (
+            (_is_list_or_dict(model_class) or is_dataclass(model_class))
+            and MSGSPEC_INSTALLED
+            and preference != "pydantic"
+        )
+    )

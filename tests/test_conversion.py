@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Type, Union
+from typing import List, Type, Union
 
 import pytest
 from attrs import define
@@ -52,6 +52,29 @@ def test_model_load(
     assert model_load({"name": "bob", "age": 2}, type_, exception_class=ValidationError) == type_(
         name="bob", age=2
     )
+
+
+@pytest.mark.parametrize(
+    "type_, preference",
+    [
+        (ADetails, "msgspec"),
+        (DCDetails, "msgspec"),
+        (DCDetails, "pydantic"),
+        (MDetails, "msgspec"),
+        (PyDetails, "pydantic"),
+        (PyDCDetails, "pydantic"),
+    ],
+)
+def test_model_load_list(
+    type_: Type[Union[ADetails, DCDetails, MDetails, PyDetails, PyDCDetails]],
+    preference: str,
+) -> None:
+    assert model_load(
+        [{"name": "bob", "age": 2}],
+        List[type_],  # type: ignore
+        exception_class=ValidationError,
+        preference=preference,
+    ) == [type_(name="bob", age=2)]
 
 
 @pytest.mark.parametrize("type_", [ADetails, DCDetails, MDetails, PyDetails, PyDCDetails])
