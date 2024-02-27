@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import fields, is_dataclass
 from inspect import isclass
-from typing import Any, Dict, List, Optional, Type, TypeVar, Union
+from typing import Any, Dict, List, Literal, Optional, Type, TypeVar, Union
 
 import humps
 from quart import current_app
@@ -72,6 +72,8 @@ PYDANTIC_REF_TEMPLATE = "#/components/schemas/{model}"
 MSGSPEC_REF_TEMPLATE = "#/components/schemas/{name}"
 
 T = TypeVar("T", bound=Model)
+
+JsonSchemaMode = Literal['validation', 'serialization']
 
 
 def convert_response_return_value(
@@ -184,9 +186,9 @@ def model_load(
         raise exception_class(error)
 
 
-def model_schema(model_class: Type[Model], *, preference: Optional[str] = None) -> dict:
+def model_schema(model_class: Type[Model], *, preference: Optional[str] = None, schema_mode: JsonSchemaMode = "validation") -> dict:
     if _use_pydantic(model_class, preference):
-        return TypeAdapter(model_class).json_schema(ref_template=PYDANTIC_REF_TEMPLATE)
+        return TypeAdapter(model_class).json_schema(ref_template=PYDANTIC_REF_TEMPLATE, mode=schema_mode)
     elif _use_msgspec(model_class, preference):
         _, schema = schema_components([model_class], ref_template=MSGSPEC_REF_TEMPLATE)
         return list(schema.values())[0]
