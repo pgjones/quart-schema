@@ -1,8 +1,10 @@
 from typing import Dict, List, Optional, Tuple, Type
+from typing_extensions import Annotated
 
 import pytest
-from pydantic import Field
+from pydantic import BaseModel, Field, computed_field
 from pydantic.dataclasses import dataclass
+from pydantic.functional_serializers import PlainSerializer
 from quart import Quart
 
 from quart_schema import (
@@ -265,3 +267,39 @@ async def test_openapi_refs() -> None:
         "properties"
     ]["resources"]["items"]["$ref"]
     assert ref[len("#/components/schemas/") :] in schema["components"]["schemas"].keys()
+
+
+class EmployeeWithComputedField(BaseModel):
+    first_name: str
+    last_name: str
+
+    @computed_field
+    @property
+    def full_name(self) -> str:
+        return f"{self.first_name} {self.last_name}"
+
+
+async def test_response_model_with_computed_field():
+    """
+    Test that routes returning a response model that has one or more computed fields have the
+    appropriate properties in the generated JSON schema.
+    """
+    app = Quart(__name__)
+    QuartSchema(app, convert_casing=True)
+
+    @app.route("/")
+    @validate_response(EmployeeWithComputedField)
+    async def index() -> EmployeeWithComputedField:
+        return EmployeeWithComputedField(first_name="Jane", last_name="Doe")
+
+    test_client = app.test_client()
+    response = await test_client.get("/openapi.json")
+    schema = await response.get_json()
+
+    response_properties = schema["paths"]["/"]["get"]["responses"]["200"]["content"][
+        "application/json"
+    ]["schema"]["properties"]
+
+    assert "firstName" in response_properties
+    assert "lastName" in response_properties
+    assert "fullName" in response_properties
