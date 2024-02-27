@@ -488,7 +488,9 @@ def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
     for status_code in response_models.keys():
         model_class, headers_model_class = response_models[status_code]
         schema = model_schema(
-            model_class, preference=app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"]
+            model_class,
+            preference=app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"],
+            schema_mode="serialization",
         )
         definitions, schema = _split_convert_definitions(
             schema, app.config["QUART_SCHEMA_CONVERT_CASING"]
