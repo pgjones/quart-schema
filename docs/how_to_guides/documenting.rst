@@ -41,7 +41,7 @@ To mark a route as deprecated use the
      from quart_schema import deprecate
 
      @app.route("/")
-     @deprecate
+     @deprecate()
      async def index():
          ...
 
