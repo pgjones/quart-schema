@@ -387,6 +387,13 @@ def _split_convert_definitions(schema: dict, convert_casing: bool) -> Tuple[dict
     return definitions, new_schema
 
 
+def _get_content_type(header_schema: dict, default: str) -> str:
+    for header_name, header_value in header_schema["properties"].items():
+        if header_name.lower().replace("_", "-") == "content-type" and "const" in header_value:
+            return header_value["const"]
+    return default
+
+
 def wrap_make_response(func: Callable) -> Callable:
     @wraps(func)
     async def decorator(result: ResponseReturnValue) -> QuartResponseReturnValue:
@@ -494,9 +501,27 @@ def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
             schema, app.config["QUART_SCHEMA_CONVERT_CASING"]
         )
         components.update(definitions)
+
+        if headers_model_class is not None:
+            header_schema = model_schema(
+                headers_model_class, preference=app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"]
+            )
+            definitions, header_schema = _split_definitions(header_schema)
+            components.update(definitions)
+            response_headers = {  # type: ignore
+                name.replace("_", "-"): {
+                    "schema": type_,
+                }
+                for name, type_ in header_schema["properties"].items()
+            }
+            content_type = _get_content_type(header_schema, default="application/json")
+        else:
+            response_headers = None
+            content_type = "application/json"
+
         response_object = {
             "content": {
-                "application/json": {
+                content_type: {
                     "schema": schema,
                 },
             },
@@ -504,20 +529,9 @@ def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
         }
         if model_class.__doc__ is not None:
             response_object["description"] = inspect.getdoc(model_class)
+        if response_headers is not None:
+            response_object["content"]["headers"] = response_headers
 
-        if headers_model_class is not None:
-            schema = model_schema(
-                headers_model_class,
-                preference=app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"],
-            )
-            definitions, schema = _split_definitions(schema)
-            components.update(definitions)
-            response_object["content"]["headers"] = {  # type: ignore
-                name.replace("_", "-"): {
-                    "schema": type_,
-                }
-                for name, type_ in schema["properties"].items()
-            }
         operation_object["responses"][status_code] = response_object
 
     request_data = getattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, None)
