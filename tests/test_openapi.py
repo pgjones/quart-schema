@@ -1,4 +1,4 @@
-from typing import Dict, List, Optional, Tuple, Type
+from typing import Dict, List, Literal, Optional, Tuple, Type
 
 import pytest
 from pydantic import Field
@@ -15,6 +15,7 @@ from quart_schema import (
     validate_request,
     validate_response,
 )
+from quart_schema.documentation import document_response
 from quart_schema.typing import Model
 from .helpers import ADetails, DCDetails, MDetails, PyDCDetails, PyDetails
 
@@ -265,3 +266,25 @@ async def test_openapi_refs() -> None:
         "properties"
     ]["resources"]["items"]["$ref"]
     assert ref[len("#/components/schemas/") :] in schema["components"]["schemas"].keys()
+
+
+@dataclass
+class TextPlainHeaders:
+    content_type: Literal["text/plain"]
+
+
+async def test_openapi_response_content_type() -> None:
+    app = Quart(__name__)
+    QuartSchema(app, convert_casing=True)
+
+    @app.route("/")
+    @document_response(Result, 200, TextPlainHeaders)
+    async def index() -> str:
+        return Result(name="bob").name
+
+    test_client = app.test_client()
+    response = await test_client.get("/openapi.json")
+    schema = await response.get_json()
+    content_types = schema["paths"]["/"]["get"]["responses"]["200"]["content"]
+    assert "text/plain" in content_types
+    assert "application/json" not in content_types
