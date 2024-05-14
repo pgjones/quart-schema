@@ -433,15 +433,11 @@ def tag(tags: Iterable[str]) -> Callable:
     return decorator
 
 
-def deprecate() -> Callable:
+def deprecate(func: Callable) -> Callable:
     """Mark endpoint as deprecated."""
+    setattr(func, QUART_SCHEMA_DEPRECATED, True)
 
-    def decorator(func: Callable) -> Callable:
-        setattr(func, QUART_SCHEMA_DEPRECATED, True)
-
-        return func
-
-    return decorator
+    return func
 
 
 def security_scheme(schemes: Iterable[Dict[str, List[str]]]) -> Callable:

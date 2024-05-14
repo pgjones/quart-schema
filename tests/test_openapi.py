@@ -74,7 +74,7 @@ async def test_openapi(type_: Type[Model], titles: bool) -> None:
     @validate_request(type_)
     @validate_response(Result, 201, Headers)
     @operation_id("make_item")
-    @deprecate()
+    @deprecate
     async def create_item() -> Tuple[Result, int, Headers]:
         return Result(name="bob"), 201, Headers(x_name="jeff")
 
