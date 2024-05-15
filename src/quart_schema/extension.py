@@ -29,6 +29,7 @@ from .openapi import (
     Server,
     Tag,
 )
+from .typing import PydanticDumpOptions
 from .validation import (
     DataSource,
     QUART_SCHEMA_HEADERS_ATTRIBUTE,
@@ -217,6 +218,7 @@ class QuartSchema:
         security: Optional[List[Dict[str, List[str]]]] = None,
         external_docs: Optional[Union[ExternalDocumentation, dict]] = None,
         conversion_preference: Literal["msgspec", "pydantic", None] = None,
+        pydantic_dump_options: Optional[PydanticDumpOptions] = None,
     ) -> None:
         self.openapi_path = openapi_path
         self.redoc_ui_path = redoc_ui_path
@@ -225,6 +227,7 @@ class QuartSchema:
 
         self.convert_casing = convert_casing
         self.conversion_preference = conversion_preference
+        self.pydantic_dump_options = {} if pydantic_dump_options is None else pydantic_dump_options
 
         self.info: Optional[Info] = None
         if info is not None:
@@ -299,7 +302,7 @@ class QuartSchema:
             "QUART_SCHEMA_SCALAR_JS_URL",
             "https://cdn.jsdelivr.net/npm/@scalar/api-reference",
         )
-        app.config.setdefault("QUART_SCHEMA_PYDANTIC_DUMP_OPTIONS", {})
+        app.config.setdefault("QUART_SCHEMA_PYDANTIC_DUMP_OPTIONS", self.pydantic_dump_options)
         app.config.setdefault("QUART_SCHEMA_CONVERT_CASING", self.convert_casing)
         app.config.setdefault("QUART_SCHEMA_CONVERSION_PREFERENCE", self.conversion_preference)
         app.json = create_json_provider(app)
