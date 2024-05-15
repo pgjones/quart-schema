@@ -39,8 +39,8 @@ class WebsocketMixin:
         data = model_dump(
             value,
             camelize=current_app.config["QUART_SCHEMA_CONVERT_CASING"],
-            by_alias=current_app.config["QUART_SCHEMA_BY_ALIAS"],
             preference=current_app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"],
+            pydantic_kwargs=current_app.config["QUART_SCHEMA_PYDANTIC_DUMP_OPTIONS"],
         )
         await self.send_json(data)  # type: ignore
 
@@ -67,23 +67,23 @@ class TestClientMixin:
             json = model_dump(
                 json,
                 camelize=self.app.config["QUART_SCHEMA_CONVERT_CASING"],
-                by_alias=self.app.config["QUART_SCHEMA_BY_ALIAS"],
                 preference=self.app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"],
+                pydantic_kwargs=self.app.config["QUART_SCHEMA_PYDANTIC_DUMP_OPTIONS"],
             )
 
         if form is not None:
             form = model_dump(  # type: ignore
                 form,
                 camelize=self.app.config["QUART_SCHEMA_CONVERT_CASING"],
-                by_alias=self.app.config["QUART_SCHEMA_BY_ALIAS"],
                 preference=self.app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"],
+                pydantic_kwargs=self.app.config["QUART_SCHEMA_PYDANTIC_DUMP_OPTIONS"],
             )
         if query_string is not None:
             query_string = model_dump(  # type: ignore
                 query_string,
                 camelize=self.app.config["QUART_SCHEMA_CONVERT_CASING"],
-                by_alias=self.app.config["QUART_SCHEMA_BY_ALIAS"],
                 preference=self.app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"],
+                pydantic_kwargs=self.app.config["QUART_SCHEMA_PYDANTIC_DUMP_OPTIONS"],
             )
 
         return await super()._make_request(  # type: ignore

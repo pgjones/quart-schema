@@ -19,7 +19,7 @@ class ValidationError(Exception):
 def test_model_dump(
     type_: Type[Union[ADetails, DCDetails, MDetails, PyDetails, PyDCDetails]]
 ) -> None:
-    assert model_dump(type_(name="bob", age=2), by_alias=False) == {  # type: ignore
+    assert model_dump(type_(name="bob", age=2)) == {  # type: ignore
         "name": "bob",
         "age": 2,
     }
@@ -41,7 +41,7 @@ def test_model_dump_list(
     preference: str,
 ) -> None:
     assert model_dump(
-        [type_(name="bob", age=2), type_(name="jim", age=3)], by_alias=False, preference=preference
+        [type_(name="bob", age=2), type_(name="jim", age=3)], preference=preference
     ) == [{"name": "bob", "age": 2}, {"name": "jim", "age": 3}]
 
 

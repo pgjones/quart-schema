@@ -1,6 +1,19 @@
 from __future__ import annotations
 
-from typing import Any, AnyStr, Callable, Dict, List, Optional, Tuple, Type, TYPE_CHECKING, Union
+from typing import (
+    Any,
+    AnyStr,
+    Callable,
+    Dict,
+    List,
+    Literal,
+    Optional,
+    Tuple,
+    Type,
+    TYPE_CHECKING,
+    TypedDict,
+    Union,
+)
 
 from quart import Quart
 from quart.datastructures import FileStorage
@@ -17,6 +30,12 @@ try:
     from typing import Protocol
 except ImportError:
     from typing_extensions import Protocol  # type: ignore
+
+try:
+    from typing import NotRequired
+except ImportError:
+    from typing_extensions import NotRequired
+
 
 if TYPE_CHECKING:
     from attrs import AttrsInstance
@@ -69,3 +88,13 @@ class TestClientProtocol(Protocol):
         http_version: str,
         scope_base: Optional[dict],
     ) -> Response: ...
+
+
+class PydanticDumpOptions(TypedDict):
+    by_alias: NotRequired[bool]
+    exclude_defaults: NotRequired[bool]
+    exclude_none: NotRequired[bool]
+    exclude_unset: NotRequired[bool]
+    round_trip: NotRequired[bool]
+    serialize_as_any: NotRequired[bool]
+    warnings: NotRequired[bool | Literal["none", "warn", "error"]]

@@ -20,7 +20,7 @@ from .openapi import (
     ServerVariable,
     Tag,
 )
-from .typing import ResponseReturnValue
+from .typing import PydanticDumpOptions, ResponseReturnValue
 from .validation import (
     DataSource,
     RequestSchemaValidationError,
@@ -50,6 +50,7 @@ __all__ = (
     "OAuth2SecurityScheme",
     "OpenIdSecurityScheme",
     "operation_id",
+    "PydanticDumpOptions",
     "QuartSchema",
     "RequestSchemaValidationError",
     "ResponseReturnValue",

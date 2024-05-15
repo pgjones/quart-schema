@@ -10,7 +10,7 @@ from quart.typing import HeadersValue, ResponseReturnValue as QuartResponseRetur
 from werkzeug.datastructures import Headers
 from werkzeug.exceptions import HTTPException
 
-from .typing import Model, ResponseReturnValue, ResponseValue
+from .typing import Model, PydanticDumpOptions, ResponseReturnValue, ResponseValue
 
 try:
     from pydantic import (
@@ -100,14 +100,14 @@ def convert_response_return_value(
     value = model_dump(
         value,
         camelize=current_app.config["QUART_SCHEMA_CONVERT_CASING"],
-        by_alias=current_app.config["QUART_SCHEMA_BY_ALIAS"],
         preference=current_app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"],
+        pydantic_kwargs=current_app.config["QUART_SCHEMA_PYDANTIC_DUMP_OPTIONS"],
     )
     headers = model_dump(
         headers,  # type: ignore
         kebabize=True,
-        by_alias=current_app.config["QUART_SCHEMA_BY_ALIAS"],
         preference=current_app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"],
+        pydantic_kwargs=current_app.config["QUART_SCHEMA_PYDANTIC_DUMP_OPTIONS"],
     )
 
     new_result: ResponseReturnValue
@@ -128,15 +128,15 @@ def convert_response_return_value(
 def model_dump(
     raw: ResponseValue,
     *,
-    by_alias: bool,
     camelize: bool = False,
     kebabize: bool = False,
     preference: Optional[str] = None,
+    pydantic_kwargs: Optional[PydanticDumpOptions] = None,
 ) -> dict | list:
     if is_pydantic_dataclass(type(raw)):
-        value = RootModel[type(raw)](raw).model_dump()  # type: ignore
+        value = RootModel[type(raw)](raw).model_dump(**(pydantic_kwargs or {}))  # type: ignore
     elif isinstance(raw, BaseModel):
-        value = raw.model_dump(by_alias=by_alias)
+        value = raw.model_dump(**(pydantic_kwargs or {}))
     elif isinstance(raw, Struct) or is_attrs(raw):  # type: ignore
         value = to_builtins(raw)
     elif (
@@ -144,7 +144,7 @@ def model_dump(
         and PYDANTIC_INSTALLED
         and preference != "msgspec"
     ):
-        value = TypeAdapter(type(raw)).dump_python(raw)
+        value = TypeAdapter(type(raw)).dump_python(raw, **(pydantic_kwargs or {}))
     elif (
         (isinstance(raw, (list, dict)) or is_dataclass(raw))
         and MSGSPEC_INSTALLED

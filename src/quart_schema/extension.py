@@ -299,7 +299,7 @@ class QuartSchema:
             "QUART_SCHEMA_SCALAR_JS_URL",
             "https://cdn.jsdelivr.net/npm/@scalar/api-reference",
         )
-        app.config.setdefault("QUART_SCHEMA_BY_ALIAS", False)
+        app.config.setdefault("QUART_SCHEMA_PYDANTIC_DUMP_OPTIONS", {})
         app.config.setdefault("QUART_SCHEMA_CONVERT_CASING", self.convert_casing)
         app.config.setdefault("QUART_SCHEMA_CONVERSION_PREFERENCE", self.conversion_preference)
         app.json = create_json_provider(app)
