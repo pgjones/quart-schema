@@ -1,10 +1,8 @@
 from typing import Dict, List, Optional, Tuple, Type
-from typing_extensions import Annotated
 
 import pytest
-from pydantic import BaseModel, Field, computed_field
+from pydantic import BaseModel, computed_field, Field
 from pydantic.dataclasses import dataclass
-from pydantic.functional_serializers import PlainSerializer
 from quart import Quart
 
 from quart_schema import (
@@ -273,13 +271,13 @@ class EmployeeWithComputedField(BaseModel):
     first_name: str
     last_name: str
 
-    @computed_field
+    @computed_field  # type: ignore[misc]
     @property
     def full_name(self) -> str:
         return f"{self.first_name} {self.last_name}"
 
 
-async def test_response_model_with_computed_field():
+async def test_response_model_with_computed_field() -> None:
     """
     Test that routes returning a response model that has one or more computed fields have the
     appropriate properties in the generated JSON schema.

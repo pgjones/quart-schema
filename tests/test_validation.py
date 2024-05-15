@@ -135,6 +135,30 @@ async def test_request_form_validation(
     assert response.status_code == status
 
 
+class MultiItem(BaseModel):
+    multi: List[int]
+    single: int
+
+
+async def test_request_form_validation_multi() -> None:
+    app = Quart(__name__)
+    QuartSchema(app)
+
+    @app.route("/", methods=["POST"])
+    @validate_request(MultiItem, source=DataSource.FORM)
+    async def item(data: MultiItem) -> MultiItem:
+        return data
+
+    test_client = app.test_client()
+    response = await test_client.post(
+        "/",
+        data=b"multi=1&multi=2&single=2",
+        headers={"Content-Type": "application/x-www-form-urlencoded"},
+    )
+    assert response.status_code == 200
+    assert await response.get_json() == {"multi": [1, 2], "single": 2}
+
+
 async def test_request_file_validation() -> None:
     app = Quart(__name__)
     QuartSchema(app)

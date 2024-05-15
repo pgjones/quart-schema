@@ -145,10 +145,13 @@ def validate_request(
             if source == DataSource.JSON:
                 data = await request.get_json()
             else:
-                data = (await request.form).to_dict(flat=False)
-                for key, value in data.items():
-                    if len(value) == 1:
-                        data[key] = value[0]
+                data = {}
+                form = await request.form
+                for key in form:
+                    if len(form.getlist(key)) > 1:
+                        data[key] = form.getlist(key)
+                    else:
+                        data[key] = form[key]
                 if source == DataSource.FORM_MULTIPART:
                     files = await request.files
                     for key in files:
