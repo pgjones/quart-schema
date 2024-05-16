@@ -1,7 +1,7 @@
 from typing import Dict, List, Optional, Tuple, Type
 
 import pytest
-from pydantic import BaseModel, computed_field, Field
+from pydantic import BaseModel, computed_field, ConfigDict, Field
 from pydantic.dataclasses import dataclass
 from quart import Quart
 
@@ -301,3 +301,29 @@ async def test_response_model_with_computed_field() -> None:
     assert "firstName" in response_properties
     assert "lastName" in response_properties
     assert "fullName" in response_properties
+
+
+class Example(BaseModel):
+    a: str
+
+    model_config = ConfigDict(json_schema_extra={"examples": [{"a": "Foo"}]})
+
+
+async def test_model_with_example() -> None:
+    app = Quart(__name__)
+    QuartSchema(app, convert_casing=True)
+
+    @app.post("/")
+    @validate_request(Example)
+    async def index(data: Example) -> str:
+        return ""
+
+    test_client = app.test_client()
+    response = await test_client.get("/openapi.json")
+    schema = await response.get_json()
+
+    properties = schema["paths"]["/"]["post"]["requestBody"]["content"]["application/json"][
+        "schema"
+    ]
+
+    assert properties["examples"] == [{"a": "Foo"}]
