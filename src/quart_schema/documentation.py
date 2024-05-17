@@ -1,6 +1,4 @@
-from typing import Callable, Dict, Optional, Tuple
-
-from quart import ResponseReturnValue as QuartResponseReturnValue
+from typing import Callable, Dict, Optional, Tuple, TypeVar
 
 from .typing import Model
 from .validation import (
@@ -11,8 +9,10 @@ from .validation import (
     QUART_SCHEMA_RESPONSE_ATTRIBUTE,
 )
 
+T = TypeVar("T", bound=Callable)
 
-def document_querystring(model_class: Model) -> Callable:
+
+def document_querystring(model_class: Model) -> Callable[[T], T]:
     """Document the request querystring arguments.
 
     Add the request querystring **model_class** to the openapi
@@ -25,7 +25,7 @@ def document_querystring(model_class: Model) -> Callable:
 
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: T) -> T:
         setattr(func, QUART_SCHEMA_QUERYSTRING_ATTRIBUTE, model_class)
 
         return func
@@ -33,7 +33,7 @@ def document_querystring(model_class: Model) -> Callable:
     return decorator
 
 
-def document_headers(model_class: Model) -> Callable:
+def document_headers(model_class: Model) -> Callable[[T], T]:
     """Document the request headers.
 
     Add the request **model_class** to the openapi generated
@@ -46,7 +46,7 @@ def document_headers(model_class: Model) -> Callable:
 
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: T) -> T:
         setattr(func, QUART_SCHEMA_HEADERS_ATTRIBUTE, model_class)
 
         return func
@@ -58,7 +58,7 @@ def document_request(
     model_class: Model,
     *,
     source: DataSource = DataSource.JSON,
-) -> Callable:
+) -> Callable[[T], T]:
     """Document the request data.
 
     Add the request **model_class** to the openapi generated
@@ -72,7 +72,7 @@ def document_request(
             encoded).
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: T) -> T:
         setattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, (model_class, source))
 
         return func
@@ -84,7 +84,7 @@ def document_response(
     model_class: Model,
     status_code: int = 200,
     headers_model_class: Optional[Model] = None,
-) -> Callable:
+) -> Callable[[T], T]:
     """Document the response data.
 
     Add the response **model_class**, and its corresponding (optional)
@@ -103,9 +103,7 @@ def document_response(
 
     """
 
-    def decorator(
-        func: Callable[..., QuartResponseReturnValue]
-    ) -> Callable[..., QuartResponseReturnValue]:
+    def decorator(func: T) -> T:
         schemas = getattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, {})
         schemas[status_code] = (model_class, headers_model_class)
         setattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, schemas)
@@ -122,7 +120,7 @@ def document(
     request_source: DataSource = DataSource.JSON,
     headers: Optional[Model] = None,
     responses: Dict[int, Tuple[Model, Optional[Model]]],
-) -> Callable:
+) -> Callable[[T], T]:
     """Document the route.
 
     This is a shorthand combination of of the document_querystring,
@@ -130,7 +128,7 @@ def document(
     decorators. Please see the docstrings for those decorators.
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: T) -> T:
         if querystring is not None:
             func = document_querystring(querystring)(func)
         if request is not None:

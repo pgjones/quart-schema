@@ -5,7 +5,7 @@ import re
 from collections import defaultdict
 from functools import wraps
 from types import new_class
-from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, TypeVar, Union
 
 import click
 import humps
@@ -48,6 +48,7 @@ try:
 except ImportError:
     to_builtins = None
 
+T = TypeVar("T", bound=Callable)
 
 SecurityScheme = Union[
     APIKeySecurityScheme,
@@ -150,7 +151,7 @@ def create_json_provider(app: Quart) -> DefaultJSONProvider:
     return JSONProvider(app)
 
 
-def hide(func: Callable) -> Callable:
+def hide(func: T) -> T:
     """Mark the func as hidden.
 
     This will prevent the route from being included in the
@@ -398,7 +399,7 @@ def wrap_make_response(func: Callable) -> Callable:
     return decorator
 
 
-def operation_id(operationid: str) -> Callable:
+def operation_id(operationid: str) -> Callable[[T], T]:
     """Override the operationId of the route.
 
     This allows for overriding the operationId, which is normally calculated from the
@@ -409,7 +410,7 @@ def operation_id(operationid: str) -> Callable:
 
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: T) -> T:
         setattr(func, QUART_SCHEMA_OPERATION_ID_ATTRIBUTE, str(operationid))
 
         return func
@@ -417,7 +418,7 @@ def operation_id(operationid: str) -> Callable:
     return decorator
 
 
-def tag(tags: Iterable[str]) -> Callable:
+def tag(tags: Iterable[str]) -> Callable[[T], T]:
     """Add tag names to the route.
 
     This allows for tags to be associated with the route, thereby
@@ -428,7 +429,7 @@ def tag(tags: Iterable[str]) -> Callable:
 
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: T) -> T:
         setattr(func, QUART_SCHEMA_TAG_ATTRIBUTE, set(tags))
 
         return func
@@ -436,14 +437,14 @@ def tag(tags: Iterable[str]) -> Callable:
     return decorator
 
 
-def deprecate(func: Callable) -> Callable:
+def deprecate(func: T) -> T:
     """Mark endpoint as deprecated."""
     setattr(func, QUART_SCHEMA_DEPRECATED, True)
 
     return func
 
 
-def security_scheme(schemes: Iterable[Dict[str, List[str]]]) -> Callable:
+def security_scheme(schemes: Iterable[Dict[str, List[str]]]) -> Callable[[T], T]:
     """Add security schemes to the route.
 
     Allows security schemes to be associated with this route. Security
@@ -455,7 +456,7 @@ def security_scheme(schemes: Iterable[Dict[str, List[str]]]) -> Callable:
 
     """
 
-    def decorator(func: Callable) -> Callable:
+    def decorator(func: T) -> T:
         setattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE, schemes)
 
         return func
