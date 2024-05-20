@@ -1,3 +1,19 @@
+0.20.0 2024-05-20
+-----------------
+
+* Bugfix the pydantic dataclass check.
+* Bugfix list model class handling and type identification.
+* Bugfix form multiselect request validation.
+* Bugfix the deprecate decorator was meant to be called without
+  arguments (this is backwards incompatible).
+* Bugfix using msgspec without attrs
+* Enhance pydantic model schema generation to utilise the schema mode
+  as serialization for response models.
+* Support all Pydantic dump options. This replaces
+  ``QUART_SCHEMA_BY_ALIAS=True`` config value with the QuartSchema
+  constructor argument ``pydantic_dump_options={"by_alias: True}`` or
+  the ``QUART_SCHEMA_PYDANTIC_DUMP_OPTIONS`` config value.
+
 0.19.1 2024-02-13
 -----------------
 
