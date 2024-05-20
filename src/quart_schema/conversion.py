@@ -44,6 +44,13 @@ else:
 
 try:
     from attrs import fields as attrs_fields, has as is_attrs
+except ImportError:
+
+    def is_attrs(object_: Any) -> bool:  # type: ignore
+        return False
+
+
+try:
     from msgspec import convert, Struct, to_builtins, ValidationError as MsgSpecValidationError
     from msgspec.json import schema_components
 except ImportError:
@@ -51,9 +58,6 @@ except ImportError:
 
     class Struct:  # type: ignore
         pass
-
-    def is_attrs(object_: Any) -> bool:  # type: ignore
-        return False
 
     def convert(object_: Any, type_: Any) -> Any:  # type: ignore
         raise RuntimeError("Cannot convert, msgspec not installed")
@@ -244,24 +248,21 @@ def _is_list_or_dict(type_: Type) -> bool:
 
 
 def _use_pydantic(model_class: Type, preference: Optional[str]) -> bool:
-    return (
+    return PYDANTIC_INSTALLED and (
         is_pydantic_dataclass(model_class)
         or (isclass(model_class) and issubclass(model_class, BaseModel))
         or (
-            (_is_list_or_dict(model_class) or is_dataclass(model_class))
-            and PYDANTIC_INSTALLED
-            and preference != "msgspec"
+            (_is_list_or_dict(model_class) or is_dataclass(model_class)) and preference != "msgspec"
         )
     )
 
 
 def _use_msgspec(model_class: Type, preference: Optional[str]) -> bool:
-    return (
+    return MSGSPEC_INSTALLED and (
         (isclass(model_class) and issubclass(model_class, Struct))
         or is_attrs(model_class)
         or (
             (_is_list_or_dict(model_class) or is_dataclass(model_class))
-            and MSGSPEC_INSTALLED
             and preference != "pydantic"
         )
     )
