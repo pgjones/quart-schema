@@ -587,7 +587,7 @@ def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
             type_ = "number"
 
         if isinstance(converter, AnyConverter):
-            schema["enum"] = list(converter.items)
+            schema = {"enum": list(converter.items)}
         else:
             schema = {"type": type_}
 
