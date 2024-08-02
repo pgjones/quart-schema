@@ -168,7 +168,7 @@ class APIKeySecurityScheme(SecuritySchemeBase):
 @dataclass
 class HttpSecurityScheme(SecuritySchemeBase):
     scheme: str
-    bearer_format: Optional[str] = None
+    bearer_format: Optional[str] = field(metadata={"alias": "bearerFormat"})
     type: Literal["http"] = "http"
 
 
