@@ -10,6 +10,9 @@ jobs:
   tox:
     name: ${{ matrix.name }}
     runs-on: ubuntu-latest
+
+    container: python:${{ matrix.python }}
+
     strategy:
       fail-fast: false
       matrix:
