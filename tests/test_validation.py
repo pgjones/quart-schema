@@ -173,7 +173,7 @@ async def test_request_file_validation() -> None:
         "/", files={"upload": FileStorage(stream=BytesIO(b"ABC"), filename="bob")}
     )
     assert response.status_code == 200
-    assert (await response.get_data()) == b"ABC"  # type: ignore
+    assert (await response.get_data()) == b"ABC"
 
 
 @pytest.mark.parametrize("type_", [AItem, DCItem, MItem, PyItem, PyDCItem])

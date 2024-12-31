@@ -237,7 +237,7 @@ def convert_headers(
                 result[key] = raw[raw_key]
 
     try:
-        return model_class(**result)
+        return model_class(**result)  # type: ignore[return-value]
     except (TypeError, MsgSpecValidationError, ValueError) as error:
         raise exception_class(error)
 
