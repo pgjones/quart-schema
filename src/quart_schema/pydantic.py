@@ -1,14 +1,9 @@
-from typing import Any, Callable
+from typing import Annotated, Any, Callable
 
 from pydantic import GetJsonSchemaHandler
 from pydantic.json_schema import JsonSchemaValue
 from pydantic_core import core_schema
 from quart.datastructures import FileStorage
-
-try:
-    from typing import Annotated
-except ImportError:
-    from typing_extensions import Annotated  # type: ignore
 
 
 class _File:

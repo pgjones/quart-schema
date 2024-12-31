@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from io import BytesIO
-from typing import Any, List, Optional, Tuple, Type, TypeVar, Union
+from typing import Annotated, Any, List, Optional, Tuple, Type, TypeVar, Union
 
 import pytest
 from attrs import define
@@ -24,11 +24,6 @@ from quart_schema import (
 )
 from quart_schema.pydantic import File
 from .helpers import ADetails, DCDetails, MDetails, PyDCDetails, PyDetails
-
-try:
-    from typing import Annotated
-except ImportError:
-    from typing_extensions import Annotated  # type: ignore
 
 
 @define
