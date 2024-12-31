@@ -1,8 +1,10 @@
-[tool.poetry]
+[project]
 name = "quart-schema"
 version = "0.20.0"
 description = "A Quart extension to provide schema validation"
-authors = ["pgjones <philip.graham.jones@googlemail.com>"]
+authors = [
+    {name = "pgjones", email = "philip.graham.jones@googlemail.com"},
+]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Environment :: Web Environment",
@@ -20,9 +22,20 @@ classifiers = [
     "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 include = ["src/quart_schema/py.typed"]
-license = "MIT"
+license = {text = "MIT"}
 readme = "README.rst"
 repository = "https://gitlab.com/pgjones/quart-schema/"
+dependencies = [
+    "pyhumps >= 1.6.1",
+    "quart >= 0.19.0",
+    "typing_extensions; python_version < '3.11'",
+]
+requires-python = ">=3.9"
+
+[project.optional-dependencies]
+docs = ["pydata_sphinx_theme", "sphinx-tabs >= 3.4.4"]
+msgspec = ["msgspec >= 0.18"]
+pydantic = ["pydantic >= 2"]
 
 [tool.black]
 line-length = 100
@@ -57,24 +70,6 @@ warn_return_any = false
 warn_unused_configs = true
 warn_unused_ignores = true
 
-[tool.poetry.dependencies]
-msgspec = { version = ">=0.18", optional = true }
-pydata_sphinx_theme = { version = "*", optional = true }
-pyhumps = ">=1.6.1"
-python = ">=3.9"
-pydantic = { version = ">=2", optional = true }
-quart = ">=0.19.0"
-sphinx-tabs = { version = ">=3.4.4", optional = true }
-typing_extensions = { version = "*", python = "<3.11" }
-
-[tool.poetry.dev-dependencies]
-tox = "*"
-
-[tool.poetry.extras]
-docs = ["pydata_sphinx_theme", "sphinx-tabs"]
-msgspec = ["msgspec"]
-pydantic = ["pydantic"]
-
 [tool.pytest.ini_options]
 addopts = "--no-cov-on-fail --showlocals --strict-markers"
 asyncio_default_fixture_loop_scope = "session"
@@ -82,5 +77,5 @@ asyncio_mode = "auto"
 testpaths = ["tests"]
 
 [build-system]
-requires = ["poetry_core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+requires = ["pdm-backend"]
+build-backend = "pdm.backend"

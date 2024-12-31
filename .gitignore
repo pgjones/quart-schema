@@ -12,4 +12,4 @@ docs/reference/source/
 .coverage
 .pytest_cache/
 dist/
-poetry.lock
+pdm.lock
