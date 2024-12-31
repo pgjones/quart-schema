@@ -1,3 +1,10 @@
+0.20.1 2024-12-31
+-----------------
+
+* Bugfix any converter to openapi schema
+* Bugfix ensure the OpenAPI field names are camelized.
+* Support Python 3.13, drop Python 3.8.
+
 0.20.0 2024-05-20
 -----------------
 
