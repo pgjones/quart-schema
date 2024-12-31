@@ -13,7 +13,7 @@ class _SchemaBase:
             if value is not None:
                 name = field_.metadata.get("alias", field_.name)
                 if camelize:
-                    humps.camelize(name)
+                    name = humps.camelize(name)
                 result[name] = value
         return result
 

@@ -50,7 +50,12 @@ class Headers:
 )
 async def test_openapi(type_: Type[Model], titles: bool) -> None:
     app = Quart(__name__)
-    QuartSchema(app)
+    QuartSchema(
+        app,
+        security_schemes={
+            "bearerAuth": {"type": "http", "bearer_format": "JWT", "scheme": "bearer"}
+        },
+    )
 
     @app.get("/")
     @validate_querystring(QueryItem)
@@ -86,7 +91,16 @@ async def test_openapi(type_: Type[Model], titles: bool) -> None:
     result = await response.get_json()
 
     expected = {
-        "components": {"schemas": {}},
+        "components": {
+            "schemas": {},
+            "securitySchemes": {
+                "bearerAuth": {
+                    "bearerFormat": "JWT",
+                    "scheme": "bearer",
+                    "type": "http",
+                },
+            },
+        },
         "info": {"title": "tests.test_openapi", "version": "0.1.0"},
         "openapi": "3.1.0",
         "paths": {
