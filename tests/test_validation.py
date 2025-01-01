@@ -8,7 +8,7 @@ from msgspec import Struct
 from pydantic import BaseModel
 from pydantic.dataclasses import dataclass as pydantic_dataclass
 from pydantic.functional_validators import BeforeValidator
-from quart import Quart, redirect, websocket
+from quart import Quart, redirect, Response, websocket
 from quart.datastructures import FileStorage
 from quart.views import View
 
@@ -218,7 +218,7 @@ async def test_response_validation_of_response() -> None:
     @app.route("/")
     @validate_response(PyItem)
     async def item() -> ResponseReturnValue:
-        return Response(200)
+        return Response(b"", status=200)
 
     test_client = app.test_client()
     response = await test_client.get("/")
