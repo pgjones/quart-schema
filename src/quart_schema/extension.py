@@ -1,22 +1,17 @@
 from __future__ import annotations
 
-import inspect
 import re
-from collections import defaultdict
 from functools import wraps
 from types import new_class
-from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Tuple, TypeVar, Union
+from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Type, TypeVar, Union
 
 import click
-import humps
-from quart import current_app, jsonify, Quart, render_template_string, ResponseReturnValue
+from quart import current_app, Quart, render_template_string, ResponseReturnValue
 from quart.cli import pass_script_info, ScriptInfo
 from quart.json.provider import DefaultJSONProvider
 from quart.typing import ResponseReturnValue as QuartResponseReturnValue
-from werkzeug.routing.converters import AnyConverter, NumberConverter
-from werkzeug.routing.rules import Rule
 
-from .conversion import convert_response_return_value, model_schema
+from .conversion import convert_response_return_value
 from .mixins import TestClientMixin, WebsocketMixin
 from .openapi import (
     APIKeySecurityScheme,
@@ -24,19 +19,18 @@ from .openapi import (
     HttpSecurityScheme,
     Info,
     OAuth2SecurityScheme,
+    OpenAPIProvider,
     OpenIdSecurityScheme,
+    QUART_SCHEMA_DEPRECATED_ATTRIBUTE,
+    QUART_SCHEMA_HIDDEN_ATTRIBUTE,
+    QUART_SCHEMA_OPERATION_ID_ATTRIBUTE,
+    QUART_SCHEMA_SECURITY_ATTRIBUTE,
+    QUART_SCHEMA_TAG_ATTRIBUTE,
     SecuritySchemeBase,
     Server,
     Tag,
 )
 from .typing import PydanticDumpOptions
-from .validation import (
-    DataSource,
-    QUART_SCHEMA_HEADERS_ATTRIBUTE,
-    QUART_SCHEMA_QUERYSTRING_ATTRIBUTE,
-    QUART_SCHEMA_REQUEST_ATTRIBUTE,
-    QUART_SCHEMA_RESPONSE_ATTRIBUTE,
-)
 
 try:
     from pydantic_core import to_jsonable_python
@@ -65,12 +59,6 @@ SecuritySchemeInput = Union[
     SecuritySchemeBase,
     dict,
 ]
-
-QUART_SCHEMA_HIDDEN_ATTRIBUTE = "_quart_schema_hidden"
-QUART_SCHEMA_TAG_ATTRIBUTE = "_quart_schema_tag"
-QUART_SCHEMA_OPERATION_ID_ATTRIBUTE = "_quart_schema_operation_id"
-QUART_SCHEMA_SECURITY_ATTRIBUTE = "_quart_schema_security_tag"
-QUART_SCHEMA_DEPRECATED = "_quart_schema_deprecated"
 
 PATH_RE = re.compile("<(?:[^:]*:)?([^>]+)>")
 
@@ -203,6 +191,8 @@ class QuartSchema:
         external_docs: External documentation information.
     """
 
+    openapi_provider_class: Type[OpenAPIProvider] = OpenAPIProvider
+
     def __init__(
         self,
         app: Optional[Quart] = None,
@@ -220,6 +210,7 @@ class QuartSchema:
         external_docs: Optional[Union[ExternalDocumentation, dict]] = None,
         conversion_preference: Literal["msgspec", "pydantic", None] = None,
         pydantic_dump_options: Optional[PydanticDumpOptions] = None,
+        openapi_provider_class: Optional[Type[OpenAPIProvider]] = None,
     ) -> None:
         self.openapi_path = openapi_path
         self.redoc_ui_path = redoc_ui_path
@@ -229,6 +220,9 @@ class QuartSchema:
         self.convert_casing = convert_casing
         self.conversion_preference = conversion_preference
         self.pydantic_dump_options = {} if pydantic_dump_options is None else pydantic_dump_options
+
+        if openapi_provider_class is not None:
+            self.openapi_provider_class = openapi_provider_class
 
         self.info: Optional[Info] = None
         if info is not None:
@@ -307,6 +301,7 @@ class QuartSchema:
         app.config.setdefault("QUART_SCHEMA_CONVERT_CASING", self.convert_casing)
         app.config.setdefault("QUART_SCHEMA_CONVERSION_PREFERENCE", self.conversion_preference)
         app.json = create_json_provider(app)
+        self.openapi_provider = self.openapi_provider_class(app, self)
 
         if self.openapi_path is not None:
             hide(app.send_static_file.__func__)  # type: ignore
@@ -322,7 +317,8 @@ class QuartSchema:
 
     @hide
     async def openapi(self) -> ResponseReturnValue:
-        return jsonify(_build_openapi_schema(current_app, self))
+        schema = self.openapi_provider.schema()
+        return current_app.json.response(schema)  # type: ignore
 
     @hide
     async def swagger_ui(self) -> str:
@@ -363,32 +359,13 @@ class QuartSchema:
 @pass_script_info
 def _schema_command(info: ScriptInfo, output: Optional[str]) -> None:
     app = info.load_app()
-    schema = _build_openapi_schema(app, app.extensions["QUART_SCHEMA"])
+    schema = app.extensions["QUART_SCHEMA"].openapi_provider.schema()
     formatted_spec = app.json.dumps(schema, indent=2)
     if output is not None:
         with open(output, "w") as file_:
             click.echo(formatted_spec, file=file_)
     else:
         click.echo(formatted_spec)
-
-
-def _split_definitions(schema: dict) -> Tuple[dict, dict]:
-    new_schema = schema.copy()
-    definitions = new_schema.pop("$defs", {})
-    return definitions, new_schema
-
-
-def _split_convert_definitions(schema: dict, convert_casing: bool) -> Tuple[dict, dict]:
-    definitions, new_schema = _split_definitions(schema)
-    if convert_casing:
-        new_schema = humps.camelize(new_schema)
-        if "required" in new_schema:
-            new_schema["required"] = [humps.camelize(field) for field in new_schema["required"]]
-        definitions = {key: humps.camelize(definition) for key, definition in definitions.items()}
-        for key, definition in definitions.items():
-            if "required" in definition:
-                definition["required"] = [humps.camelize(field) for field in definition["required"]]
-    return definitions, new_schema
 
 
 def wrap_make_response(func: Callable) -> Callable:
@@ -439,7 +416,7 @@ def tag(tags: Iterable[str]) -> Callable[[T], T]:
 
 def deprecate(func: T) -> T:
     """Mark endpoint as deprecated."""
-    setattr(func, QUART_SCHEMA_DEPRECATED, True)
+    setattr(func, QUART_SCHEMA_DEPRECATED_ATTRIBUTE, True)
 
     return func
 
@@ -462,204 +439,3 @@ def security_scheme(schemes: Iterable[Dict[str, List[str]]]) -> Callable[[T], T]
         return func
 
     return decorator
-
-
-def _build_path(func: Callable, rule: Rule, app: Quart) -> Tuple[dict, dict]:
-    components = {}
-    operation_object: Dict[str, Any] = {
-        "parameters": [],
-        "responses": {},
-    }
-    if func.__doc__ is not None:
-        summary, *description = inspect.getdoc(func).splitlines()
-        operation_object["description"] = "\n".join(description)
-        operation_object["summary"] = summary
-
-    if getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE, None) is not None:
-        operation_object["tags"] = list(getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE))
-
-    if getattr(func, QUART_SCHEMA_DEPRECATED, None):
-        operation_object["deprecated"] = True
-
-    if getattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE, None) is not None:
-        operation_object["security"] = list(getattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE))
-
-    response_models = getattr(func, QUART_SCHEMA_RESPONSE_ATTRIBUTE, {})
-    for status_code in response_models.keys():
-        model_class, headers_model_class = response_models[status_code]
-        schema = model_schema(
-            model_class,
-            preference=app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"],
-            schema_mode="serialization",
-        )
-        definitions, schema = _split_convert_definitions(
-            schema, app.config["QUART_SCHEMA_CONVERT_CASING"]
-        )
-        components.update(definitions)
-        response_object = {
-            "content": {
-                "application/json": {
-                    "schema": schema,
-                },
-            },
-            "description": "",
-        }
-        if model_class.__doc__ is not None:
-            response_object["description"] = inspect.getdoc(model_class)
-
-        if headers_model_class is not None:
-            schema = model_schema(
-                headers_model_class,
-                preference=app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"],
-            )
-            definitions, schema = _split_definitions(schema)
-            components.update(definitions)
-            response_object["content"]["headers"] = {  # type: ignore
-                name.replace("_", "-"): {
-                    "schema": type_,
-                }
-                for name, type_ in schema["properties"].items()
-            }
-        operation_object["responses"][status_code] = response_object
-
-    request_data = getattr(func, QUART_SCHEMA_REQUEST_ATTRIBUTE, None)
-    if request_data is not None:
-        schema = model_schema(
-            request_data[0], preference=app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"]
-        )
-        definitions, schema = _split_convert_definitions(
-            schema, app.config["QUART_SCHEMA_CONVERT_CASING"]
-        )
-        components.update(definitions)
-
-        if request_data[1] == DataSource.JSON:
-            encoding = "application/json"
-        elif request_data[1] == DataSource.FORM_MULTIPART:
-            encoding = "multipart/form-data"
-        else:
-            encoding = "application/x-www-form-urlencoded"
-
-        operation_object["requestBody"] = {
-            "content": {
-                encoding: {
-                    "schema": schema,
-                },
-            },
-        }
-
-    querystring_model = getattr(func, QUART_SCHEMA_QUERYSTRING_ATTRIBUTE, None)
-    if querystring_model is not None:
-        schema = model_schema(
-            querystring_model, preference=app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"]
-        )
-        definitions, schema = _split_convert_definitions(
-            schema, app.config["QUART_SCHEMA_CONVERT_CASING"]
-        )
-        components.update(definitions)
-        for name, type_ in schema["properties"].items():
-            param = {"name": name, "in": "query", "schema": type_}
-
-            for attribute in ("description", "required", "deprecated"):
-                if attribute in type_:
-                    param[attribute] = type_.pop(attribute)
-
-            operation_object["parameters"].append(param)
-
-    headers_model = getattr(func, QUART_SCHEMA_HEADERS_ATTRIBUTE, None)
-    if headers_model is not None:
-        schema = model_schema(
-            headers_model, preference=app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"]
-        )
-        definitions, schema = _split_definitions(schema)
-        components.update(definitions)
-        for name, type_ in schema["properties"].items():
-            param = {"name": name.replace("_", "-"), "in": "header", "schema": type_}
-
-            for attribute in ("description", "required", "deprecated"):
-                if attribute in type_:
-                    param[attribute] = type_.pop(attribute)
-
-            operation_object["parameters"].append(param)
-
-    for name, converter in rule._converters.items():
-        type_ = "string"
-        if isinstance(converter, NumberConverter):
-            type_ = "number"
-
-        if isinstance(converter, AnyConverter):
-            schema = {"enum": list(converter.items)}
-        else:
-            schema = {"type": type_}
-
-        operation_object["parameters"].append(
-            {
-                "name": name,
-                "in": "path",
-                "required": True,
-                "schema": schema,
-            }
-        )
-
-    path = re.sub(PATH_RE, r"{\1}", rule.rule)
-    paths = {path: {}}  # type: ignore
-
-    for method in rule.methods:
-        if method == "HEAD" or (method == "OPTIONS" and rule.provide_automatic_options):  # type: ignore # noqa: E501
-            continue
-
-        per_method_operation_object = operation_object.copy()
-
-        if getattr(func, QUART_SCHEMA_OPERATION_ID_ATTRIBUTE, None) is not None:
-            per_method_operation_object["operationId"] = (
-                f"{method.lower()}_{getattr(func, QUART_SCHEMA_OPERATION_ID_ATTRIBUTE)}"
-            )
-        else:
-            per_method_operation_object["operationId"] = f"{method.lower()}_{func.__name__}"
-
-        paths[path][method.lower()] = per_method_operation_object
-    return paths, components
-
-
-def _build_full_schema(extension: QuartSchema, paths: dict, component_schemas: dict) -> dict:
-    components = {"schemas": component_schemas}
-    if extension.security_schemes is not None:
-        components["securitySchemes"] = {
-            key: value.schema(camelize=True) for key, value in extension.security_schemes.items()
-        }
-
-    openapi_schema: dict = {
-        "openapi": "3.1.0",
-        "info": extension.info.schema(camelize=True),
-        "components": components,
-        "paths": paths,
-    }
-    if extension.tags is not None:
-        openapi_schema["tags"] = [tag.schema(camelize=True) for tag in extension.tags]
-    if extension.security is not None:
-        openapi_schema["security"] = extension.security
-    if extension.servers is not None:
-        openapi_schema["servers"] = [server.schema(camelize=True) for server in extension.servers]
-    if extension.external_docs is not None:
-        openapi_schema["externalDocs"] = extension.external_docs.schema(camelize=True)
-
-    return openapi_schema
-
-
-def _build_openapi_schema(app: Quart, extension: QuartSchema) -> dict:
-    paths: Dict[str, dict] = defaultdict(dict)
-    component_schemas = {}
-    for rule in app.url_map.iter_rules():
-        if rule.websocket:
-            continue
-
-        func = app.view_functions[rule.endpoint]
-        if getattr(func, QUART_SCHEMA_HIDDEN_ATTRIBUTE, False):
-            continue
-
-        built_paths, components = _build_path(func, rule, app)
-
-        for path in built_paths:
-            paths[path].update(built_paths[path])
-        component_schemas.update(components)
-
-    return _build_full_schema(extension, paths, component_schemas)

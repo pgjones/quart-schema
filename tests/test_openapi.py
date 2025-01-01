@@ -118,6 +118,13 @@ async def test_openapi(type_: Type[Model], titles: bool) -> None:
                     "operationId": "get_read_item",
                     "parameters": [
                         {
+                            "deprecated": True,
+                            "description": "x-name description",
+                            "in": "header",
+                            "name": "x-name",
+                            "schema": {"title": "X Name", "type": "string"},
+                        },
+                        {
                             "description": "count_le description",
                             "in": "query",
                             "name": "count_le",
@@ -125,13 +132,6 @@ async def test_openapi(type_: Type[Model], titles: bool) -> None:
                                 "anyOf": [{"type": "integer"}, {"type": "null"}],
                                 "title": "Count Le",
                             },
-                        },
-                        {
-                            "deprecated": True,
-                            "description": "x-name description",
-                            "in": "header",
-                            "name": "x-name",
-                            "schema": {"title": "X Name", "type": "string"},
                         },
                     ],
                     "responses": {

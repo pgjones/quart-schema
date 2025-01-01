@@ -7,6 +7,7 @@ How to guides
 
    casing.rst
    configuration.rst
+   customising.rst
    documenting.rst
    error_handling.rst
    headers_validation.rst
