@@ -183,7 +183,7 @@ def model_load(
         elif _use_msgspec(model_class, preference):
             return convert(data, model_class, strict=False)
         elif not PYDANTIC_INSTALLED and not MSGSPEC_INSTALLED:
-            raise TypeError(f"Cannot load {model_class} - try installing msgspec or pydantic")
+            raise RuntimeError(f"Cannot load {model_class} - try installing msgspec or pydantic")
         else:
             raise TypeError(f"Cannot load {model_class}")
     except (TypeError, MsgSpecValidationError, PydanticValidationError, ValueError) as error:
