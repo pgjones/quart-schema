@@ -211,6 +211,20 @@ async def test_redirect_validation() -> None:
     assert response.status_code == 302
 
 
+async def test_response_validation_of_response() -> None:
+    app = Quart(__name__)
+    QuartSchema(app)
+
+    @app.route("/")
+    @validate_response(PyItem)
+    async def item() -> ResponseReturnValue:
+        return Response(200)
+
+    test_client = app.test_client()
+    response = await test_client.get("/")
+    assert response.status_code == 500
+
+
 @pytest.mark.parametrize(
     "return_value, status",
     [

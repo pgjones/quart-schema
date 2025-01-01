@@ -223,7 +223,7 @@ def validate_response(
 
             if isinstance(value, (Response, WerkzeugResponse)):
                 if status == status_code:
-                    raise ResponseHeadersValidationError()
+                    raise RuntimeError("Cannot validate Response instance")
                 else:
                     return result
 
