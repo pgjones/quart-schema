@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from io import BytesIO
-from typing import Annotated, Any, List, Optional, Tuple, Type, TypeVar, Union
+from typing import Annotated, Any, List, Literal, Optional, Tuple, Type, TypeVar, Union
 
 import pytest
 from attrs import define
@@ -191,6 +191,43 @@ async def test_response_validation(
     @validate_response(type_)
     async def item() -> ResponseReturnValue:
         return return_value
+
+    test_client = app.test_client()
+    response = await test_client.get("/")
+    assert response.status_code == status
+
+
+@pytest.mark.parametrize(
+    "type_, preference",
+    [
+        (AItem, "msgspec"),
+        (DCItem, "msgspec"),
+        (MItem, "msgspec"),
+        (DCItem, "pydantic"),
+        (PyItem, "pydantic"),
+        (PyDCItem, "pydantic"),
+    ],
+)
+@pytest.mark.parametrize(
+    "return_value, status",
+    [
+        (VALID_DICT, 200),
+        (INVALID_DICT, 500),
+    ],
+)
+async def test_response_list_validation(
+    type_: Type[Union[AItem, DCItem, MItem, PyItem, PyDCItem]],
+    preference: Literal["msgspec", "pydantic"],
+    return_value: Any,
+    status: int,
+) -> None:
+    app = Quart(__name__)
+    QuartSchema(app, conversion_preference=preference)
+
+    @app.route("/")
+    @validate_response(List[type_])  # type: ignore
+    async def item() -> ResponseReturnValue:
+        return [return_value]
 
     test_client = app.test_client()
     response = await test_client.get("/")
