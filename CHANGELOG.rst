@@ -1,3 +1,12 @@
+0.21.0 2025-01-01
+-----------------
+
+* Add a OpenAPIProvider to allow for customisation.
+* Raise a RuntimeError on request validation if neither pydantic nor
+  msgspec are installed.
+* Switch from ResponseHeadersValidationError to RuntimeError if a
+  Response is attempted to be validated.
+
 0.20.1 2024-12-31
 -----------------
 
