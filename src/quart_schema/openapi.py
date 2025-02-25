@@ -516,7 +516,7 @@ class ServerVariable(_SchemaBase):
             allows CommonMark syntax.
     """
 
-    enum: str
+    enum: Optional[List[str]]
     default: str
     description: Optional[str] = None
 
