@@ -117,6 +117,10 @@ class OpenAPIProvider:
 
         """
         func = self._app.view_functions[rule.endpoint]
+        parts = rule.endpoint.rsplit(".", 1)
+        blueprint = None
+        if len(parts) > 1:
+            blueprint = self._app.blueprints.get(parts[0])
 
         components = {}
         operation_object: Dict[str, Any] = {
@@ -128,14 +132,26 @@ class OpenAPIProvider:
             operation_object["description"] = "\n".join(description)
             operation_object["summary"] = summary
 
-        if getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE, None) is not None:
-            operation_object["tags"] = list(getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE))
+        tags: set[str] = set()
+        tags |= getattr(func, QUART_SCHEMA_TAG_ATTRIBUTE, set())
+        tags |= getattr(blueprint, QUART_SCHEMA_TAG_ATTRIBUTE, set())
 
-        if getattr(func, QUART_SCHEMA_DEPRECATED_ATTRIBUTE, None):
+        if len(tags) > 0:
+            operation_object["tags"] = list(tags)
+
+        if getattr(func, QUART_SCHEMA_DEPRECATED_ATTRIBUTE, None) or getattr(
+            blueprint, QUART_SCHEMA_DEPRECATED_ATTRIBUTE, None
+        ):
             operation_object["deprecated"] = True
 
-        if getattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE, None) is not None:
-            operation_object["security"] = list(getattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE))
+        security_schemes = []
+        if (schemes := getattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE, None)) is not None:
+            security_schemes.extend(schemes)
+        if (schemes := getattr(blueprint, QUART_SCHEMA_SECURITY_ATTRIBUTE, None)) is not None:
+            security_schemes.extend(schemes)
+
+        if len(security_schemes) > 0:
+            operation_object["security"] = security_schemes
 
         for name, converter in rule._converters.items():
             parameter_object = self.build_path_parameter(name, converter)

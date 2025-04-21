@@ -19,6 +19,11 @@ passed as a querry arg called ``appID``:
         },
     )
 
+.. warning::
+
+   Security schemes are for documentation only, they do no
+   authentication and should not be relied on for security.
+
 This will then apply to all routes unless overridden. For example to
 remove security from a route:
 
@@ -31,7 +36,11 @@ remove security from a route:
     async def route():
         ...
 
-.. warning::
+Security schemes can also be applied to all routes in a blueprint, for
+example to remove securiyt from all routes in a blueprint:
 
-   Security schemes are for documentation only, they do no
-   authentication and should not be relied on for security.
+.. code-block:: python
+
+    from quart_schema import security_scheme_blueprint
+
+    security_scheme_blueprint(blueprint, [])

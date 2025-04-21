@@ -6,7 +6,7 @@ from types import new_class
 from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Type, TypeVar, Union
 
 import click
-from quart import current_app, Quart, render_template_string, ResponseReturnValue
+from quart import Blueprint, current_app, Quart, render_template_string, ResponseReturnValue
 from quart.cli import pass_script_info, ScriptInfo
 from quart.json.provider import DefaultJSONProvider
 from quart.typing import ResponseReturnValue as QuartResponseReturnValue
@@ -414,11 +414,30 @@ def tag(tags: Iterable[str]) -> Callable[[T], T]:
     return decorator
 
 
+def tag_blueprint(blueprint: Blueprint, tags: Iterable[str]) -> None:
+    """Add tag name to all endpoints in the blueprint.
+
+    This allows for tags to be associated with the blueprint, thereby
+    allowing control over which routes are shown in the documentation.
+
+    Arguments:
+        blueprint: The blueprint to affect.
+        tags: A List (or iterable) of tags to associate.
+
+    """
+    setattr(blueprint, QUART_SCHEMA_TAG_ATTRIBUTE, set(tags))
+
+
 def deprecate(func: T) -> T:
     """Mark endpoint as deprecated."""
     setattr(func, QUART_SCHEMA_DEPRECATED_ATTRIBUTE, True)
 
     return func
+
+
+def deprecate_blueprint(blueprint: Blueprint) -> None:
+    """Mark all endpoints in the blueprint as deprecated."""
+    setattr(blueprint, QUART_SCHEMA_DEPRECATED_ATTRIBUTE, True)
 
 
 def security_scheme(schemes: Iterable[Dict[str, List[str]]]) -> Callable[[T], T]:
@@ -439,3 +458,20 @@ def security_scheme(schemes: Iterable[Dict[str, List[str]]]) -> Callable[[T], T]
         return func
 
     return decorator
+
+
+def security_scheme_blueprint(
+    blueprint: Blueprint, schemes: Iterable[Dict[str, List[str]]]
+) -> None:
+    """Add security schemes to the endpoints in the blueprint.
+
+    Allows security schemes to be associated with this
+    blueprint. Security schemes first need to be defined on the
+    constructor and can be referenced here by name.
+
+    Arguments:
+        blueprint: The blueprint to affect.
+        schemes: A List (or iterable) of security schemes to associate.
+
+    """
+    setattr(blueprint, QUART_SCHEMA_SECURITY_ATTRIBUTE, schemes)

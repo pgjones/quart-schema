@@ -3,13 +3,14 @@ from typing import Dict, List, Optional, Tuple, Type
 import pytest
 from pydantic import BaseModel, computed_field, ConfigDict, Field
 from pydantic.dataclasses import dataclass
-from quart import Quart
+from quart import Blueprint, Quart
 
 from quart_schema import (
     deprecate,
     operation_id,
     QuartSchema,
     security_scheme,
+    tag_blueprint,
     validate_headers,
     validate_querystring,
     validate_request,
@@ -84,6 +85,16 @@ async def test_openapi(type_: Type[Model], titles: bool) -> None:
     @app.websocket("/ws")
     async def ws() -> None:
         pass
+
+    blueprint = Blueprint("bp", __name__)
+    tag_blueprint(blueprint, ["tag"])
+
+    @blueprint.get("/bp")
+    @validate_response(Result)
+    async def read_bp_item() -> Result:
+        return Result(name="bob")
+
+    app.register_blueprint(blueprint)
 
     test_client = app.test_client()
     response = await test_client.get("/openapi.json")
@@ -212,7 +223,30 @@ async def test_openapi(type_: Type[Model], titles: bool) -> None:
                         }
                     },
                 },
-            }
+            },
+            "/bp": {
+                "get": {
+                    "operationId": "get_read_bp_item",
+                    "parameters": [],
+                    "responses": {
+                        "200": {
+                            "content": {
+                                "application/json": {
+                                    "schema": {
+                                        "description": "Result",
+                                        "properties": {"name": {"title": "Name", "type": "string"}},
+                                        "required": ["name"],
+                                        "title": "Result",
+                                        "type": "object",
+                                    }
+                                }
+                            },
+                            "description": "Result",
+                        }
+                    },
+                    "tags": ["tag"],
+                }
+            },
         },
     }
     if not titles:

@@ -5,7 +5,17 @@ from .documentation import (
     document_request,
     document_response,
 )
-from .extension import deprecate, hide, operation_id, QuartSchema, security_scheme, tag
+from .extension import (
+    deprecate,
+    deprecate_blueprint,
+    hide,
+    operation_id,
+    QuartSchema,
+    security_scheme,
+    security_scheme_blueprint,
+    tag,
+    tag_blueprint,
+)
 from .mixins import SchemaValidationError
 from .openapi import (
     APIKeySecurityScheme,
@@ -38,6 +48,7 @@ __all__ = (
     "Contact",
     "DataSource",
     "deprecate",
+    "deprecate_blueprint",
     "document",
     "document_headers",
     "document_querystring",
@@ -59,10 +70,12 @@ __all__ = (
     "ResponseSchemaValidationError",
     "SchemaValidationError",
     "security_scheme",
+    "security_scheme_blueprint",
     "Server",
     "ServerVariable",
     "Tag",
     "tag",
+    "tag_blueprint",
     "validate",
     "validate_headers",
     "validate_querystring",
