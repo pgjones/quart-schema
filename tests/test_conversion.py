@@ -17,7 +17,7 @@ class ValidationError(Exception):
 
 @pytest.mark.parametrize("type_", [ADetails, DCDetails, MDetails, PyDetails, PyDCDetails])
 def test_model_dump(
-    type_: Type[Union[ADetails, DCDetails, MDetails, PyDetails, PyDCDetails]]
+    type_: Type[Union[ADetails, DCDetails, MDetails, PyDetails, PyDCDetails]],
 ) -> None:
     assert model_dump(type_(name="bob", age=2)) == {  # type: ignore
         "name": "bob",
@@ -47,7 +47,7 @@ def test_model_dump_list(
 
 @pytest.mark.parametrize("type_", [ADetails, DCDetails, MDetails, PyDetails, PyDCDetails])
 def test_model_load(
-    type_: Type[Union[ADetails, DCDetails, MDetails, PyDetails, PyDCDetails]]
+    type_: Type[Union[ADetails, DCDetails, MDetails, PyDetails, PyDCDetails]],
 ) -> None:
     assert model_load({"name": "bob", "age": 2}, type_, exception_class=ValidationError) == type_(
         name="bob", age=2
@@ -79,7 +79,7 @@ def test_model_load_list(
 
 @pytest.mark.parametrize("type_", [ADetails, DCDetails, MDetails, PyDetails, PyDCDetails])
 def test_model_load_error(
-    type_: Type[Union[ADetails, DCDetails, MDetails, PyDetails, PyDCDetails]]
+    type_: Type[Union[ADetails, DCDetails, MDetails, PyDetails, PyDCDetails]],
 ) -> None:
     with pytest.raises(ValidationError):
         model_load({"name": "bob", "age": "two"}, type_, exception_class=ValidationError)

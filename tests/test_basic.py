@@ -12,7 +12,7 @@ from .helpers import ADetails, DCDetails, MDetails, PyDCDetails, PyDetails
 
 @pytest.mark.parametrize("type_", [ADetails, DCDetails, MDetails, PyDetails, PyDCDetails])
 async def test_make_response(
-    type_: Type[Union[ADetails, DCDetails, MDetails, PyDetails, PyDCDetails]]
+    type_: Type[Union[ADetails, DCDetails, MDetails, PyDetails, PyDCDetails]],
 ) -> None:
     app = Quart(__name__)
     QuartSchema(app)
