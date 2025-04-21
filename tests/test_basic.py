@@ -7,12 +7,12 @@ from pydantic import BaseModel
 from quart import Quart, ResponseReturnValue
 
 from quart_schema import QuartSchema
-from .helpers import ADetails, DCDetails, MDetails, PyDCDetails, PyDetails
+from .helpers import ADetails, DCDetails, MDetails, PyDCDetails, PyDetails, TDetails
 
 
-@pytest.mark.parametrize("type_", [ADetails, DCDetails, MDetails, PyDetails, PyDCDetails])
+@pytest.mark.parametrize("type_", [ADetails, DCDetails, MDetails, PyDetails, PyDCDetails, TDetails])
 async def test_make_response(
-    type_: Type[Union[ADetails, DCDetails, MDetails, PyDetails, PyDCDetails]],
+    type_: Type[Union[ADetails, DCDetails, MDetails, PyDetails, PyDCDetails, TDetails]],
 ) -> None:
     app = Quart(__name__)
     QuartSchema(app)

@@ -1,3 +1,4 @@
+import sys
 from dataclasses import dataclass
 from io import BytesIO
 from typing import Annotated, Any, List, Literal, Optional, Tuple, Type, TypeVar, Union
@@ -23,7 +24,12 @@ from quart_schema import (
     validate_response,
 )
 from quart_schema.pydantic import File
-from .helpers import ADetails, DCDetails, MDetails, PyDCDetails, PyDetails
+from .helpers import ADetails, DCDetails, MDetails, PyDCDetails, PyDetails, TDetails
+
+if sys.version_info >= (3, 12):
+    from typing import TypedDict
+else:
+    from typing_extensions import TypedDict
 
 
 @define
@@ -54,6 +60,11 @@ class PyDCItem:
     details: PyDCDetails
 
 
+class TItem(TypedDict):
+    count: int
+    details: TDetails
+
+
 class FileInfo(BaseModel):
     upload: File
 
@@ -78,7 +89,7 @@ VALID_DICT = {"count": 2, "details": {"name": "bob"}}
 INVALID_DICT = {"count": 2, "name": "bob"}
 
 
-@pytest.mark.parametrize("type_", [AItem, DCItem, MItem, PyItem, PyDCItem])
+@pytest.mark.parametrize("type_", [AItem, DCItem, MItem, PyItem, PyDCItem, TItem])
 @pytest.mark.parametrize(
     "json, status",
     [
@@ -87,7 +98,7 @@ INVALID_DICT = {"count": 2, "name": "bob"}
     ],
 )
 async def test_request_validation(
-    type_: Type[Union[AItem, DCItem, MItem, PyItem, PyDCItem]],
+    type_: Type[Union[AItem, DCItem, MItem, PyItem, PyDCItem, TItem]],
     json: dict,
     status: int,
 ) -> None:
@@ -104,7 +115,7 @@ async def test_request_validation(
     assert response.status_code == status
 
 
-@pytest.mark.parametrize("type_", [ADetails, DCDetails, MDetails, PyDetails, PyDCDetails])
+@pytest.mark.parametrize("type_", [ADetails, DCDetails, MDetails, PyDetails, PyDCDetails, TDetails])
 @pytest.mark.parametrize(
     "data, status",
     [
@@ -113,7 +124,7 @@ async def test_request_validation(
     ],
 )
 async def test_request_form_validation(
-    type_: Type[Union[ADetails, DCDetails, MDetails, PyDetails, PyDCDetails]],
+    type_: Type[Union[ADetails, DCDetails, MDetails, PyDetails, PyDCDetails, TDetails]],
     data: dict,
     status: int,
 ) -> None:
@@ -171,7 +182,7 @@ async def test_request_file_validation() -> None:
     assert (await response.get_data()) == b"ABC"
 
 
-@pytest.mark.parametrize("type_", [AItem, DCItem, MItem, PyItem, PyDCItem])
+@pytest.mark.parametrize("type_", [AItem, DCItem, MItem, PyItem, PyDCItem, TItem])
 @pytest.mark.parametrize(
     "return_value, status",
     [
@@ -180,7 +191,7 @@ async def test_request_file_validation() -> None:
     ],
 )
 async def test_response_validation(
-    type_: Type[Union[AItem, DCItem, MItem, PyItem, PyDCItem]],
+    type_: Type[Union[AItem, DCItem, MItem, PyItem, PyDCItem, TItem]],
     return_value: Any,
     status: int,
 ) -> None:
@@ -206,6 +217,7 @@ async def test_response_validation(
         (DCItem, "pydantic"),
         (PyItem, "pydantic"),
         (PyDCItem, "pydantic"),
+        (TItem, "pydantic"),
     ],
 )
 @pytest.mark.parametrize(
@@ -216,7 +228,7 @@ async def test_response_validation(
     ],
 )
 async def test_response_list_validation(
-    type_: Type[Union[AItem, DCItem, MItem, PyItem, PyDCItem]],
+    type_: Type[Union[AItem, DCItem, MItem, PyItem, PyDCItem, TItem]],
     preference: Literal["msgspec", "pydantic"],
     return_value: Any,
     status: int,
@@ -287,9 +299,9 @@ async def test_view_response_validation(return_value: Any, status: int) -> None:
     assert response.status_code == status
 
 
-@pytest.mark.parametrize("type_", [AItem, DCItem, MItem, PyItem, PyDCItem])
+@pytest.mark.parametrize("type_", [AItem, DCItem, MItem, PyItem, PyDCItem, TItem])
 async def test_websocket_validation(
-    type_: Type[Union[AItem, DCItem, MItem, PyItem, PyDCItem]],
+    type_: Type[Union[AItem, DCItem, MItem, PyItem, PyDCItem, TItem]],
 ) -> None:
     app = Quart(__name__)
     QuartSchema(app)

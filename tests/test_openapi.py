@@ -17,7 +17,7 @@ from quart_schema import (
     validate_response,
 )
 from quart_schema.typing import Model
-from .helpers import ADetails, DCDetails, MDetails, PyDCDetails, PyDetails
+from .helpers import ADetails, DCDetails, MDetails, PyDCDetails, PyDetails, TDetails
 
 
 @dataclass
@@ -47,6 +47,7 @@ class Headers:
         (MDetails, False),
         (PyDetails, True),
         (PyDCDetails, True),
+        (TDetails, True),
     ],
 )
 async def test_openapi(type_: Type[Model], titles: bool) -> None:

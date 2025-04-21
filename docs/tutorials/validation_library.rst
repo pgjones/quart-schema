@@ -71,7 +71,16 @@ dataclasses, Pydantic dataclasses, or BaseModels.
          class Person:
              name: str
 
-   .. tab:: Pydantic dataclasses
+   .. tab:: TypedDict
+
+      .. code-block:: python
+
+         from typing import TypedDict
+
+         class Person(TypedDict):
+             name: str
+
+  .. tab:: Pydantic dataclasses
 
       .. code-block:: python
 

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from dataclasses import fields, is_dataclass
 from inspect import isclass
 from typing import Any, Dict, List, Literal, Optional, Type, TypeVar, Union
@@ -11,6 +12,11 @@ from werkzeug.datastructures import Headers
 from werkzeug.exceptions import HTTPException
 
 from .typing import Model, PydanticDumpOptions, ResponseReturnValue, ResponseValue
+
+if sys.version_info >= (3, 12):
+    from typing import is_typeddict
+else:
+    from typing_extensions import is_typeddict
 
 try:
     from pydantic import (
@@ -137,7 +143,7 @@ def model_dump(
     preference: Optional[str] = None,
     pydantic_kwargs: Optional[PydanticDumpOptions] = None,
 ) -> dict | list:
-    if is_pydantic_dataclass(type(raw)):
+    if is_pydantic_dataclass(type(raw)) or is_typeddict(type(raw)):
         value = RootModel[type(raw)](raw).model_dump(**(pydantic_kwargs or {}))  # type: ignore
     elif isinstance(raw, BaseModel):
         value = raw.model_dump(**(pydantic_kwargs or {}))
@@ -218,6 +224,8 @@ def convert_headers(
         fields_ = set(model_class.__pydantic_fields__.keys())
     elif is_dataclass(model_class):
         fields_ = {field.name for field in fields(model_class)}
+    elif is_typeddict(model_class):
+        fields_ = {key for key in model_class.__annotations__.keys()}
     elif isclass(model_class) and issubclass(model_class, BaseModel):
         fields_ = set(model_class.model_fields.keys())
     elif isclass(model_class) and issubclass(model_class, Struct):
@@ -252,7 +260,12 @@ def _use_pydantic(model_class: Type, preference: Optional[str]) -> bool:
         is_pydantic_dataclass(model_class)
         or (isclass(model_class) and issubclass(model_class, BaseModel))
         or (
-            (_is_list_or_dict(model_class) or is_dataclass(model_class)) and preference != "msgspec"
+            (
+                _is_list_or_dict(model_class)
+                or is_dataclass(model_class)
+                or is_typeddict(model_class)
+            )
+            and preference != "msgspec"
         )
     )
 
@@ -262,7 +275,11 @@ def _use_msgspec(model_class: Type, preference: Optional[str]) -> bool:
         (isclass(model_class) and issubclass(model_class, Struct))
         or is_attrs(model_class)
         or (
-            (_is_list_or_dict(model_class) or is_dataclass(model_class))
+            (
+                _is_list_or_dict(model_class)
+                or is_dataclass(model_class)
+                or is_typeddict(model_class)
+            )
             and preference != "pydantic"
         )
     )
