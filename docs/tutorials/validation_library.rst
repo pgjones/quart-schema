@@ -80,7 +80,7 @@ dataclasses, Pydantic dataclasses, or BaseModels.
          class Person(TypedDict):
              name: str
 
-  .. tab:: Pydantic dataclasses
+   .. tab:: Pydantic dataclasses
 
       .. code-block:: python
 
