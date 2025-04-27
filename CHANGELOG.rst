@@ -1,3 +1,13 @@
+0.22.0 2025-04-27
+-----------------
+
+* Allow Blueprints to be deprecated, tagged, marked with security
+  schemes.
+* Support TypedDicts as a type using Pydantic for validation.
+* Bugfix ServerVariable.enum should be an optional list of strings.
+* Bugfix Use url_for for the openapi path in the docs templates to get
+  the correct path.
+
 0.21.0 2025-01-01
 -----------------
 
