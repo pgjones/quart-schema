@@ -73,7 +73,7 @@ REDOC_TEMPLATE = """
   </style>
 </head>
 <body>
-  <redoc spec-url="{{ openapi_path }}"></redoc>
+  <redoc spec-url="{{ url_for('openapi') }}"></redoc>
   <script src="{{ redoc_js_url }}"></script>
   <noscript>This page requires Javascript to function.</noscript>
 </body>
@@ -89,7 +89,7 @@ SCALAR_TEMPLATE = """
   </style>
 </head>
 <body>
-  <script id="api-reference" data-url="{{ openapi_path }}"></script>
+  <script id="api-reference" data-url="{{ url_for('openapi') }}"></script>
   <script src="{{ scalar_js_url }}"></script>
 </body>
 """
@@ -113,7 +113,7 @@ SWAGGER_TEMPLATE = """
       ],
       showExtensions: true,
       showCommonExtensions: true,
-      url: "{{ openapi_path }}"
+      url: "{{ url_for('openapi') }}"
     });
   </script>
 </body>
