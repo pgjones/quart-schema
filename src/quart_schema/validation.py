@@ -1,8 +1,9 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from enum import auto, Enum
 from functools import wraps
-from typing import Any, Callable, Dict, Optional, Tuple, Type
+from typing import Any
 
 from quart import current_app, request, Response
 from werkzeug.exceptions import BadRequest
@@ -22,7 +23,7 @@ class SchemaInvalidError(Exception):
 
 
 class ResponseSchemaValidationError(Exception):
-    def __init__(self, validation_error: Optional[Exception] = None) -> None:
+    def __init__(self, validation_error: Exception | None = None) -> None:
         self.validation_error = validation_error
 
 
@@ -50,7 +51,7 @@ class DataSource(Enum):
     JSON = auto()
 
 
-def validate_querystring(model_class: Type[Model]) -> Callable:
+def validate_querystring(model_class: type[Model]) -> Callable:
     """Validate the request querystring arguments.
 
     This ensures that the query string arguments can be converted to
@@ -90,7 +91,7 @@ def validate_querystring(model_class: Type[Model]) -> Callable:
     return decorator
 
 
-def validate_headers(model_class: Type[Model]) -> Callable:
+def validate_headers(model_class: type[Model]) -> Callable:
     """Validate the request headers.
 
     This ensures that the headers can be converted to the
@@ -118,7 +119,7 @@ def validate_headers(model_class: Type[Model]) -> Callable:
 
 
 def validate_request(
-    model_class: Type[Model],
+    model_class: type[Model],
     *,
     source: DataSource = DataSource.JSON,
 ) -> Callable:
@@ -175,9 +176,9 @@ def validate_request(
 
 
 def validate_response(
-    model_class: Type[Model],
+    model_class: type[Model],
     status_code: int = 200,
-    headers_model_class: Optional[Type[Model]] = None,
+    headers_model_class: type[Model] | None = None,
 ) -> Callable:
     """Validate the response data.
 
@@ -261,11 +262,11 @@ def validate_response(
 
 def validate(
     *,
-    querystring: Optional[Type[Model]] = None,
-    request: Optional[Type[Model]] = None,
+    querystring: type[Model] | None = None,
+    request: type[Model] | None = None,
     request_source: DataSource = DataSource.JSON,
-    headers: Optional[Type[Model]] = None,
-    responses: Dict[int, Tuple[Type[Model], Optional[Type[Model]]]],
+    headers: type[Model] | None = None,
+    responses: dict[int, tuple[type[Model], type[Model] | None]],
 ) -> Callable:
     """Validate the route.
 

@@ -1,5 +1,3 @@
-from typing import Dict, List, Optional, Tuple, Type
-
 import pytest
 from pydantic import BaseModel, computed_field, ConfigDict, Field
 from pydantic.dataclasses import dataclass
@@ -22,7 +20,7 @@ from .helpers import ADetails, DCDetails, MDetails, PyDCDetails, PyDetails, TDet
 
 @dataclass
 class QueryItem:
-    count_le: Optional[int] = Field(description="count_le description")
+    count_le: int | None = Field(description="count_le description")
 
 
 @dataclass
@@ -50,7 +48,7 @@ class Headers:
         (TDetails, True),
     ],
 )
-async def test_openapi(type_: Type[Model], titles: bool) -> None:
+async def test_openapi(type_: type[Model], titles: bool) -> None:
     app = Quart(__name__)
     QuartSchema(
         app,
@@ -63,7 +61,7 @@ async def test_openapi(type_: Type[Model], titles: bool) -> None:
     @validate_querystring(QueryItem)
     @validate_headers(Headers)
     @validate_response(Result, 200, Headers)
-    async def read_item() -> Tuple[Result, int, Headers]:
+    async def read_item() -> tuple[Result, int, Headers]:
         """Summary
         Multi-line
         description.
@@ -80,7 +78,7 @@ async def test_openapi(type_: Type[Model], titles: bool) -> None:
     @validate_response(Result, 201, Headers)
     @operation_id("make_item")
     @deprecate
-    async def create_item() -> Tuple[Result, int, Headers]:
+    async def create_item() -> tuple[Result, int, Headers]:
         return Result(name="bob"), 201, Headers(x_name="jeff")
 
     @app.websocket("/ws")
@@ -274,7 +272,7 @@ async def test_security_schemes() -> None:
 
     @app.route("/")
     @security_scheme([{"MyBearer": []}])
-    async def index() -> Tuple[Dict, int]:
+    async def index() -> tuple[dict, int]:
         return {}, 200
 
     test_client = app.test_client()
@@ -295,7 +293,7 @@ class Employee:
 
 @dataclass
 class Employees:
-    resources: List[Employee]
+    resources: list[Employee]
 
 
 async def test_openapi_refs() -> None:

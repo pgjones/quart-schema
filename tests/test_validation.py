@@ -1,7 +1,7 @@
 import sys
 from dataclasses import dataclass
 from io import BytesIO
-from typing import Annotated, Any, List, Literal, Optional, Tuple, Type, TypeVar, Union
+from typing import Annotated, Any, Literal, TypeVar
 
 import pytest
 from attrs import define
@@ -72,7 +72,7 @@ class FileInfo(BaseModel):
 T = TypeVar("T")
 
 
-def _to_list(value: Union[T, List[T]]) -> List[T]:
+def _to_list(value: T | list[T]) -> list[T]:
     if isinstance(value, list):
         return value
     else:
@@ -80,9 +80,9 @@ def _to_list(value: Union[T, List[T]]) -> List[T]:
 
 
 class QueryItem(BaseModel):
-    count_le: Optional[int] = None
-    count_gt: Optional[int] = None
-    keys: Annotated[Optional[List[int]], BeforeValidator(_to_list)] = None
+    count_le: int | None = None
+    count_gt: int | None = None
+    keys: Annotated[list[int] | None, BeforeValidator(_to_list)] = None
 
 
 VALID_DICT = {"count": 2, "details": {"name": "bob"}}
@@ -98,7 +98,7 @@ INVALID_DICT = {"count": 2, "name": "bob"}
     ],
 )
 async def test_request_validation(
-    type_: Type[Union[AItem, DCItem, MItem, PyItem, PyDCItem, TItem]],
+    type_: type[AItem | DCItem | MItem | PyItem | PyDCItem | TItem],
     json: dict,
     status: int,
 ) -> None:
@@ -124,7 +124,7 @@ async def test_request_validation(
     ],
 )
 async def test_request_form_validation(
-    type_: Type[Union[ADetails, DCDetails, MDetails, PyDetails, PyDCDetails, TDetails]],
+    type_: type[ADetails | DCDetails | MDetails | PyDetails | PyDCDetails | TDetails],
     data: dict,
     status: int,
 ) -> None:
@@ -142,7 +142,7 @@ async def test_request_form_validation(
 
 
 class MultiItem(BaseModel):
-    multi: List[int]
+    multi: list[int]
     single: int
 
 
@@ -191,7 +191,7 @@ async def test_request_file_validation() -> None:
     ],
 )
 async def test_response_validation(
-    type_: Type[Union[AItem, DCItem, MItem, PyItem, PyDCItem, TItem]],
+    type_: type[AItem | DCItem | MItem | PyItem | PyDCItem | TItem],
     return_value: Any,
     status: int,
 ) -> None:
@@ -228,7 +228,7 @@ async def test_response_validation(
     ],
 )
 async def test_response_list_validation(
-    type_: Type[Union[AItem, DCItem, MItem, PyItem, PyDCItem, TItem]],
+    type_: type[AItem | DCItem | MItem | PyItem | PyDCItem | TItem],
     preference: Literal["msgspec", "pydantic"],
     return_value: Any,
     status: int,
@@ -237,7 +237,7 @@ async def test_response_list_validation(
     QuartSchema(app, conversion_preference=preference)
 
     @app.route("/")
-    @validate_response(List[type_])  # type: ignore
+    @validate_response(list[type_])  # type: ignore
     async def item() -> ResponseReturnValue:
         return [return_value]
 
@@ -301,7 +301,7 @@ async def test_view_response_validation(return_value: Any, status: int) -> None:
 
 @pytest.mark.parametrize("type_", [AItem, DCItem, MItem, PyItem, PyDCItem, TItem])
 async def test_websocket_validation(
-    type_: Type[Union[AItem, DCItem, MItem, PyItem, PyDCItem, TItem]],
+    type_: type[AItem | DCItem | MItem | PyItem | PyDCItem | TItem],
 ) -> None:
     app = Quart(__name__)
     QuartSchema(app)
@@ -350,12 +350,12 @@ async def test_querystring_validation(path: str, status: int) -> None:
 @pydantic_dataclass
 class PyDCHeaders:
     x_required: str
-    x_optional: Optional[int] = None
+    x_optional: int | None = None
 
 
 class Headers(BaseModel):
     x_required: str
-    x_optional: Optional[int] = None
+    x_optional: int | None = None
 
 
 @pytest.mark.parametrize("model", [PyDCHeaders, Headers])
@@ -400,7 +400,7 @@ async def test_response_header_validation(response_headers: dict, status: int) -
 
     @app.route("/")
     @validate_response(DCItem, 200, Headers)
-    async def headers_item() -> Tuple[dict, int, Union[dict, Headers]]:
+    async def headers_item() -> tuple[dict, int, dict | Headers]:
         return VALID_DICT, 200, response_headers
 
     test_client = app.test_client()

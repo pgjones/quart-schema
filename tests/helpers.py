@@ -1,6 +1,6 @@
 import sys
 from dataclasses import dataclass
-from typing import Annotated, Optional
+from typing import Annotated
 
 from attrs import define
 from msgspec import Struct
@@ -16,31 +16,31 @@ else:
 @define
 class ADetails:
     name: str
-    age: Optional[int] = None
+    age: int | None = None
 
 
 class MDetails(Struct):
     name: str
-    age: Optional[int] = None
+    age: int | None = None
 
 
 @dataclass
 class DCDetails:
     name: str
-    age: Optional[int] = None
+    age: int | None = None
 
 
 class PyDetails(BaseModel):
     name: str
-    age: Optional[int] = None
+    age: int | None = None
 
 
 @pydantic_dataclass
 class PyDCDetails:
     name: str
-    age: Optional[int] = None
+    age: int | None = None
 
 
 class TDetails(TypedDict):
     name: str
-    age: Annotated[Optional[int], Field(default=None)]
+    age: Annotated[int | None, Field(default=None)]

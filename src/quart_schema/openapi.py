@@ -3,19 +3,9 @@ from __future__ import annotations
 import inspect
 import re
 from collections import defaultdict
+from collections.abc import Callable, Iterable
 from dataclasses import dataclass, field, fields
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    Iterable,
-    List,
-    Literal,
-    Optional,
-    Tuple,
-    Type,
-    TYPE_CHECKING,
-)
+from typing import Any, Literal, TYPE_CHECKING
 from weakref import proxy
 
 import humps
@@ -50,7 +40,7 @@ class OpenAPIProvider:
         self._app = proxy(app)
         self._extension = extension
 
-    def schema(self) -> Dict[str, Any]:
+    def schema(self) -> dict[str, Any]:
         """Builds an OpenAPI specified schema of the app's routes
         given the extension's settings.
 
@@ -104,7 +94,7 @@ class OpenAPIProvider:
             if not hidden and not rule.websocket:
                 yield rule
 
-    def build_paths(self, rule: Rule) -> Tuple[dict, dict]:
+    def build_paths(self, rule: Rule) -> tuple[dict, dict]:
         """Build the path objects given the rule
 
         This can be overridden to alter how paths are built from a rule.
@@ -123,7 +113,7 @@ class OpenAPIProvider:
             blueprint = self._app.blueprints.get(parts[0])
 
         components = {}
-        operation_object: Dict[str, Any] = {
+        operation_object: dict[str, Any] = {
             "parameters": [],
             "responses": {},
         }
@@ -201,7 +191,7 @@ class OpenAPIProvider:
             paths[path][method.lower()] = per_method_operation_object
         return paths, components
 
-    def build_path_parameter(self, name: str, converter: BaseConverter) -> Dict[str, Any]:
+    def build_path_parameter(self, name: str, converter: BaseConverter) -> dict[str, Any]:
         """Build the openapi path parameter objects based on the converter.
 
         The can be overridden to alter how path parameter objects are built.
@@ -214,7 +204,7 @@ class OpenAPIProvider:
             The built parameter object.
 
         """
-        schema: Dict[str, Any]
+        schema: dict[str, Any]
         if isinstance(converter, AnyConverter):
             schema = {"enum": list(converter.items)}
         elif isinstance(converter, NumberConverter):
@@ -230,8 +220,8 @@ class OpenAPIProvider:
         }
 
     def build_querystring_parameters(
-        self, model: Type[Model]
-    ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+        self, model: type[Model]
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         """Build the openapi parameter objects based on the querystring model.
 
         The can be overridden to alter how parameter objects are built.
@@ -262,8 +252,8 @@ class OpenAPIProvider:
         return parameters, definitions
 
     def build_headers_parameters(
-        self, model: Type[Model]
-    ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
+        self, model: type[Model]
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         """Build the openapi parameter objects based on the headers model.
 
         The can be overridden to alter how parameter objects are built.
@@ -292,8 +282,8 @@ class OpenAPIProvider:
         return parameters, definitions
 
     def build_request_body(
-        self, model: Type[Model], source: DataSource
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        self, model: type[Model], source: DataSource
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
         """Build the openapi request body object based on the model.
 
         The can be overridden to alter how request body objects are built.
@@ -330,8 +320,8 @@ class OpenAPIProvider:
         return request_body, definitions
 
     def build_response_object(
-        self, model: Type[Model], headers_model: Optional[Type[Model]]
-    ) -> Tuple[Dict[str, Any], Dict[str, Any]]:
+        self, model: type[Model], headers_model: type[Model] | None
+    ) -> tuple[dict[str, Any], dict[str, Any]]:
         """Build the openapi response object based on the model.
 
         The can be overridden to alter how reponse objects are built.
@@ -393,7 +383,7 @@ class OpenAPIProvider:
 
             yield method
 
-    def operation_id(self, method: str, func: Callable) -> Optional[str]:
+    def operation_id(self, method: str, func: Callable) -> str | None:
         """Return a unique operation ID or None
 
         Override this to alter how the operation ID is generated.
@@ -411,8 +401,8 @@ class OpenAPIProvider:
 
 
 class _SchemaBase:
-    def schema(self, *, camelize: bool = False) -> Dict:
-        result: Dict[str, Any] = {}
+    def schema(self, *, camelize: bool = False) -> dict:
+        result: dict[str, Any] = {}
         for field_ in fields(self):  # type: ignore
             value = getattr(self, field_.name, None)
 
@@ -436,9 +426,9 @@ class Contact(_SchemaBase):
         url: Contact URL.
     """
 
-    email: Optional[str] = None
-    name: Optional[str] = None
-    url: Optional[str] = None
+    email: str | None = None
+    name: str | None = None
+    url: str | None = None
 
 
 @dataclass
@@ -454,8 +444,8 @@ class License(_SchemaBase):
     """
 
     name: str
-    identifier: Optional[str] = None
-    url: Optional[str] = None
+    identifier: str | None = None
+    url: str | None = None
 
     def __post_init__(self) -> None:
         if self.identifier is not None and self.url is not None:
@@ -479,11 +469,11 @@ class Info(_SchemaBase):
 
     title: str
     version: str
-    contact: Optional[Contact] = None
-    description: Optional[str] = None
-    license: Optional[License] = None
-    summary: Optional[str] = None
-    terms_of_service: Optional[str] = None
+    contact: Contact | None = None
+    description: str | None = None
+    license: License | None = None
+    summary: str | None = None
+    terms_of_service: str | None = None
 
 
 @dataclass
@@ -498,7 +488,7 @@ class ExternalDocumentation(_SchemaBase):
     """
 
     url: str
-    description: Optional[str] = None
+    description: str | None = None
 
 
 @dataclass
@@ -513,8 +503,8 @@ class Tag(_SchemaBase):
     """
 
     name: str
-    description: Optional[str] = None
-    external_docs: Optional[ExternalDocumentation] = None
+    description: str | None = None
+    external_docs: ExternalDocumentation | None = None
 
 
 @dataclass
@@ -532,9 +522,9 @@ class ServerVariable(_SchemaBase):
             allows CommonMark syntax.
     """
 
-    enum: Optional[List[str]]
+    enum: list[str] | None
     default: str
-    description: Optional[str] = None
+    description: str | None = None
 
     def __post_init__(self) -> None:
         if len(self.enum) < 1:
@@ -555,12 +545,12 @@ class Server(_SchemaBase):
     """
 
     url: str
-    variables: Optional[Dict[str, ServerVariable]] = None
-    description: Optional[str] = None
+    variables: dict[str, ServerVariable] | None = None
+    description: str | None = None
 
 
 class SecuritySchemeBase(_SchemaBase):
-    description: Optional[str] = None
+    description: str | None = None
     type: Literal["apiKey", "http", "mutualTLS", "oauth2", "openIdConnect"]
 
 
@@ -574,7 +564,7 @@ class APIKeySecurityScheme(SecuritySchemeBase):
 @dataclass
 class HttpSecurityScheme(SecuritySchemeBase):
     scheme: str
-    bearer_format: Optional[str] = None
+    bearer_format: str | None = None
     type: Literal["http"] = "http"
 
 
@@ -590,13 +580,13 @@ class OpenIdSecurityScheme(SecuritySchemeBase):
     type: Literal["openIdConnect"] = "openIdConnect"
 
 
-def _split_definitions(schema: dict) -> Tuple[dict, dict]:
+def _split_definitions(schema: dict) -> tuple[dict, dict]:
     new_schema = schema.copy()
     definitions = new_schema.pop("$defs", {})
     return definitions, new_schema
 
 
-def _split_convert_definitions(schema: dict, convert_casing: bool) -> Tuple[dict, dict]:
+def _split_convert_definitions(schema: dict, convert_casing: bool) -> tuple[dict, dict]:
     definitions, new_schema = _split_definitions(schema)
     if convert_casing:
         new_schema = humps.camelize(new_schema)

@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import List, Type, TypedDict, Union
+from typing import TypedDict
 
 import pytest
 from attrs import define
@@ -17,7 +17,7 @@ class ValidationError(Exception):
 
 @pytest.mark.parametrize("type_", [ADetails, DCDetails, MDetails, PyDetails, PyDCDetails, TDetails])
 def test_model_dump(
-    type_: Type[Union[ADetails, DCDetails, MDetails, PyDetails, PyDCDetails, TDetails]],
+    type_: type[ADetails | DCDetails | MDetails | PyDetails | PyDCDetails | TDetails],
 ) -> None:
     assert model_dump(type_(name="bob", age=2)) == {  # type: ignore
         "name": "bob",
@@ -38,7 +38,7 @@ def test_model_dump(
     ],
 )
 def test_model_dump_list(
-    type_: Type[Union[ADetails, DCDetails, MDetails, PyDetails, PyDCDetails, TDetails]],
+    type_: type[ADetails | DCDetails | MDetails | PyDetails | PyDCDetails | TDetails],
     preference: str,
 ) -> None:
     assert model_dump(
@@ -48,7 +48,7 @@ def test_model_dump_list(
 
 @pytest.mark.parametrize("type_", [ADetails, DCDetails, MDetails, PyDetails, PyDCDetails, TDetails])
 def test_model_load(
-    type_: Type[Union[ADetails, DCDetails, MDetails, PyDetails, PyDCDetails, TDetails]],
+    type_: type[ADetails | DCDetails | MDetails | PyDetails | PyDCDetails | TDetails],
 ) -> None:
     assert model_load({"name": "bob", "age": 2}, type_, exception_class=ValidationError) == type_(
         name="bob", age=2
@@ -68,12 +68,12 @@ def test_model_load(
     ],
 )
 def test_model_load_list(
-    type_: Type[Union[ADetails, DCDetails, MDetails, PyDetails, PyDCDetails, TDetails]],
+    type_: type[ADetails | DCDetails | MDetails | PyDetails | PyDCDetails | TDetails],
     preference: str,
 ) -> None:
     assert model_load(
         [{"name": "bob", "age": 2}],
-        List[type_],  # type: ignore
+        list[type_],  # type: ignore
         exception_class=ValidationError,
         preference=preference,
     ) == [type_(name="bob", age=2)]
@@ -81,14 +81,14 @@ def test_model_load_list(
 
 @pytest.mark.parametrize("type_", [ADetails, DCDetails, MDetails, PyDetails, PyDCDetails, TDetails])
 def test_model_load_error(
-    type_: Type[Union[ADetails, DCDetails, MDetails, PyDetails, PyDCDetails, TDetails]],
+    type_: type[ADetails | DCDetails | MDetails | PyDetails | PyDCDetails | TDetails],
 ) -> None:
     with pytest.raises(ValidationError):
         model_load({"name": "bob", "age": "two"}, type_, exception_class=ValidationError)
 
 
 @pytest.mark.parametrize("type_", [ADetails, DCDetails, MDetails])
-def test_model_schema_msgspec(type_: Type[Union[ADetails, DCDetails, MDetails]]) -> None:
+def test_model_schema_msgspec(type_: type[ADetails | DCDetails | MDetails]) -> None:
     assert model_schema(type_, preference="msgspec") == {
         "title": type_.__name__,
         "type": "object",
@@ -102,7 +102,7 @@ def test_model_schema_msgspec(type_: Type[Union[ADetails, DCDetails, MDetails]])
 
 @pytest.mark.parametrize("type_", [DCDetails, PyDetails, PyDCDetails, TDetails])
 def test_model_schema_pydantic(
-    type_: Type[Union[DCDetails, PyDetails, PyDCDetails, TDetails]],
+    type_: type[DCDetails | PyDetails | PyDCDetails | TDetails],
 ) -> None:
     assert model_schema(type_, preference="pydantic") == {
         "properties": {
@@ -148,7 +148,7 @@ class THeaders(TypedDict):
 
 @pytest.mark.parametrize("type_", [AHeaders, DCHeaders, MHeaders, PyHeaders, PyDCHeaders, THeaders])
 def test_convert_headers(
-    type_: Type[Union[AHeaders, DCHeaders, MHeaders, PyHeaders, PyDCHeaders, THeaders]],
+    type_: type[AHeaders | DCHeaders | MHeaders | PyHeaders | PyDCHeaders | THeaders],
 ) -> None:
     convert_headers(
         {

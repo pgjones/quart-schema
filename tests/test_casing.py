@@ -1,5 +1,4 @@
 from dataclasses import asdict, dataclass
-from typing import Optional
 
 from quart import Quart
 
@@ -47,7 +46,7 @@ async def test_response_casing() -> None:
 
 @dataclass
 class QueryData:
-    snake_case: Optional[str] = None
+    snake_case: str | None = None
 
 
 async def test_querystring_casing() -> None:

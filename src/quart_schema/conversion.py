@@ -3,7 +3,7 @@ from __future__ import annotations
 import sys
 from dataclasses import fields, is_dataclass
 from inspect import isclass
-from typing import Any, Dict, List, Literal, Optional, Type, TypeVar, Union
+from typing import Any, Literal, TypeGuard, TypeVar
 
 import humps
 from quart import current_app
@@ -52,7 +52,7 @@ try:
     from attrs import fields as attrs_fields, has as is_attrs
 except ImportError:
 
-    def is_attrs(object_: Any) -> bool:  # type: ignore
+    def is_attrs(cls: type) -> TypeGuard[type]:  # type: ignore
         return False
 
 
@@ -90,8 +90,8 @@ def convert_response_return_value(
     result: ResponseReturnValue | HTTPException,
 ) -> QuartResponseReturnValue | HTTPException:
     value: ResponseValue
-    headers: Optional[HeadersValue] = None
-    status: Optional[StatusCode] = None
+    headers: HeadersValue | None = None
+    status: StatusCode | None = None
 
     if isinstance(result, HTTPException):
         return result
@@ -140,8 +140,8 @@ def model_dump(
     *,
     camelize: bool = False,
     kebabize: bool = False,
-    preference: Optional[str] = None,
-    pydantic_kwargs: Optional[PydanticDumpOptions] = None,
+    preference: str | None = None,
+    pydantic_kwargs: PydanticDumpOptions | None = None,
 ) -> dict | list:
     if is_pydantic_dataclass(type(raw)) or is_typeddict(type(raw)):
         value = RootModel[type(raw)](raw).model_dump(**(pydantic_kwargs or {}))  # type: ignore
@@ -173,12 +173,12 @@ def model_dump(
 
 
 def model_load(
-    data: Union[dict, list],
-    model_class: Type[T],
-    exception_class: Type[Exception],
+    data: dict | list,
+    model_class: type[T],
+    exception_class: type[Exception],
     *,
     decamelize: bool = False,
-    preference: Optional[str] = None,
+    preference: str | None = None,
 ) -> T:
     if decamelize:
         data = humps.decamelize(data)
@@ -197,9 +197,9 @@ def model_load(
 
 
 def model_schema(
-    model_class: Type[Model],
+    model_class: type[Model],
     *,
-    preference: Optional[str] = None,
+    preference: str | None = None,
     schema_mode: JsonSchemaMode = "validation",
 ) -> dict:
     if _use_pydantic(model_class, preference):
@@ -218,7 +218,7 @@ def model_schema(
 
 
 def convert_headers(
-    raw: Union[Headers, dict], model_class: Type[T], exception_class: Type[Exception]
+    raw: Headers | dict, model_class: type[T], exception_class: type[Exception]
 ) -> T:
     if is_pydantic_dataclass(model_class):
         fields_ = set(model_class.__pydantic_fields__.keys())
@@ -250,12 +250,12 @@ def convert_headers(
         raise exception_class(error)
 
 
-def _is_list_or_dict(type_: Type) -> bool:
+def _is_list_or_dict(type_: type) -> bool:
     origin = getattr(type_, "__origin__", None)
-    return origin in (dict, Dict, list, List)
+    return origin in (dict, dict, list, list)
 
 
-def _use_pydantic(model_class: Type, preference: Optional[str]) -> bool:
+def _use_pydantic(model_class: type, preference: str | None) -> bool:
     return PYDANTIC_INSTALLED and (
         is_pydantic_dataclass(model_class)
         or (isclass(model_class) and issubclass(model_class, BaseModel))
@@ -270,7 +270,7 @@ def _use_pydantic(model_class: Type, preference: Optional[str]) -> bool:
     )
 
 
-def _use_msgspec(model_class: Type, preference: Optional[str]) -> bool:
+def _use_msgspec(model_class: type, preference: str | None) -> bool:
     return MSGSPEC_INSTALLED and (
         (isclass(model_class) and issubclass(model_class, Struct))
         or is_attrs(model_class)

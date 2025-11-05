@@ -1,5 +1,4 @@
 from pathlib import Path
-from typing import Type, Union
 from uuid import UUID
 
 import pytest
@@ -12,7 +11,7 @@ from .helpers import ADetails, DCDetails, MDetails, PyDCDetails, PyDetails, TDet
 
 @pytest.mark.parametrize("type_", [ADetails, DCDetails, MDetails, PyDetails, PyDCDetails, TDetails])
 async def test_make_response(
-    type_: Type[Union[ADetails, DCDetails, MDetails, PyDetails, PyDCDetails, TDetails]],
+    type_: type[ADetails | DCDetails | MDetails | PyDetails | PyDCDetails | TDetails],
 ) -> None:
     app = Quart(__name__)
     QuartSchema(app)

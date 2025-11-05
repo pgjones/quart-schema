@@ -22,15 +22,15 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - {name: '3.14', python: '3.14', tox: py314}
           - {name: '3.13', python: '3.13', tox: py313}
           - {name: '3.12', python: '3.12', tox: py312}
           - {name: '3.11', python: '3.11', tox: py311}
           - {name: '3.10', python: '3.10', tox: py310}
-          - {name: '3.9', python: '3.9', tox: py39}
-          - {name: 'format', python: '3.13', tox: format}
-          - {name: 'mypy', python: '3.13', tox: mypy}
-          - {name: 'pep8', python: '3.13', tox: pep8}
-          - {name: 'package', python: '3.13', tox: package}
+          - {name: 'format', python: '3.14', tox: format}
+          - {name: 'mypy', python: '3.14', tox: mypy}
+          - {name: 'pep8', python: '3.14', tox: pep8}
+          - {name: 'package', python: '3.14', tox: package}
 
     steps:
       - uses: pgjones/actions/tox@dbbee601c084d000c4fc711d4b27cb306e15ead1 # v1
@@ -60,7 +60,7 @@ jobs:
 
       - uses: actions/setup-python@8d9ed9ac5c53483de85588cdf95a591a75ab9f55 # v5.5.0
         with:
-          python-version: '3.13'
+          python-version: '3.14'
 
       - name: update pip
         run: |

@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable, Iterable
 from functools import wraps
 from types import new_class
-from typing import Any, Callable, Dict, Iterable, List, Literal, Optional, Type, TypeVar, Union
+from typing import Any, Literal, TypeVar
 
 import click
 from quart import Blueprint, current_app, Quart, render_template_string, ResponseReturnValue
@@ -44,21 +45,21 @@ except ImportError:
 
 T = TypeVar("T", bound=Callable)
 
-SecurityScheme = Union[
-    APIKeySecurityScheme,
-    HttpSecurityScheme,
-    OAuth2SecurityScheme,
-    OpenIdSecurityScheme,
-    SecuritySchemeBase,
-]
-SecuritySchemeInput = Union[
-    APIKeySecurityScheme,
-    HttpSecurityScheme,
-    OAuth2SecurityScheme,
-    OpenIdSecurityScheme,
-    SecuritySchemeBase,
-    dict,
-]
+SecurityScheme = (
+    APIKeySecurityScheme
+    | HttpSecurityScheme
+    | OAuth2SecurityScheme
+    | OpenIdSecurityScheme
+    | SecuritySchemeBase
+)
+SecuritySchemeInput = (
+    APIKeySecurityScheme
+    | HttpSecurityScheme
+    | OAuth2SecurityScheme
+    | OpenIdSecurityScheme
+    | SecuritySchemeBase
+    | dict
+)
 
 PATH_RE = re.compile("<(?:[^:]*:)?([^>]+)>")
 
@@ -191,26 +192,26 @@ class QuartSchema:
         external_docs: External documentation information.
     """
 
-    openapi_provider_class: Type[OpenAPIProvider] = OpenAPIProvider
+    openapi_provider_class: type[OpenAPIProvider] = OpenAPIProvider
 
     def __init__(
         self,
-        app: Optional[Quart] = None,
+        app: Quart | None = None,
         *,
-        openapi_path: Optional[str] = "/openapi.json",
-        redoc_ui_path: Optional[str] = "/redocs",
-        scalar_ui_path: Optional[str] = "/scalar",
-        swagger_ui_path: Optional[str] = "/docs",
-        info: Optional[Union[Info, dict]] = None,
-        tags: Optional[List[Union[Tag, dict]]] = None,
+        openapi_path: str | None = "/openapi.json",
+        redoc_ui_path: str | None = "/redocs",
+        scalar_ui_path: str | None = "/scalar",
+        swagger_ui_path: str | None = "/docs",
+        info: Info | dict | None = None,
+        tags: list[Tag | dict] | None = None,
         convert_casing: bool = False,
-        servers: Optional[List[Union[Server, dict]]] = None,
-        security_schemes: Optional[Dict[str, SecuritySchemeInput]] = None,
-        security: Optional[List[Dict[str, List[str]]]] = None,
-        external_docs: Optional[Union[ExternalDocumentation, dict]] = None,
+        servers: list[Server | dict] | None = None,
+        security_schemes: dict[str, SecuritySchemeInput] | None = None,
+        security: list[dict[str, list[str]]] | None = None,
+        external_docs: ExternalDocumentation | dict | None = None,
         conversion_preference: Literal["msgspec", "pydantic", None] = None,
-        pydantic_dump_options: Optional[PydanticDumpOptions] = None,
-        openapi_provider_class: Optional[Type[OpenAPIProvider]] = None,
+        pydantic_dump_options: PydanticDumpOptions | None = None,
+        openapi_provider_class: type[OpenAPIProvider] | None = None,
     ) -> None:
         self.openapi_path = openapi_path
         self.redoc_ui_path = redoc_ui_path
@@ -224,21 +225,21 @@ class QuartSchema:
         if openapi_provider_class is not None:
             self.openapi_provider_class = openapi_provider_class
 
-        self.info: Optional[Info] = None
+        self.info: Info | None = None
         if info is not None:
             self.info = info if isinstance(info, Info) else Info(**info)
 
-        self.tags: Optional[List[Tag]] = None
+        self.tags: list[Tag] | None = None
         if tags is not None:
             self.tags = [tag if isinstance(tag, Tag) else Tag(**tag) for tag in tags]
 
-        self.servers: Optional[List[Server]] = None
+        self.servers: list[Server] | None = None
         if servers is not None:
             self.servers = [
                 server if isinstance(server, Server) else Server(**server) for server in servers
             ]
 
-        self.security_schemes: Optional[Dict[str, SecurityScheme]] = None
+        self.security_schemes: dict[str, SecurityScheme] | None = None
         if security_schemes is not None:
             self.security_schemes = {}
             for key, value in security_schemes.items():
@@ -258,7 +259,7 @@ class QuartSchema:
 
         self.security = security
 
-        self.external_docs: Optional[ExternalDocumentation] = None
+        self.external_docs: ExternalDocumentation | None = None
         if external_docs is not None:
             self.external_docs = (
                 external_docs
@@ -357,7 +358,7 @@ class QuartSchema:
     help="Output the spec to a file given by a path.",
 )
 @pass_script_info
-def _schema_command(info: ScriptInfo, output: Optional[str]) -> None:
+def _schema_command(info: ScriptInfo, output: str | None) -> None:
     app = info.load_app()
     schema = app.extensions["QUART_SCHEMA"].openapi_provider.schema()
     formatted_spec = app.json.dumps(schema, indent=2)
@@ -440,7 +441,7 @@ def deprecate_blueprint(blueprint: Blueprint) -> None:
     setattr(blueprint, QUART_SCHEMA_DEPRECATED_ATTRIBUTE, True)
 
 
-def security_scheme(schemes: Iterable[Dict[str, List[str]]]) -> Callable[[T], T]:
+def security_scheme(schemes: Iterable[dict[str, list[str]]]) -> Callable[[T], T]:
     """Add security schemes to the route.
 
     Allows security schemes to be associated with this route. Security
@@ -461,7 +462,7 @@ def security_scheme(schemes: Iterable[Dict[str, List[str]]]) -> Callable[[T], T]
 
 
 def security_scheme_blueprint(
-    blueprint: Blueprint, schemes: Iterable[Dict[str, List[str]]]
+    blueprint: Blueprint, schemes: Iterable[dict[str, list[str]]]
 ) -> None:
     """Add security schemes to the endpoints in the blueprint.
 

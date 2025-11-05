@@ -1,4 +1,5 @@
-from typing import Callable, Dict, Optional, Tuple, TypeVar
+from collections.abc import Callable
+from typing import TypeVar
 
 from .typing import Model
 from .validation import (
@@ -83,7 +84,7 @@ def document_request(
 def document_response(
     model_class: Model,
     status_code: int = 200,
-    headers_model_class: Optional[Model] = None,
+    headers_model_class: Model | None = None,
 ) -> Callable[[T], T]:
     """Document the response data.
 
@@ -115,11 +116,11 @@ def document_response(
 
 def document(
     *,
-    querystring: Optional[Model] = None,
-    request: Optional[Model] = None,
+    querystring: Model | None = None,
+    request: Model | None = None,
     request_source: DataSource = DataSource.JSON,
-    headers: Optional[Model] = None,
-    responses: Dict[int, Tuple[Model, Optional[Model]]],
+    headers: Model | None = None,
+    responses: dict[int, tuple[Model, Model | None]],
 ) -> Callable[[T], T]:
     """Document the route.
 

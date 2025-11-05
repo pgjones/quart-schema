@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, AnyStr, Dict, Optional, Tuple, Type, Union
+from typing import Any, AnyStr
 
 from quart import current_app, Response
 from quart.datastructures import FileStorage
@@ -12,13 +12,13 @@ from .typing import Model, TestClientProtocol, WebsocketProtocol
 
 
 class SchemaValidationError(Exception):
-    def __init__(self, validation_error: Optional[Exception] = None) -> None:
+    def __init__(self, validation_error: Exception | None = None) -> None:
         super().__init__()
         self.validation_error = validation_error
 
 
 class WebsocketMixin:
-    async def receive_as(self: WebsocketProtocol, model_class: Type[Model]) -> Model:
+    async def receive_as(self: WebsocketProtocol, model_class: type[Model]) -> Model:
         data = await self.receive_json()
         return model_load(
             data,
@@ -28,7 +28,7 @@ class WebsocketMixin:
             preference=current_app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"],
         )
 
-    async def send_as(self: WebsocketProtocol, value: Any, model_class: Type[Model]) -> None:
+    async def send_as(self: WebsocketProtocol, value: Any, model_class: type[Model]) -> None:
         if type(value) != model_class:  # noqa: E721
             value = model_load(
                 value,
@@ -50,18 +50,18 @@ class TestClientMixin:
         self: TestClientProtocol,
         path: str,
         method: str,
-        headers: Optional[Union[dict, Headers]],
-        data: Optional[AnyStr],
-        form: Optional[dict],
-        files: Optional[Dict[str, FileStorage]],
-        query_string: Optional[dict],
+        headers: dict | Headers | None,
+        data: AnyStr | None,
+        form: dict | None,
+        files: dict[str, FileStorage] | None,
+        query_string: dict | None,
         json: Any,
         scheme: str,
         root_path: str,
         http_version: str,
-        scope_base: Optional[dict],
-        auth: Optional[Union[Authorization, Tuple[str, str]]] = None,
-        subdomain: Optional[str] = None,
+        scope_base: dict | None,
+        auth: Authorization | tuple[str, str] | None = None,
+        subdomain: str | None = None,
     ) -> Response:
         if json is not sentinel:
             json = model_dump(
