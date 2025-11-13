@@ -47,7 +47,7 @@ so,
          async def index():
              return data
 
-   .. tab:: attrs
+   .. tab:: msgspec
 
       .. code-block:: python
 
