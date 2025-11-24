@@ -15,7 +15,7 @@ passed as a querry arg called ``appID``:
         app,
         security=[{"app_id": []}],
         security_schemes={
-            "app_id": {"type": "apiKey", "name": "appID", "in": "query"}
+            "app_id": {"type": "apiKey", "name": "appID", "in_": "query"}
         },
     )
 
