@@ -131,7 +131,7 @@ to a list using a ``BeforeValidator``,
             return [value]
 
     class Query(BaseModel):
-        keys: Annotated[Optional[List[str]], BeforeValidator(_to_list)] = Non
+        keys: Annotated[Optional[List[str]], BeforeValidator(_to_list)] = None
 
     @app.route("/")
     @validate_querystring(Query)
