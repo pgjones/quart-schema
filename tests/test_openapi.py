@@ -275,6 +275,11 @@ async def test_security_schemes() -> None:
     async def index() -> tuple[dict, int]:
         return {}, 200
 
+    @app.route("/none")
+    @security_scheme([])
+    async def none() -> tuple[dict, int]:
+        return {}, 200
+
     test_client = app.test_client()
     response = await (await test_client.get("/openapi.json")).get_json()
     assert response["security"] == [{"MyBearer": []}, {"MyBasicAuth": ["foo", "bar"]}]
@@ -284,6 +289,7 @@ async def test_security_schemes() -> None:
         "MyAPI": {"type": "apiKey", "in": "cookie", "name": "Bob"},
     }
     assert response["paths"]["/"]["get"]["security"] == [{"MyBearer": []}]
+    assert response["paths"]["/none"]["get"]["security"] == []
 
 
 @dataclass

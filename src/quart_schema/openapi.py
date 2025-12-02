@@ -134,14 +134,12 @@ class OpenAPIProvider:
         ):
             operation_object["deprecated"] = True
 
-        security_schemes = []
         if (schemes := getattr(func, QUART_SCHEMA_SECURITY_ATTRIBUTE, None)) is not None:
-            security_schemes.extend(schemes)
+            operation_object.setdefault("security", [])
+            operation_object["security"].extend(schemes)
         if (schemes := getattr(blueprint, QUART_SCHEMA_SECURITY_ATTRIBUTE, None)) is not None:
-            security_schemes.extend(schemes)
-
-        if len(security_schemes) > 0:
-            operation_object["security"] = security_schemes
+            operation_object.setdefault("security", [])
+            operation_object["security"].extend(schemes)
 
         for name, converter in rule._converters.items():
             parameter_object = self.build_path_parameter(name, converter)
