@@ -33,7 +33,7 @@ dependencies = [
 requires-python = ">=3.10"
 
 [project.optional-dependencies]
-docs = ["pydata_sphinx_theme", "sphinx-tabs >= 3.4.4"]
+docs = ["docutils == 0.21", "pydata_sphinx_theme", "sphinx-tabs >= 3.4.4"]
 msgspec = ["msgspec >= 0.18"]
 pydantic = ["pydantic >= 2"]
 
