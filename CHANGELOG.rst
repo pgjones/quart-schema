@@ -1,3 +1,12 @@
+0.23.0 2025-12-02
+-----------------
+
+* Specify the IntegerConverter (path parameter) as integer type
+* Add the path to the operation_id method - backwards incompatible if
+  operation_id has been overriden.
+* Bugfix restore the ability to remove the security scheme
+* Drop Python 3.9 and support 3.14
+
 0.22.0 2025-04-27
 -----------------
 

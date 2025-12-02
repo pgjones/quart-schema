@@ -1,6 +1,6 @@
 [project]
 name = "quart-schema"
-version = "0.22.0"
+version = "0.23.0"
 description = "A Quart extension to provide schema validation"
 authors = [
     {name = "pgjones", email = "philip.graham.jones@googlemail.com"},
