@@ -10,7 +10,12 @@ from weakref import proxy
 
 import humps
 from quart import Quart
-from werkzeug.routing.converters import AnyConverter, BaseConverter, NumberConverter
+from werkzeug.routing.converters import (
+    AnyConverter,
+    BaseConverter,
+    IntegerConverter,
+    NumberConverter,
+)
 from werkzeug.routing.rules import Rule
 
 from .conversion import model_schema
@@ -205,6 +210,8 @@ class OpenAPIProvider:
         schema: dict[str, Any]
         if isinstance(converter, AnyConverter):
             schema = {"enum": list(converter.items)}
+        elif isinstance(converter, IntegerConverter):
+            schema = {"type": "integer"}
         elif isinstance(converter, NumberConverter):
             schema = {"type": "number"}
         else:
