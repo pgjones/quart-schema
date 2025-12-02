@@ -187,7 +187,7 @@ class OpenAPIProvider:
         for method in self.generate_methods(rule):
             per_method_operation_object = operation_object.copy()
 
-            operation_id = self.operation_id(method, func)
+            operation_id = self.operation_id(method, path, func)
             if operation_id is not None:
                 per_method_operation_object["operationId"] = operation_id
 
@@ -388,13 +388,14 @@ class OpenAPIProvider:
 
             yield method
 
-    def operation_id(self, method: str, func: Callable) -> str | None:
+    def operation_id(self, method: str, path: str, func: Callable) -> str | None:
         """Return a unique operation ID or None
 
         Override this to alter how the operation ID is generated.
 
         Arguments:
             method: The method of the operation.
+            path: The path of the operation.
             func: The route handler for the operation
 
         Returns:
