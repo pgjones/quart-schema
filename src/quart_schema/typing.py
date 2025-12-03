@@ -79,6 +79,7 @@ class TestClientProtocol(Protocol):
 
 
 class PydanticDumpOptions(TypedDict):
+    mode: NotRequired[Literal['json', 'python']]
     by_alias: NotRequired[bool]
     exclude_defaults: NotRequired[bool]
     exclude_none: NotRequired[bool]
