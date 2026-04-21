@@ -11,16 +11,16 @@ example to only include routes within a specific blueprint named
     from quart_schema import OpenAPIProvider, QuartSchema
 
     class BlueprintOnlyOpenAPIProvider(OpenAPIProvider):
-        def __init__(self, blueprint_name: str, app: Quart, extension: QuartSchema) -> None:
+        def __init__(self, app: Quart, extension: QuartSchema) -> None:
             super().__init__(app, extension)
-            self._blueprint_prefix = f"{blueprint_name}."
+            self._blueprint_prefix = "bp" # <- Filter name
 
         def generate_rules(self) -> Iterable[Rule]:
             for rule in self._app.url_map.iter_rules():
                 hidden = getattr(
                     self._app.view_functions[rule.endpoint], QUART_SCHEMA_HIDDEN_ATTRIBUTE, False
                 )
-                if rule.endpoint.beginswith(self._blueprint_prefix) and not hidden and not rule.websocket:
+                if rule.endpoint.startswith(self._blueprint_prefix) and not hidden and not rule.websocket:
                     yield rule
 
     quart_schema = QuartSchema(app, openapi_provider_class=CustomerOpenAPIProvider)
@@ -33,7 +33,7 @@ It is also possible to alter how the operation ID is generated,
     from quart_schema import OpenAPIProvider, QuartSchema
 
     class CustomOperationIdOpenAPIProvider(OpenAPIProvider):
-        def operation_id(self, method: str, func: Callable) -> Optional[str]:
+        def operation_id(self, method: str, path:str, func: Callable) -> Optional[str]:
             return func.__name__
 
     quart_schema = QuartSchema(app, openapi_provider_class=CustomerOpenAPIProvider)
