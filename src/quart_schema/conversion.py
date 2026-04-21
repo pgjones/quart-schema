@@ -208,7 +208,11 @@ def model_schema(
         )
     elif _use_msgspec(model_class, preference):
         _, schema = schema_components([model_class], ref_template=MSGSPEC_REF_TEMPLATE)
-        return list(schema.values())[0]
+        schema_name = list(schema.keys())[0]
+        main_schema = schema.pop(schema_name)
+        if schema:  # Remaining schemas (like Attribute) become $defs
+            main_schema["$defs"] = schema
+        return main_schema
     elif not PYDANTIC_INSTALLED and not MSGSPEC_INSTALLED:
         raise TypeError(
             f"Cannot create schema for {model_class} - try installing msgspec or pydantic"
