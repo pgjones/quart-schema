@@ -1,6 +1,6 @@
 import sys
 from dataclasses import dataclass
-from typing import Annotated
+from typing import Annotated, Generic, NotRequired, TypeVar
 
 from attrs import define
 from msgspec import Struct
@@ -44,3 +44,14 @@ class PyDCDetails:
 class TDetails(TypedDict):
     name: str
     age: Annotated[int | None, Field(default=None)]
+
+
+N = TypeVar("N")
+
+
+class _TGDetails(TypedDict, Generic[N]):
+    name: N
+    age: NotRequired[int | None]
+
+
+TGDetails = _TGDetails[str]
