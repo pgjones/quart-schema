@@ -1,6 +1,6 @@
 import sys
 from dataclasses import dataclass
-from typing import Annotated, Generic, NotRequired, TypeVar
+from typing import Annotated, Generic, TypeVar
 
 from attrs import define
 from msgspec import Struct
@@ -11,6 +11,11 @@ if sys.version_info >= (3, 12):
     from typing import TypedDict
 else:
     from typing_extensions import TypedDict
+
+try:
+    from typing import NotRequired
+except ImportError:
+    from typing_extensions import NotRequired
 
 
 @define
