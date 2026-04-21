@@ -3,7 +3,7 @@ from __future__ import annotations
 import sys
 from dataclasses import fields, is_dataclass
 from inspect import isclass
-from typing import Any, Literal, TypeGuard, TypeVar
+from typing import Any, get_origin, Literal, TypeGuard, TypeVar
 
 from quart import current_app
 from quart.typing import HeadersValue, ResponseReturnValue as QuartResponseReturnValue, StatusCode
@@ -255,18 +255,30 @@ def _is_list_or_dict(type_: type) -> bool:
     return origin in (dict, dict, list, list)
 
 
+def _valid_model_class(model_class: type) -> bool:
+    """Validate if a type can be used as a schema class.
+
+    Returns True for types that don't require conversion:
+    - TypedDict, dataclasses, and attrs classes
+    - Built-in dict/list and their generic aliases (e.g., dict[str, int])
+    """
+    if (
+        _is_list_or_dict(model_class)
+        or is_dataclass(model_class)
+        or is_typeddict(model_class)
+        # Generic aliases: https://github.com/python/cpython/issues/149574
+        or is_dataclass(get_origin(model_class))
+        or is_typeddict(get_origin(model_class))
+    ):
+        return True
+    return False
+
+
 def _use_pydantic(model_class: type, preference: str | None) -> bool:
     return PYDANTIC_INSTALLED and (
         is_pydantic_dataclass(model_class)
         or (isclass(model_class) and issubclass(model_class, BaseModel))
-        or (
-            (
-                _is_list_or_dict(model_class)
-                or is_dataclass(model_class)
-                or is_typeddict(model_class)
-            )
-            and preference != "msgspec"
-        )
+        or (_valid_model_class(model_class) and preference != "msgspec")
     )
 
 
@@ -274,12 +286,5 @@ def _use_msgspec(model_class: type, preference: str | None) -> bool:
     return MSGSPEC_INSTALLED and (
         (isclass(model_class) and issubclass(model_class, Struct))
         or is_attrs(model_class)
-        or (
-            (
-                _is_list_or_dict(model_class)
-                or is_dataclass(model_class)
-                or is_typeddict(model_class)
-            )
-            and preference != "pydantic"
-        )
+        or (_valid_model_class(model_class) and preference != "pydantic")
     )
