@@ -14,6 +14,7 @@ QUART_SCHEMA_SWAGGER_CSS_URL       str
 QUART_SCHEMA_REDOC_JS_URL          str
 QUART_SCHEMA_PYDANTIC_DUMP_OPTIONS PydanticDumpOptions
 QUART_SCHEMA_CONVERT_CASING        bool
+QUART_SCHEMA_RESPONSE_VALIDATION   bool
 ================================== ===================
 
 which allow the js and css for the documentation UI to be changed and
