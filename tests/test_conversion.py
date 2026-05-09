@@ -1,5 +1,6 @@
+import sys
 from dataclasses import dataclass
-from typing import Any, Generic, TypedDict, TypeVar
+from typing import Any, Generic, TypeVar
 
 import pytest
 from attrs import define
@@ -9,6 +10,11 @@ from pydantic.dataclasses import dataclass as pydantic_dataclass
 
 from quart_schema.conversion import convert_headers, model_dump, model_load, model_schema
 from .helpers import ADetails, DCDetails, MDetails, PyDCDetails, PyDetails, TDetails, TGDetails
+
+if sys.version_info >= (3, 12):
+    from typing import TypedDict
+else:
+    from typing_extensions import TypedDict
 
 
 class ValidationError(Exception):
@@ -150,7 +156,7 @@ class Resource(TypedDict, Generic[A, M]):
     modifier: M
 
 
-def test_nested_generic_ref_included():
+def test_nested_generic_ref_included() -> None:
     schema = model_schema(
         Resource[Attribute, Modifier],
         preference="msgspec",
