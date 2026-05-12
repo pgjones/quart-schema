@@ -141,3 +141,10 @@ to a list using a ``BeforeValidator``,
 .. warning::
 
    This currently only works with Pydantic types and validation.
+
+List values with suffix
+^^^^^^^^^^^^^^^^^^^^^^^
+
+Alternatively there is a convention to suffix query string parameters with ``[]``
+to indicate the parameter is a list. With this convention the case where only a
+single parameter is given will be considered a list

@@ -347,6 +347,32 @@ async def test_querystring_validation(path: str, status: int) -> None:
     assert response.status_code == status
 
 
+@pytest.mark.parametrize(
+    "path, expected",
+    [
+        ("/", None),
+        ("/?elems[]=2", [2]),
+        ("/?elems=2&elems=3", [2, 3]),
+        ("/?elems[]=2&elems[]=3", [2, 3]),
+    ],
+)
+async def test_querystring_list_validation(path: str, expected: list[int] | None) -> None:
+    app = Quart(__name__)
+    QuartSchema(app)
+
+    class QueryList(BaseModel):
+        elems: list[int] | None = None
+
+    @app.route("/")
+    @validate_querystring(QueryList)
+    async def query_item(query_args: QueryList) -> ResponseReturnValue:
+        return {"elems": query_args.elems}
+
+    test_client = app.test_client()
+    response = await test_client.get(path)
+    assert (await response.get_json())["elems"] == expected
+
+
 @pydantic_dataclass
 class PyDCHeaders:
     x_required: str
