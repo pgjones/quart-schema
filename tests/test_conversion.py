@@ -19,7 +19,7 @@ class ValidationError(Exception):
 def test_model_dump(
     type_: type[ADetails | DCDetails | MDetails | PyDetails | PyDCDetails | TDetails],
 ) -> None:
-    assert model_dump(type_(name="bob", age=2)) == {  # type: ignore
+    assert model_dump(type_(name="bob", age=2)) == {
         "name": "bob",
         "age": 2,
     }

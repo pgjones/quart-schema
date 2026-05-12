@@ -114,7 +114,7 @@ def convert_response_return_value(
         pydantic_kwargs=current_app.config["QUART_SCHEMA_PYDANTIC_DUMP_OPTIONS"],
     )
     headers = model_dump(
-        headers,  # type: ignore
+        headers,
         kebabize=True,
         preference=current_app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"],
         pydantic_kwargs=current_app.config["QUART_SCHEMA_PYDANTIC_DUMP_OPTIONS"],
@@ -136,7 +136,7 @@ def convert_response_return_value(
 
 
 def model_dump(
-    raw: ResponseValue,
+    raw: Any,
     *,
     camelize: bool = False,
     kebabize: bool = False,
@@ -147,7 +147,7 @@ def model_dump(
         value = RootModel[type(raw)](raw).model_dump(**(pydantic_kwargs or {}))  # type: ignore
     elif isinstance(raw, BaseModel):
         value = raw.model_dump(**(pydantic_kwargs or {}))
-    elif isinstance(raw, Struct) or is_attrs(raw):  # type: ignore
+    elif isinstance(raw, Struct) or is_attrs(raw):
         value = to_builtins(raw)
     elif (
         (isinstance(raw, (list, dict)) or is_dataclass(raw))
@@ -162,7 +162,7 @@ def model_dump(
     ):
         value = to_builtins(raw)
     else:
-        return raw  # type: ignore
+        return raw
 
     if camelize:
         return humps.camelize(value)
