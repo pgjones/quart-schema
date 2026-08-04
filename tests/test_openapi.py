@@ -251,10 +251,14 @@ async def test_openapi(type_: type[Model], titles: bool) -> None:
     if not titles:
         del expected["paths"]["/"]["post"]["requestBody"]["content"][  # type: ignore
             "application/json"
-        ]["schema"]["properties"]["name"]["title"]
+        ]["schema"][
+            "properties"
+        ]["name"]["title"]
         del expected["paths"]["/"]["post"]["requestBody"]["content"][  # type: ignore
             "application/json"
-        ]["schema"]["properties"]["age"]["title"]
+        ]["schema"][
+            "properties"
+        ]["age"]["title"]
     assert result == expected
 
 
