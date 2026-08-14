@@ -8,7 +8,6 @@ from dataclasses import dataclass, field, fields
 from typing import Any, Literal, TYPE_CHECKING
 from weakref import proxy
 
-import humps
 from quart import Quart
 from werkzeug.routing.converters import (
     AnyConverter,
@@ -18,6 +17,7 @@ from werkzeug.routing.converters import (
 )
 from werkzeug.routing.rules import Rule
 
+from .casing import snake_to_camel, snake_to_kebab
 from .conversion import model_schema
 from .typing import Model
 from .validation import (
@@ -276,7 +276,7 @@ class OpenAPIProvider:
         definitions, schema = _split_definitions(schema)
         parameters = []
         for name, type_ in schema["properties"].items():
-            param = {"name": humps.kebabize(name), "in": "header", "schema": type_}
+            param = {"name": snake_to_kebab(name), "in": "header", "schema": type_}
 
             for attribute in ("description", "required", "deprecated"):
                 if attribute in type_:
@@ -365,7 +365,7 @@ class OpenAPIProvider:
             header_definitions, schema = _split_definitions(schema)
             definitions.update(header_definitions)
             response_object["content"]["headers"] = {  # type: ignore
-                humps.kebabize(name): {
+                snake_to_kebab(name): {
                     "schema": type_,
                 }
                 for name, type_ in schema["properties"].items()
@@ -415,7 +415,7 @@ class _SchemaBase:
             if value is not None:
                 name = field_.metadata.get("alias", field_.name)
                 if camelize:
-                    name = humps.camelize(name)
+                    name = snake_to_camel(name)
                 result[name] = value
         return result
 
@@ -595,11 +595,11 @@ def _split_definitions(schema: dict) -> tuple[dict, dict]:
 def _split_convert_definitions(schema: dict, convert_casing: bool) -> tuple[dict, dict]:
     definitions, new_schema = _split_definitions(schema)
     if convert_casing:
-        new_schema = humps.camelize(new_schema)
+        new_schema = snake_to_camel(new_schema)
         if "required" in new_schema:
-            new_schema["required"] = [humps.camelize(field) for field in new_schema["required"]]
-        definitions = {key: humps.camelize(definition) for key, definition in definitions.items()}
+            new_schema["required"] = [snake_to_camel(field) for field in new_schema["required"]]
+        definitions = {key: snake_to_camel(definition) for key, definition in definitions.items()}
         for key, definition in definitions.items():
             if "required" in definition:
-                definition["required"] = [humps.camelize(field) for field in definition["required"]]
+                definition["required"] = [snake_to_camel(field) for field in definition["required"]]
     return definitions, new_schema

@@ -5,12 +5,12 @@ from dataclasses import fields, is_dataclass
 from inspect import isclass
 from typing import Any, Literal, TypeGuard, TypeVar
 
-import humps
 from quart import current_app
 from quart.typing import HeadersValue, ResponseReturnValue as QuartResponseReturnValue, StatusCode
 from werkzeug.datastructures import Headers
 from werkzeug.exceptions import HTTPException
 
+from .casing import camel_to_snake, kebab_to_snake, snake_to_camel, snake_to_kebab
 from .typing import Model, PydanticDumpOptions, ResponseReturnValue, ResponseValue
 
 if sys.version_info >= (3, 12):
@@ -165,9 +165,9 @@ def model_dump(
         return raw
 
     if camelize:
-        return humps.camelize(value)
+        return snake_to_camel(value)
     elif kebabize:
-        return humps.kebabize(value)
+        return snake_to_kebab(value)
     else:
         return value
 
@@ -181,7 +181,7 @@ def model_load(
     preference: str | None = None,
 ) -> T:
     if decamelize:
-        data = humps.decamelize(data)
+        data = camel_to_snake(data)
 
     try:
         if _use_pydantic(model_class, preference):
@@ -237,7 +237,7 @@ def convert_headers(
 
     result = {}
     for raw_key in raw.keys():
-        key = humps.dekebabize(raw_key).lower()
+        key = kebab_to_snake(raw_key).lower()
         if key in fields_:
             if isinstance(raw, Headers):
                 result[key] = ",".join(raw.get_all(raw_key))

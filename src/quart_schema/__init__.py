@@ -1,3 +1,4 @@
+from .casing import camel_to_snake, kebab_to_snake, snake_to_camel, snake_to_kebab
 from .documentation import (
     document,
     document_headers,
@@ -47,6 +48,7 @@ __all__ = (
     "APIKeySecurityScheme",
     "Contact",
     "DataSource",
+    "camel_to_snake",
     "deprecate",
     "deprecate_blueprint",
     "document",
@@ -58,6 +60,7 @@ __all__ = (
     "hide",
     "HttpSecurityScheme",
     "Info",
+    "kebab_to_snake",
     "License",
     "OAuth2SecurityScheme",
     "OpenAPIProvider",
@@ -68,6 +71,8 @@ __all__ = (
     "RequestSchemaValidationError",
     "ResponseReturnValue",
     "ResponseSchemaValidationError",
+    "snake_to_camel",
+    "snake_to_kebab",
     "SchemaValidationError",
     "security_scheme",
     "security_scheme_blueprint",
