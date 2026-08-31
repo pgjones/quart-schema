@@ -1,3 +1,11 @@
+0.25.0 2026-08-31
+-----------------
+
+* Replace pyhumps with custom code as Quart-Schema only needs a small
+  subset of the functionality which can be optimised. This should speed
+  up usage.
+* Support Generic TypedDicts.
+
 0.24.0 2026-08-04
 -----------------
 
