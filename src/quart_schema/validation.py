@@ -2,13 +2,15 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from enum import auto, Enum
-from functools import wraps
-from typing import Any
+from functools import lru_cache, wraps
+from types import UnionType
+from typing import Any, get_args, get_origin, get_type_hints, Union
 
 from quart import current_app, request, Response
 from werkzeug.exceptions import BadRequest
 from werkzeug.wrappers import Response as WerkzeugResponse
 
+from .casing import camel_to_snake
 from .conversion import convert_headers, model_load
 from .typing import Model, ResponseReturnValue
 
@@ -51,6 +53,36 @@ class DataSource(Enum):
     JSON = auto()
 
 
+_LIST_CONTAINERS: tuple[type, ...] = (list, tuple, set, frozenset)
+
+
+@lru_cache(maxsize=128)
+def _list_field_names(model_class: type[Model]) -> frozenset[str]:
+    """Return the names of fields in *model_class* that expect list values.
+
+    Handles ``Optional``/``Union`` wrappers (e.g. ``list[int] | None``) and
+    caches results per model class for repeated calls.
+
+    Falls back to raw ``__annotations__`` if forward references cannot be
+    resolved.
+    """
+
+    def _expects_list(annotation: Any) -> bool:
+        origin = get_origin(annotation)
+        if origin in (Union, UnionType):
+            return any(_expects_list(arg) for arg in get_args(annotation))
+        if origin is not None:
+            return origin in _LIST_CONTAINERS
+        return annotation in _LIST_CONTAINERS
+
+    try:
+        hints = get_type_hints(model_class)
+    except (NameError, TypeError):
+        hints = getattr(model_class, "__annotations__", {})
+
+    return frozenset(name for name, annotation in hints.items() if _expects_list(annotation))
+
+
 def validate_querystring(model_class: type[Model]) -> Callable:
     """Validate the request querystring arguments.
 
@@ -63,6 +95,8 @@ def validate_querystring(model_class: type[Model]) -> Callable:
             dataclass or a class that inherits from pydantic's
             BaseModel. All the fields must be optional.
     """
+    # mypy can't prove type[Model] is hashable and lru_cache requires hashable arguments
+    list_fields = _list_field_names(model_class)  # type: ignore[arg-type]
 
     def decorator(func: Callable) -> Callable:
         setattr(func, QUART_SCHEMA_QUERYSTRING_ATTRIBUTE, model_class)
@@ -70,20 +104,26 @@ def validate_querystring(model_class: type[Model]) -> Callable:
         @wraps(func)
         async def wrapper(*args: Any, **kwargs: Any) -> Any:
             request_args: dict[str, Any] = {}
+            decamelize = current_app.config["QUART_SCHEMA_CONVERT_CASING"]
+
             for key in request.args:
-                if key.endswith("[]"):
-                    request_args[key.removesuffix("[]")] = request.args.getlist(key)
+                # Strip [] suffix for array syntax
+                clean_key = key.removesuffix("[]") if key.endswith("[]") else key
+                # Apply casing conversion for model matching
+                model_key = camel_to_snake(clean_key) if decamelize else clean_key
+                values = request.args.getlist(key)
+
+                # List fields always get lists; scalars get single values
+                if len(values) > 1 or model_key in list_fields:
+                    request_args[model_key] = values
                 else:
-                    request_args[key] = (
-                        request.args.getlist(key)
-                        if len(request.args.getlist(key)) > 1
-                        else request.args[key]
-                    )
+                    request_args[model_key] = values[0] if values else None
+
             model = model_load(
                 request_args,
                 model_class,
                 QuerystringValidationError,
-                decamelize=current_app.config["QUART_SCHEMA_CONVERT_CASING"],
+                decamelize=decamelize,
                 preference=current_app.config["QUART_SCHEMA_CONVERSION_PREFERENCE"],
             )
             return await current_app.ensure_async(func)(*args, query_args=model, **kwargs)
