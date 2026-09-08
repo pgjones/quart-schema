@@ -351,6 +351,7 @@ async def test_querystring_validation(path: str, status: int) -> None:
     "path, expected",
     [
         ("/", None),
+        ("/?elems=2", [2]),
         ("/?elems[]=2", [2]),
         ("/?elems=2&elems=3", [2, 3]),
         ("/?elems[]=2&elems[]=3", [2, 3]),

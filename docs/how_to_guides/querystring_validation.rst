@@ -111,40 +111,14 @@ You may want to allow a repeated, multiple, or list query string
 parameter e.g. ``/?key=foo&key=bar``. Which can be done using
 ``list[str]`` for example.
 
-Care must be taken for the case where only a single parameter is given
-(as this is not as list). In this situation you can either expand the
-type to ``list[str] | str`` for example, or to convert the single value
-to a list using a ``BeforeValidator``,
+For a field declared as a ``list``, the following forms are accepted
+and equivalent,
 
-.. code-block:: python
+- ``/?key=foo`` - a single value, treated as a one-element list
+- ``/?key=foo&key=bar`` - repeated values
+- ``/?key[]=foo&key[]=bar`` - the ``[]`` suffix convention (used e.g.
+  by axios)
 
-    from typing import Annotated
-
-    from pydantic import BaseModel
-    from pydantic.functional_validators import BeforeValidator
-    from quart_schema import validate_querystring
-
-    def _to_list(value: str | list[str]) -> list[str]:
-        if isinstance(value, list):
-            return value
-        else:
-            return [value]
-
-    class Query(BaseModel):
-        keys: Annotated[Optional[List[str]], BeforeValidator(_to_list)] = None
-
-    @app.route("/")
-    @validate_querystring(Query)
-    async def index(query_args: Query):
-        ...
-
-.. warning::
-
-   This currently only works with Pydantic types and validation.
-
-List values with suffix
-^^^^^^^^^^^^^^^^^^^^^^^
-
-Alternatively there is a convention to suffix query string parameters with ``[]``
-to indicate the parameter is a list. With this convention the case where only a
-single parameter is given will be considered a list
+Parameters that are not declared as a list must only be given once;
+repeating them (or adding the ``[]`` suffix) results in a 400
+response.
