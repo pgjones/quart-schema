@@ -1,5 +1,6 @@
+import sys
 from dataclasses import dataclass
-from typing import Any, TypedDict
+from typing import Any, Generic, TypeVar
 
 import pytest
 from attrs import define
@@ -9,6 +10,11 @@ from pydantic.dataclasses import dataclass as pydantic_dataclass
 
 from quart_schema.conversion import convert_headers, model_dump, model_load, model_schema
 from .helpers import ADetails, DCDetails, MDetails, PyDCDetails, PyDetails, TDetails, TGDetails
+
+if sys.version_info >= (3, 12):
+    from typing import TypedDict
+else:
+    from typing_extensions import TypedDict
 
 
 class ValidationError(Exception):
@@ -130,6 +136,62 @@ def test_model_schema_msgspec(type_: TestType, preference: str) -> None:
         del expected["properties"]["age"]["default"]
 
     assert schema == expected
+
+
+A = TypeVar("A")
+M = TypeVar("M")
+
+
+class Modifier(TypedDict):
+    mod: int
+
+
+class Attribute(TypedDict):
+    title: str
+
+
+class Resource(TypedDict, Generic[A, M]):
+    foo: str
+    attribute: A
+    modifier: M
+
+
+def test_nested_generic_ref_included() -> None:
+    schema = model_schema(
+        Resource[Attribute, Modifier],
+        preference="msgspec",
+    )
+
+    assert schema == {
+        "title": "Resource[Attribute, Modifier]",
+        "type": "object",
+        "properties": {
+            "attribute": {
+                "$ref": "#/components/schemas/Attribute",
+            },
+            "modifier": {
+                "$ref": "#/components/schemas/Modifier",
+            },
+            "foo": {"type": "string"},
+        },
+        "required": ["attribute", "foo", "modifier"],
+        "$defs": {
+            "Attribute": {
+                "properties": {
+                    "title": {"type": "string"},
+                },
+                "required": ["title"],
+                "title": "Attribute",
+                "type": "object",
+            },
+            "Modifier": {
+                "properties": {"mod": {"type": "integer"}},
+                "required": ["mod"],
+                "title": "Modifier",
+                "type": "object",
+            },
+        },
+    }
 
 
 @define
