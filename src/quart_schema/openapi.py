@@ -364,7 +364,7 @@ class OpenAPIProvider:
             )
             header_definitions, schema = _split_definitions(schema)
             definitions.update(header_definitions)
-            response_object["content"]["headers"] = {  # type: ignore
+            response_object["headers"] = {
                 snake_to_kebab(name): {
                     "schema": type_,
                 }

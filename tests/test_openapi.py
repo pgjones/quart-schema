@@ -156,18 +156,18 @@ async def test_openapi(type_: type[Model], titles: bool) -> None:
                                         "type": "object",
                                     }
                                 },
-                                "headers": {
-                                    "x-name": {
-                                        "schema": {
-                                            "deprecated": True,
-                                            "description": "x-name " "description",
-                                            "title": "X " "Name",
-                                            "type": "string",
-                                        }
-                                    }
-                                },
                             },
                             "description": "Result",
+                            "headers": {
+                                "x-name": {
+                                    "schema": {
+                                        "deprecated": True,
+                                        "description": "x-name " "description",
+                                        "title": "X " "Name",
+                                        "type": "string",
+                                    }
+                                }
+                            },
                         }
                     },
                     "summary": "Summary",
@@ -207,18 +207,18 @@ async def test_openapi(type_: type[Model], titles: bool) -> None:
                                         "type": "object",
                                     }
                                 },
-                                "headers": {
-                                    "x-name": {
-                                        "schema": {
-                                            "deprecated": True,
-                                            "description": "x-name " "description",
-                                            "title": "X " "Name",
-                                            "type": "string",
-                                        }
-                                    }
-                                },
                             },
                             "description": "Result",
+                            "headers": {
+                                "x-name": {
+                                    "schema": {
+                                        "deprecated": True,
+                                        "description": "x-name " "description",
+                                        "title": "X " "Name",
+                                        "type": "string",
+                                    }
+                                }
+                            },
                         }
                     },
                 },
@@ -384,3 +384,39 @@ async def test_model_with_example() -> None:
     ]
 
     assert properties["examples"] == [{"a": "Foo"}]
+
+
+class ResponseHeaders(BaseModel):
+    retry_after: int
+    rate_limit: int = Field(alias="X-Rate-Limit")
+
+
+async def test_response_headers_location() -> None:
+    """
+    Test that response headers are placed on the Response Object as a sibling of content,
+    as the OpenAPI specification requires, rather than nested inside content.
+
+    Neither header name starts with a lowercase "x-", so neither can be mistaken for a
+    specification extension if it ends up inside content.
+    """
+    app = Quart(__name__)
+    QuartSchema(app)
+
+    @app.get("/")
+    @validate_response(Result, 200, headers_model_class=ResponseHeaders)
+    async def index() -> tuple[Result, int, ResponseHeaders]:
+        headers = ResponseHeaders.model_validate({"retry_after": 120, "X-Rate-Limit": 100})
+        return Result(name="bob"), 200, headers
+
+    test_client = app.test_client()
+    response = await test_client.get("/openapi.json")
+    schema = await response.get_json()
+
+    response_object = schema["paths"]["/"]["get"]["responses"]["200"]
+
+    assert "headers" in response_object
+    assert "headers" not in response_object["content"]
+    assert list(response_object["content"].keys()) == ["application/json"]
+    assert set(response_object["headers"].keys()) == {"retry-after", "X-Rate-Limit"}
+    for header in response_object["headers"].values():
+        assert "schema" in header
