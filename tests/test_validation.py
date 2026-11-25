@@ -69,6 +69,10 @@ class FileInfo(BaseModel):
     upload: File
 
 
+class FilesInfo(BaseModel):
+    upload: list[File]
+
+
 T = TypeVar("T")
 
 
@@ -87,6 +91,23 @@ class QueryItem(BaseModel):
 
 VALID_DICT = {"count": 2, "details": {"name": "bob"}}
 INVALID_DICT = {"count": 2, "name": "bob"}
+
+
+async def test_request_file_list_validation_single_file() -> None:
+    app = Quart(__name__)
+    QuartSchema(app)
+
+    @app.route("/", methods=["POST"])
+    @validate_request(FilesInfo, source=DataSource.FORM_MULTIPART)
+    async def item(data: FilesInfo) -> ResponseReturnValue:
+        return str(len(data.upload))
+
+    test_client = app.test_client()
+    response = await test_client.post(
+        "/", files={"upload": FileStorage(stream=BytesIO(b"ABC"), filename="bob")}
+    )
+    assert response.status_code == 200
+    assert (await response.get_data()) == b"1"
 
 
 @pytest.mark.parametrize("type_", [AItem, DCItem, MItem, PyItem, PyDCItem, TItem])

@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Callable
 from enum import auto, Enum
 from functools import wraps
-from typing import Any
+from typing import Any, get_args, get_origin
 
 from quart import current_app, request, Response
 from werkzeug.exceptions import BadRequest
@@ -43,6 +43,18 @@ class QuerystringValidationError(RequestSchemaValidationError):
 
 class RequestHeadersValidationError(RequestSchemaValidationError):
     pass
+
+
+def _is_list_annotation(annotation: Any) -> bool:
+    if get_origin(annotation) is list:
+        return True
+    return any(_is_list_annotation(arg) for arg in get_args(annotation))
+
+
+def _expects_list(model_class: type[Model], key: str) -> bool:
+    fields = getattr(model_class, "model_fields", {})
+    field = fields.get(key)
+    return field is not None and _is_list_annotation(field.annotation)
 
 
 class DataSource(Enum):
@@ -158,7 +170,7 @@ def validate_request(
                 if source == DataSource.FORM_MULTIPART:
                     files = await request.files
                     for key in files:
-                        if len(files.getlist(key)) > 1:
+                        if len(files.getlist(key)) > 1 or _expects_list(model_class, key):
                             data[key] = files.getlist(key)
                         else:
                             data[key] = files[key]
